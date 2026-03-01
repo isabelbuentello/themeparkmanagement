@@ -19,7 +19,7 @@ CREATE TABLE Ride (
 CREATE TABLE Venue (
   venue_id         INT                          AUTO_INCREMENT                  NOT NULL, 
   location_id      CHAR(10)                                                     NOT NULL,
-  venue_type       ENUM('shop', 'restuarant', 'show')                           NOT NULL,
+  venue_type       ENUM('shop', 'restaurant', 'show')                           NOT NULL,
   name             VARCHAR(60)                                                  NOT NULL,
   hours            TIMESTAMP                                                    NOT NULL,
   latitude         DECIMAL(9,6)                                                 NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE Venue (
 );
 
 CREATE TABLE Shop (
-  venue_id                    INT                AUTO_INCREMENT                 NOT NULL,
+  venue_id                    INT                                               NOT NULL,
   space_for_items_sqft        INT UNSIGNED                                      NOT NULL CHECK (space_for_items_sqft >= 0),
   total_merch_sold            INT UNSIGNED                                      NOT NULL CHECK (total_merch_sold >= 0),
 
@@ -39,7 +39,7 @@ CREATE TABLE Shop (
 );
 
 CREATE TABLE Restaurant (
-  venue_id                   INT                 AUTO_INCREMENT                NOT NULL,
+  venue_id                   INT                                               NOT NULL,
   requires_booking           BOOLEAN                                           NOT NULL,
   price_range                INT                                               NOT NULL,
   seating_capacity           INT UNSIGNED                                      NOT NULL CHECK (seating_capacity >= 0),
@@ -77,7 +77,7 @@ CREATE TABLE ParkingSession (
   lot_id                      INT                                             NOT NULL,
   customer_id                 INT                                             NOT NULL,
   entry_time                  TIMESTAMP                                       NOT NULL,
-  exit_time                   TIMESTAMP                                       NOT NULL,
+  exit_time                   TIMESTAMP                                       NULL,
   amount_paid                 DECIMAL(6,2)                                    NOT NULL CHECK (amount_paid BETWEEN 0 AND 500),
 
   PRIMARY KEY (session_id),
