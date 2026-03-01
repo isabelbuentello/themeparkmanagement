@@ -17,7 +17,7 @@ CREATE TABLE Ride (
 );
 
 CREATE TABLE Venue (
-  venue_id         INT                                                          NOT NULL, 
+  venue_id         INT                          AUTO_INCREMENT                  NOT NULL, 
   location_id      CHAR(10)                                                     NOT NULL,
   venue_type       ENUM('shop', 'restuarant', 'show')                           NOT NULL,
   name             VARCHAR(60)                                                  NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE Venue (
 );
 
 CREATE TABLE Shop (
-  venue_id                    INT                                          NOT NULL,
+  venue_id                    INT                AUTO_INCREMENT                 NOT NULL,
   space_for_items_sqft        INT UNSIGNED                                      NOT NULL CHECK (space_for_items_sqft >= 0),
   total_merch_sold            INT UNSIGNED                                      NOT NULL CHECK (total_merch_sold >= 0),
 
@@ -39,7 +39,7 @@ CREATE TABLE Shop (
 );
 
 CREATE TABLE Restaurant (
-  venue_id                   INT                                          NOT NULL,
+  venue_id                   INT                 AUTO_INCREMENT                NOT NULL,
   requires_booking           BOOLEAN                                           NOT NULL,
   price_range                INT                                               NOT NULL,
   seating_capacity           INT UNSIGNED                                      NOT NULL CHECK (seating_capacity >= 0),
@@ -49,7 +49,7 @@ CREATE TABLE Restaurant (
 );
 
 CREATE TABLE MenuItem (
-  menu_item_id                INT                                              NOT NULL,
+  menu_item_id                INT                 AUTO_INCREMENT               NOT NULL,
   restaurant_venue_id         INT                                              NOT NULL,
   item_name                   VARCHAR(100)                                     NOT NULL,
   price                       DECIMAL(6,2)                                     NOT NULL CHECK (price >= 0),
@@ -60,7 +60,7 @@ CREATE TABLE MenuItem (
 );
 
 CREATE TABLE ParkingLot (
-  lot_id                      INT                                              NOT NULL,
+  lot_id                      INT                 AUTO_INCREMENT               NOT NULL,
   location_id                 CHAR(10)                                         NOT NULL,
   lot_name                    VARCHAR(60)                                      NOT NULL,
   total_space_available       INT UNSIGNED                                     NOT NULL CHECK (total_space_available >= 0 AND total_space_available < 500),
@@ -73,7 +73,7 @@ CREATE TABLE ParkingLot (
 );
 
 CREATE TABLE ParkingSession (
-  session_id                  INT                                             NOT NULL,
+  session_id                  INT                 AUTO_INCREMENT              NOT NULL,
   lot_id                      INT                                             NOT NULL,
   customer_id                 INT                                             NOT NULL,
   entry_time                  TIMESTAMP                                       NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE ParkingSession (
 );
 
 CREATE TABLE VirtualQueue (
-  queue_id                   INT                                             NOT NULL,
+  queue_id                   INT                 AUTO_INCREMENT              NOT NULL,
   ride_id                    INT                                             NOT NULL,
 
   PRIMARY KEY (queue_id),
