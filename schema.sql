@@ -76,9 +76,9 @@ CREATE TABLE `Transaction` (
   transaction_time DATE                                                      NOT NULL,
   total_amount     DECIMAL(10,2)                                             NOT NULL CHECK (total_amount >= 0),
   payment_method   ENUM('cash', 'card')                                      NOT NULL,
-  venue_id         INT                                                       NOT NULL,
+  venue_id         INT                                                       NULL,
 
-  PRIMARY KEY (transaction_id)
+  PRIMARY KEY (transaction_id),
   FOREIGN KEY (account_id) REFERENCES Account(account_id),
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
