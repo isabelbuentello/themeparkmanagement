@@ -92,16 +92,6 @@ CREATE TABLE ParkDay (
   PRIMARY KEY (day_id)
 );
 
-CREATE TABLE Customer (
-  customer_id       INT                         AUTO_INCREMENT                  NOT NULL,
-  first_name        VARCHAR(30)                                                 NOT NULL,
-  last_name         VARCHAR(30)                                                 NOT NULL,
-  birthdate         DATE                                                        NULL,
-  phone             VARCHAR(20)                                                 NULL,
-  email             VARCHAR(80)                                                 NULL,
-  address           VARCHAR(100)                                                NULL,
-  PRIMARY KEY (customer_id)
-);
 
 CREATE TABLE Venue (
   venue_id         INT                          AUTO_INCREMENT                  NOT NULL, 
