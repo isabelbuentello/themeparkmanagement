@@ -7,8 +7,8 @@ CREATE TABLE Ride (
   size_sqft         INT UNSIGNED                                                NOT NULL,
   lat               DECIMAL(9,6)                                                NOT NULL,
   long              DECIMAL(9,6)                                                NOT NULL,
-  speed_mph         INT                                                         CHECK (speed_mph BETWEEN 10 AND 200),
-  min_height_ft     DECIMAL(3,1)                                                CHECK (min_height_ft BETWEEN 0 AND 5),
+  speed_mph         INT                                                         NOT NULL CHECK (speed_mph BETWEEN 10 AND 200),
+  min_height_ft     DECIMAL(3,1)                                                NOT NULL CHECK (min_height_ft BETWEEN 0 AND 5),
   affected_by_rain  BOOLEAN                                                     NOT NULL,
   status            ENUM('open', 'broken', 'maintenance', 'closed_weather')     NOT NULL,
 
@@ -19,9 +19,9 @@ CREATE TABLE Ride (
 CREATE TABLE RideDailyStats (
   ride_id           INT                                                         NOT NULL,
   day_id            INT                                                         NOT NULL,
-  attendance_count  INT                                                         CHECK (attendance_count BETWEEN 0 AND 500),
-  fastpass_used     INT                                                         CHECK (fastpass_used BETWEEN 0 AND 500),
-  rainout_count     INT                                                         CHECK (rainout_count < 50),
+  attendance_count  INT                                                         NOT NULL CHECK (attendance_count BETWEEN 0 AND 500),
+  fastpass_used     INT                                                         NOT NULL CHECK (fastpass_used BETWEEN 0 AND 500),
+  rainout_count     INT UNSIGNED                                                NOT NULL CHECK (rainout_count < 50),
   PRIMARY KEY (ride_id, day_id),
   FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
   FOREIGN KEY (day_id) REFERENCES ParkDay(day_id)
@@ -31,7 +31,7 @@ CREATE TABLE Employee (
   employee_id       INT                         AUTO_INCREMENT                  NOT NULL,
   full_name         VARCHAR(60)                                                 NOT NULL,
   role              ENUM('maintenance', 'manager', 'operator', 'attendant')     NOT NULL,
-  pay_rate          DECIMAL(10,2)                                               CHECK (pay_rate > 7.50),
+  pay_rate          DECIMAL(10,2)                                               NOT NULL CHECK (pay_rate > 7.50),
   start_date        DATE                                                        NOT NULL,
   department        VARCHAR(50)                                                 NOT NULL,
   phone             VARCHAR(20)                                                 NOT NULL,
