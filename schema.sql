@@ -7,14 +7,91 @@ CREATE TABLE Ride (
   size_sqft         INT UNSIGNED                                                NOT NULL,
   lat               DECIMAL(9,6)                                                NOT NULL,
   long              DECIMAL(9,6)                                                NOT NULL,
-  speed_mph         INT                                                         CHECK (speed_mph BETWEEN 10 AND 200),
-  min_height_ft     DECIMAL(3,1)                                                CHECK (min_height_ft BETWEEN 0 AND 5),
+  speed_mph         INT                                                         NOT NULL CHECK (speed_mph BETWEEN 10 AND 200),
+  min_height_ft     DECIMAL(3,1)                                                NOT NULL CHECK (min_height_ft BETWEEN 0 AND 5),
   affected_by_rain  BOOLEAN                                                     NOT NULL,
   status            ENUM('open', 'broken', 'maintenance', 'closed_weather')     NOT NULL,
 
   PRIMARY KEY (ride_id),
   FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
+
+CREATE TABLE RideDailyStats (
+  ride_id           INT                                                         NOT NULL,
+  day_id            INT                                                         NOT NULL,
+  attendance_count  INT                                                         NOT NULL CHECK (attendance_count BETWEEN 0 AND 500),
+  fastpass_used     INT                                                         NOT NULL CHECK (fastpass_used BETWEEN 0 AND 500),
+  rainout_count     INT UNSIGNED                                                NOT NULL CHECK (rainout_count < 50),
+  PRIMARY KEY (ride_id, day_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
+  FOREIGN KEY (day_id) REFERENCES ParkDay(day_id)
+);
+
+CREATE TABLE Employee (
+  employee_id       INT                         AUTO_INCREMENT                  NOT NULL,
+  full_name         VARCHAR(60)                                                 NOT NULL,
+  role              ENUM('maintenance', 'manager', 'operator', 'attendant')     NOT NULL,
+  pay_rate          DECIMAL(10,2)                                               NOT NULL CHECK (pay_rate > 7.50),
+  start_date        DATE                                                        NOT NULL,
+  department        VARCHAR(50)                                                 NOT NULL,
+  phone             VARCHAR(20)                                                 NOT NULL,
+  email             VARCHAR(80)                                                 NOT NULL,
+  address           VARCHAR(100)                                                NOT NULL,
+  gender            ENUM('male', 'female', 'non_binary', 'prefer_not_to_say')   NOT NULL,
+  birthdate         DATE                                                        NOT NULL,
+  ssn               CHAR(9)                                                     NOT NULL UNIQUE,
+  PRIMARY KEY (employee_id)
+);
+
+CREATE TABLE EmployeeRideTraining (
+  employee_id       INT                                                         NOT NULL,
+  ride_id           INT                                                         NOT NULL,
+  trained_level     ENUM('basic', 'intermediate', 'advanced')                   NOT NULL,
+  trained_date      DATE                                                        NOT NULL,
+  PRIMARY KEY (employee_id, ride_id),
+  FOREIGN KEY (employee_id) REFERENCES Employee(employee_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id)
+);
+
+CREATE TABLE MaintenanceLog (
+  log_id            INT                         AUTO_INCREMENT                  NOT NULL,
+  ride_id           INT                                                         NOT NULL,
+  employee_id       INT                                                         NOT NULL,
+  issue_description VARCHAR(500)                                                NOT NULL,
+  status            ENUM('fixed', 'in-progress', 'broken')                      NOT NULL,
+  cost_to_repair    DECIMAL(10,2)                                               NULL,
+  reported_time     DATETIME                                                    NOT NULL,
+  fixed_time        DATETIME                                                    NULL,
+  PRIMARY KEY (log_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
+  FOREIGN KEY (employee_id) REFERENCES Employee(employee_id)
+);
+
+CREATE TABLE RideInspection (
+  inspection_id     INT                         AUTO_INCREMENT                  NOT NULL,
+  ride_id           INT                                                         NOT NULL,
+  inspected_on      DATE                                                        NOT NULL,
+  expires_on        DATE                                                        NOT NULL,
+  inspector_id      INT                                                         NOT NULL,
+  notes             VARCHAR(500)                                                NULL,
+  PRIMARY KEY (inspection_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
+  FOREIGN KEY (inspector_id) REFERENCES Employee(employee_id)
+);
+
+CREATE TABLE ParkDay (
+  day_id            INT                         AUTO_INCREMENT                  NOT NULL,
+  date              DATE                                                        NOT NULL,
+  rain              BOOLEAN                                                     NOT NULL,
+  park_closed       BOOLEAN                                                     NOT NULL,
+  weather_notes     VARCHAR(500)                                                NULL,
+  total_attendance  INT UNSIGNED                                                NOT NULL,
+  employees_clocked_in      INT UNSIGNED                                        NULL,
+  employees_expected        INT UNSIGNED                                        NOT NULL,
+  estimated_daily_cost      INT UNSIGNED                                        NULL,
+  PRIMARY KEY (day_id)
+);
+
 
 CREATE TABLE Venue (
   venue_id         INT                          AUTO_INCREMENT                  NOT NULL, 
@@ -92,6 +169,8 @@ CREATE TABLE VirtualQueue (
   PRIMARY KEY (queue_id),
   UNIQUE (ride_id),
   FOREIGN KEY (ride_id) REFERENCES Ride(ride_id)
+);
+
 CREATE TABLE PassType (
   pass_type_id     INT                          AUTO_INCREMENT                   NOT NULL,
   name             ENUM('fast pass', 'food pass', 'parking pass', 'season pass') NOT NULL,
