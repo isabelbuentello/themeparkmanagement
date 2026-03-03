@@ -1,18 +1,18 @@
 CREATE TABLE Customer (
-  customer_id   INT(10)       AUTO_INCREMENT                        NOT NULL,
+  customer_id   INT       AUTO_INCREMENT                        NOT NULL,
   first_name    VARCHAR(30)                                         NOT NULL,
   last_name     VARCHAR(30)                                         NOT NULL,
   birthdate     DATE                                                NOT NULL,
   phone         VARCHAR(20)                                         NOT NULL,
   email         VARCHAR(80)                                         NOT NULL,
-  address       VARCHAR(100)                                        NOT NULL,
+  address       VARCHAR(100)                                        NULL,
 
   PRIMARY KEY (customer_id)
 );
 
 CREATE TABLE Account (
-  account_id    INT(10)       AUTO_INCREMENT                        NOT NULL,
-  customer_id   INT(10)                                            NOT NULL,
+  account_id    INT       AUTO_INCREMENT                        NOT NULL,
+  customer_id   INT                                            NOT NULL,
   username      VARCHAR(60)                                         NOT NULL UNIQUE,
   password      VARCHAR(255)                                        NOT NULL CHECK (CHAR_LENGTH(password) >= 10),
   date_created  DATE                                                NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE Account (
 );
 
 CREATE TABLE MembershipTier (
-  tier_id       INT(10)       AUTO_INCREMENT                        NOT NULL,
+  tier_id       INT       AUTO_INCREMENT                        NOT NULL,
   tier_name     ENUM('gold', 'silver', 'platinum')                  NOT NULL,
   discount      DECIMAL(5,2)                                        NOT NULL CHECK (discount BETWEEN 0 AND 100),
 
@@ -30,7 +30,7 @@ CREATE TABLE MembershipTier (
 );
 
 CREATE TABLE Perk (
-  perk_id       INT(10)       AUTO_INCREMENT                        NOT NULL,
+  perk_id       INT       AUTO_INCREMENT                        NOT NULL,
   perk_name     VARCHAR(60)                                         NOT NULL,
   description   TEXT                                                NULL,
 
@@ -38,8 +38,8 @@ CREATE TABLE Perk (
 );
 
 CREATE TABLE TierPerk (
-  tier_id       INT(10)                                             NOT NULL,
-  perk_id       INT(10)                                             NOT NULL,
+  tier_id       INT                                             NOT NULL,
+  perk_id       INT                                             NOT NULL,
 
   PRIMARY KEY (tier_id, perk_id),
   FOREIGN KEY (tier_id) REFERENCES MembershipTier(tier_id),
@@ -47,9 +47,9 @@ CREATE TABLE TierPerk (
 );
 
 CREATE TABLE Membership (
-  membership_id   INT(10)     AUTO_INCREMENT                        NOT NULL,
-  account_id      INT(10)                                          NOT NULL,
-  tier_id         INT(10)                                          NOT NULL,
+  membership_id   INT     AUTO_INCREMENT                        NOT NULL,
+  account_id      INT                                          NOT NULL,
+  tier_id         INT                                          NOT NULL,
   start_date      DATE                                              NOT NULL,
   end_date        DATE                                              NOT NULL,
   status          ENUM('active', 'expired', 'canceled')             NOT NULL,
@@ -62,8 +62,8 @@ CREATE TABLE Membership (
 );
 
 CREATE TABLE Visit (
-  visit_id        INT(10)     AUTO_INCREMENT                        NOT NULL,
-  customer_id     INT(10)                                          NOT NULL,
+  visit_id        INT     AUTO_INCREMENT                        NOT NULL,
+  customer_id     INT                                          NOT NULL,
   visit_date      DATE                                              NOT NULL,
   entry_time      DATETIME                                          NOT NULL,
 
