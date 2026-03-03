@@ -1,3 +1,11 @@
+CREATE TABLE RideRainout (
+  rainout_id       INT                          AUTO_INCREMENT                  NOT NULL,
+  ride_id          INT                                                          NOT NULL,
+  rainout_time     DATETIME                                                     NOT NULL,
+  PRIMARY KEY (rainout_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id)
+);
+
 CREATE TABLE Ride (
   ride_id           INT                         AUTO_INCREMENT                  NOT NULL,
   name              VARCHAR(60)                                                 NOT NULL,
@@ -14,17 +22,6 @@ CREATE TABLE Ride (
 
   PRIMARY KEY (ride_id),
   FOREIGN KEY (location_id) REFERENCES Location(location_id)
-);
-
-CREATE TABLE RideDailyStats (
-  ride_id           INT                                                         NOT NULL,
-  day_id            INT                                                         NOT NULL,
-  attendance_count  INT                                                         NOT NULL CHECK (attendance_count BETWEEN 0 AND 500),
-  fastpass_used     INT                                                         NOT NULL CHECK (fastpass_used BETWEEN 0 AND 500),
-  rainout_count     INT UNSIGNED                                                NOT NULL CHECK (rainout_count < 50),
-  PRIMARY KEY (ride_id, day_id),
-  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
-  FOREIGN KEY (day_id) REFERENCES ParkDay(day_id)
 );
 
 CREATE TABLE Employee (
