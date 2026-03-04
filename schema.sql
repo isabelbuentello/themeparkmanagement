@@ -104,33 +104,29 @@ CREATE TABLE TierPerk (
 
 CREATE TABLE Venue (
   venue_id         INT                          AUTO_INCREMENT                  NOT NULL, 
-  location_id      CHAR(10)                                                     NOT NULL,
   venue_type       ENUM('shop', 'restaurant', 'show')                           NOT NULL,
-  venue_name             VARCHAR(60)                                                  NOT NULL,
+  venue_name       VARCHAR(60)                                                  NOT NULL,
   hours            VARCHAR(100)                                                    NOT NULL,
-  latitude         DECIMAL(9,6)                                                 NOT NULL,
-  longitude        DECIMAL(9,6)                                                 NOT NULL,
+  venue_lat        DECIMAL(9,6)                                                 NOT NULL,
+  venue_long       DECIMAL(9,6)                                                 NOT NULL,
 
-  PRIMARY KEY (venue_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id)
+  PRIMARY KEY (venue_id)
 );
 
 CREATE TABLE Ride (
   ride_id           INT                         AUTO_INCREMENT                  NOT NULL,
-  ride_name              VARCHAR(60)                                                 NOT NULL,
-  location_id       CHAR(10)                                                    NOT NULL,
+  ride_name         VARCHAR(60)                                            NOT NULL,
   ride_type         ENUM('rollercoaster', 'water', 'kids')                      NOT NULL,
   is_seasonal       BOOLEAN                                                     NOT NULL,
   size_sqft         INT UNSIGNED                                                NOT NULL,
-  lat               DECIMAL(9,6)                                                NOT NULL,
-  long              DECIMAL(9,6)                                                NOT NULL,
+  ride_lat          DECIMAL(9,6)                                                NOT NULL,
+  ride_long         DECIMAL(9,6)                                                NOT NULL,
   speed_mph         INT                                                         NOT NULL CHECK (speed_mph BETWEEN 10 AND 200),
   min_height_ft     DECIMAL(3,1)                                                NOT NULL CHECK (min_height_ft BETWEEN 0 AND 5),
   affected_by_rain  BOOLEAN                                                     NOT NULL,
   status_ride            ENUM('open', 'broken', 'maintenance', 'closed_weather')     NOT NULL,
 
   PRIMARY KEY (ride_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
 
 CREATE TABLE RideRainout (
@@ -152,7 +148,8 @@ CREATE TABLE VirtualQueue (
 
 CREATE TABLE ParkingLot (
   lot_id                      INT                 AUTO_INCREMENT               NOT NULL,
-  location_id                 CHAR(10)                                         NOT NULL,
+  lot_lat                     DECIMAL(9,6)                                     NOT NULL,
+  lot_long                    DECIMAL(9,6)                                     NOT NULL,
   lot_name                    VARCHAR(60)                                      NOT NULL,
   total_space_available       INT UNSIGNED                                     NOT NULL CHECK (total_space_available >= 0 AND total_space_available < 500),
   hourly_rate                 DECIMAL(6,2)                                     NOT NULL CHECK (hourly_rate > 5.00),
@@ -160,17 +157,16 @@ CREATE TABLE ParkingLot (
   reserved_employee_spaces    INT UNSIGNED                                     NOT NULL CHECK (reserved_employee_spaces < 200),
 
   PRIMARY KEY (lot_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
 
 CREATE TABLE EmergencyEvent (
   event_id                  INT                      AUTO_INCREMENT                    NOT NULL,
   date_of_emergency         DATE                                                       NOT NULL,
-  location_id               INT                                                        NOT NULL,
+  event_lat                 DECIMAL(9,6)                                               NOT NULL,
+  event_long                DECIMAL(9,6)                                               NOT NULL,
   event_description         VARCHAR(1000)                                              NOT NULL,
 
   PRIMARY KEY (event_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
 
 CREATE TABLE Membership (
@@ -257,13 +253,13 @@ CREATE TABLE MenuItem (
 CREATE TABLE Show (
   show_id                  INT                        AUTO_INCREMENT                   NOT NULL,
   venue_id                 INT                                                         NOT NULL,
-  location_id              INT                                                         NOT NULL,
-  show_category                 ENUM("magician","puppets","clown")                          NOT NULL,
+  show_lat                 DECIMAL(9,6)                                                NOT NULL,
+  show_long                DECIMAL(9,6)                                                NOT NULL,
+  show_category            ENUM("magician","puppets","clown", 'musician')              NOT NULL,
   duration                 INT                                                         NOT NULL CHECK (duration BETWEEN 0 AND 120),
 
   PRIMARY KEY (show_id),
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
 
 CREATE TABLE ShowTime (
@@ -389,7 +385,6 @@ CREATE TABLE QueueReservation (
 CREATE TABLE Complaint (
   complaint_id             INT                     AUTO_INCREMENT                   NOT NULL,
   customer_id              INT                                                      NULL,
-  location_id              INT                                                      NULL,
   venue_id                 INT                                                      NULL,
   ride_id                  INT                                                      NULL,
   complaint_description    VARCHAR(300)                                      NULL,
@@ -400,7 +395,6 @@ CREATE TABLE Complaint (
   PRIMARY KEY (complaint_id),
   FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
   FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id),
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
