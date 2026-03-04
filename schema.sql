@@ -3,10 +3,10 @@ CREATE TABLE  Customer (
   customer_id   INT       AUTO_INCREMENT                        NOT NULL,
   first_name    VARCHAR(30)                                         NOT NULL,
   last_name     VARCHAR(30)                                         NOT NULL,
-  birthdate     DATE                                                NOT NULL,
-  phone         VARCHAR(20)                                         NOT NULL,
-  email         VARCHAR(80)                                         NOT NULL,
-  address       VARCHAR(100)                                        NULL,
+  customer_birthdate     DATE                                                NOT NULL,
+  customer_phone         VARCHAR(20)                                         NOT NULL,
+  customer_email         VARCHAR(80)                                         NOT NULL,
+  customer_address       VARCHAR(100)                                        NULL,
 
   PRIMARY KEY (customer_id)
 );
@@ -34,11 +34,11 @@ CREATE TABLE Employee (
   pay_rate          DECIMAL(10,2)                                               NOT NULL CHECK (pay_rate > 7.50),
   start_date        DATE                                                        NOT NULL,
   department        VARCHAR(50)                                                 NOT NULL,
-  phone             VARCHAR(20)                                                 NOT NULL,
-  email             VARCHAR(80)                                                 NOT NULL,
-  address           VARCHAR(100)                                                NOT NULL,
+  employee_phone             VARCHAR(20)                                                 NOT NULL,
+  employee_email             VARCHAR(80)                                                 NOT NULL,
+  employee_address           VARCHAR(100)                                                NOT NULL,
   gender            ENUM('male', 'female', 'non_binary', 'prefer_not_to_say')   NOT NULL,
-  birthdate         DATE                                                        NOT NULL,
+  employee_birthdate         DATE                                                        NOT NULL,
   ssn               CHAR(9)                                                     NOT NULL UNIQUE,
   PRIMARY KEY (employee_id)
 );
@@ -258,7 +258,7 @@ CREATE TABLE Show (
   show_id                  INT                        AUTO_INCREMENT                   NOT NULL,
   venue_id                 INT                                                         NOT NULL,
   location_id              INT                                                         NOT NULL,
-  category                 ENUM("magician","puppets","clown")                          NOT NULL,
+  show_category                 ENUM("magician","puppets","clown")                          NOT NULL,
   duration                 INT                                                         NOT NULL CHECK (duration BETWEEN 0 AND 120),
 
   PRIMARY KEY (show_id),
