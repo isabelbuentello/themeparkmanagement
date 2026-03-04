@@ -110,8 +110,7 @@ CREATE TABLE Venue (
   venue_lat        DECIMAL(9,6)                                                 NOT NULL,
   venue_long       DECIMAL(9,6)                                                 NOT NULL,
 
-  PRIMARY KEY (venue_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id)
+  PRIMARY KEY (venue_id)
 );
 
 CREATE TABLE Ride (
@@ -128,7 +127,6 @@ CREATE TABLE Ride (
   status_ride            ENUM('open', 'broken', 'maintenance', 'closed_weather')     NOT NULL,
 
   PRIMARY KEY (ride_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
 
 CREATE TABLE RideRainout (
@@ -159,7 +157,6 @@ CREATE TABLE ParkingLot (
   reserved_employee_spaces    INT UNSIGNED                                     NOT NULL CHECK (reserved_employee_spaces < 200),
 
   PRIMARY KEY (lot_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
 
 CREATE TABLE EmergencyEvent (
@@ -170,7 +167,6 @@ CREATE TABLE EmergencyEvent (
   event_description         VARCHAR(1000)                                              NOT NULL,
 
   PRIMARY KEY (event_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
 
 CREATE TABLE Membership (
@@ -264,7 +260,6 @@ CREATE TABLE Show (
 
   PRIMARY KEY (show_id),
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
 
 CREATE TABLE ShowTime (
@@ -400,7 +395,6 @@ CREATE TABLE Complaint (
   PRIMARY KEY (complaint_id),
   FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
   FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id),
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
