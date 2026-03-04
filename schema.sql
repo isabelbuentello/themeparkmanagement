@@ -330,6 +330,7 @@ CREATE TABLE QueueReservation (
   reservation_fulfilled   BOOLEAN                                                   NOT NULL,
 
   PRIMARY KEY (reservation_id),
+  FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
   FOREIGN KEY (queue_id) REFERENCES VirtualQueue(queue_id)
 );
 
@@ -338,12 +339,14 @@ CREATE TABLE Complaint (
   customer_id              INT                                                      NULL,
   location_id              INT                                                      NULL,
   venue_id                 INT                                                      NULL,
-  description_id           VARCHAR(300)                                             NULL,
+  ride_id                  INT                                                      NULL,
+  complaint_description    VARCHAR(300)                                      NULL,
   created_date             DATE                                                     NOT NULL,
   resolved                 BOOLEAN                                                  NOT NULL,
-  resolved_date            DATE                                                     NOT NULL,
+  resolved_date            DATE                                                     NULL,
 
   PRIMARY KEY (complaint_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
   FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
   FOREIGN KEY (location_id) REFERENCES Location(location_id),
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
@@ -354,7 +357,7 @@ CREATE TABLE Review (
   customer_id               INT                                                       NOT NULL,
   ride_id                   INT                                                       NOT NULL,
   venue_id                  INT                                                       NULL,
-  rating                    INT                                                       NOT NULL CHECK (rating BETWEEN 1 AND 10)
+  rating                    INT                                                       NOT NULL CHECK (rating BETWEEN 1 AND 10),
   comment                   VARCHAR(10000)                                            NULL,
   review_created_date       DATE                                                      NOT NULL,
 
@@ -382,10 +385,11 @@ CREATE TABLE Show (
   duration                 INT                                                         NOT NULL CHECK (duration BETWEEN 0 AND 120),
 
   PRIMARY KEY (show_id),
+  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id),
   FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
 CREATE TABLE ShowTime (
-  show_time               INT                          AUTO_INCREMENT                  NOT NULL,
+  show_time               INT                                                          NOT NULL,
   show_id                 INT                                                          NOT NULL,
   show_start_time         DATETIME                                                     NOT NULL,
 
@@ -394,10 +398,20 @@ CREATE TABLE ShowTime (
 );
 
 CREATE TABLE DailyRevenue (
-  date_of_revenue          DATE                        AUTO_INCREMENT                  NOT NULL,
+  date_of_revenue          DATE                                                        NOT NULL,
   venue_id                 INT                                                         NOT NULL,
-  revenue                  INT(UNSIGNED)                                               NOT NULL,
+  revenue                  INT UNSIGNED                                                NOT NULL,
 
   PRIMARY KEY (date_of_revenue),
+  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
+);
+CREATE TABLE Department (
+  department_id            INT                       AUTO_INCREMENT                    NOT NULL,
+  department_name          VARCHAR(100)                                                NOT NULL,
+  ride_id                  INT                                                         NULL,
+  venue_id                 INT                                                         NULL,
+
+  PRIMARY KEY (department_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
