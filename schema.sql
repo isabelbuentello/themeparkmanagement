@@ -1,3 +1,4 @@
+
 CREATE TABLE  Customer (
   customer_id   INT       AUTO_INCREMENT                        NOT NULL,
   first_name    VARCHAR(30)                                         NOT NULL,
@@ -132,6 +133,23 @@ CREATE TABLE Ride (
   FOREIGN KEY (location_id) REFERENCES Location(location_id)
 );
 
+CREATE TABLE RideRainout (
+  rainout_id       INT                          AUTO_INCREMENT                  NOT NULL,
+  ride_id          INT                                                          NOT NULL,
+  rainout_time     DATETIME                                                     NOT NULL,
+  PRIMARY KEY (rainout_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id)
+);
+
+CREATE TABLE VirtualQueue (
+  queue_id                   INT                 AUTO_INCREMENT              NOT NULL,
+  ride_id                    INT                                             NOT NULL,
+
+  PRIMARY KEY (queue_id),
+  UNIQUE (ride_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id)
+);
+
 CREATE TABLE ParkingLot (
   lot_id                      INT                 AUTO_INCREMENT               NOT NULL,
   location_id                 CHAR(10)                                         NOT NULL,
@@ -170,26 +188,6 @@ CREATE TABLE Membership (
   FOREIGN KEY (tier_id) REFERENCES MembershipTier(tier_id)
 );
 
-CREATE TABLE VirtualQueue (
-  queue_id                   INT                 AUTO_INCREMENT              NOT NULL,
-  ride_id                    INT                                             NOT NULL,
-
-  PRIMARY KEY (queue_id),
-  UNIQUE (ride_id),
-  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id)
-);
-
-CREATE TABLE RideDailyStats (
-  ride_id           INT                                                         NOT NULL,
-  day_id            INT                                                         NOT NULL,
-  attendance_count  INT                                                         NOT NULL CHECK (attendance_count BETWEEN 0 AND 500),
-  fastpass_used     INT                                                         NOT NULL CHECK (fastpass_used BETWEEN 0 AND 500),
-  rainout_count     INT UNSIGNED                                                NOT NULL CHECK (rainout_count < 50),
-  PRIMARY KEY (ride_id, day_id),
-  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
-  FOREIGN KEY (day_id) REFERENCES ParkDay(day_id)
-);
-
 CREATE TABLE EmployeeRideTraining (
   employee_id       INT                                                         NOT NULL,
   ride_id           INT                                                         NOT NULL,
@@ -225,7 +223,6 @@ CREATE TABLE RideInspection (
   FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
   FOREIGN KEY (inspector_id) REFERENCES Employee(employee_id)
 );
-
 
 CREATE TABLE Shop (
   venue_id                    INT                                               NOT NULL,
@@ -281,7 +278,7 @@ CREATE TABLE ShowTime (
 CREATE TABLE DailyRevenue (
   date_of_revenue          DATE                                                        NOT NULL,
   venue_id                 INT                                                         NOT NULL,
-  revenue                  INT(UNSIGNED)                                               NOT NULL,
+  revenue                  INT UNSIGNED                                                NOT NULL,
 
   PRIMARY KEY (date_of_revenue),
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
@@ -299,8 +296,6 @@ CREATE TABLE ParkingSession (
   FOREIGN KEY (lot_id) REFERENCES ParkingLot(lot_id),
   FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
 );
-
-
 
 CREATE TABLE Pass (
   pass_id                INT                    AUTO_INCREMENT                  NOT NULL,
@@ -355,6 +350,19 @@ CREATE TABLE Review (
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
+CREATE TABLE `Transaction` (
+  transaction_id   INT                      AUTO_INCREMENT                   NOT NULL,
+  account_id       INT                                                       NULL,
+  transaction_time DATE                                                      NOT NULL,
+  total_amount     DECIMAL(10,2)                                             NOT NULL CHECK (total_amount >= 0),
+  payment_method   ENUM('cash', 'card')                                      NOT NULL,
+  venue_id         INT                                                       NULL,
+
+  PRIMARY KEY (transaction_id),
+  FOREIGN KEY (account_id) REFERENCES Account(account_id),
+  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
+);
+
 CREATE TABLE TransactionItem (
   transaction_item_id  INT                 AUTO_INCREMENT                    NOT NULL,
   transaction_id       INT                                                   NOT NULL,
@@ -396,73 +404,6 @@ CREATE TABLE Complaint (
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
-CREATE TABLE Review (
-  review_id                 INT                     AUTO_INCREMENT                    NOT NULL,
-  customer_id               INT                                                       NOT NULL,
-  ride_id                   INT                                                       NOT NULL,
-  venue_id                  INT                                                       NULL,
-  rating                    INT                                                       NOT NULL CHECK (rating BETWEEN 1 AND 10),
-  comment                   VARCHAR(10000)                                            NULL,
-  review_created_date       DATE                                                      NOT NULL,
-CREATE TABLE QueueReservation (
-  reservation_id          INT                     AUTO_INCREMENT                    NOT NULL,
-  queue_id                INT                                                       NOT NULL,
-  customer_id             INT                                                       NOT NULL,
-  reservation_time        DATETIME                                                  NOT NULL,
-  reservation_fulfilled   BOOLEAN                                                   NOT NULL,
-
-  PRIMARY KEY (reservation_id),
-  FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
-  FOREIGN KEY (queue_id) REFERENCES VirtualQueue(queue_id)
-);
-
-CREATE TABLE `Transaction` (
-  transaction_id   INT                      AUTO_INCREMENT                   NOT NULL,
-  account_id       INT                                                       NULL,
-  transaction_time DATE                                                      NOT NULL,
-  total_amount     DECIMAL(10,2)                                             NOT NULL CHECK (total_amount >= 0),
-  payment_method   ENUM('cash', 'card')                                      NOT NULL,
-  venue_id         INT                                                       NULL,
-
-  PRIMARY KEY (transaction_id),
-  FOREIGN KEY (account_id) REFERENCES Account(account_id),
-  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
-);
-
-CREATE TABLE Show (
-  show_id                  INT                        AUTO_INCREMENT                   NOT NULL,
-  venue_id                 INT                                                         NOT NULL,
-  location_id              INT                                                         NOT NULL,
-  category                 ENUM("magician","puppets","clown")                          NOT NULL,
-  duration                 INT                                                         NOT NULL CHECK (duration BETWEEN 0 AND 120),
-
-  PRIMARY KEY (show_id),
-  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id),
-  FOREIGN KEY (location_id) REFERENCES Location(location_id)
-);
-CREATE TABLE ShowTime (
-  show_time               INT                                                          NOT NULL,
-  show_id                 INT                                                          NOT NULL,
-  show_start_time         DATETIME                                                     NOT NULL,
-CREATE TABLE TransactionItem (
-  transaction_item_id  INT                 AUTO_INCREMENT                    NOT NULL,
-  transaction_id       INT                                                   NOT NULL,
-  item_type            ENUM('ticket', 'pass', 'merch', 'food', 'other')      NOT NULL,
-  quantity             INT                                                   NOT NULL CHECK (quantity >= 1),
-  unit_price           DECIMAL(10,2)                                         NOT NULL CHECK (unit_price > 0),
-
-  PRIMARY KEY (transaction_item_id),
-  FOREIGN KEY (transaction_id) REFERENCES `Transaction`(transaction_id)
-);
-
-CREATE TABLE DailyRevenue (
-  date_of_revenue          DATE                                                        NOT NULL,
-  venue_id                 INT                                                         NOT NULL,
-  revenue                  INT UNSIGNED                                                NOT NULL,
-
-  PRIMARY KEY (date_of_revenue),
-  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
-);
 CREATE TABLE Department (
   department_id            INT                       AUTO_INCREMENT                    NOT NULL,
   department_name          VARCHAR(100)                                                NOT NULL,
