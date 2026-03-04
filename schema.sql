@@ -355,22 +355,55 @@ CREATE TABLE Review (
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
+CREATE TABLE TransactionItem (
+  transaction_item_id  INT                 AUTO_INCREMENT                    NOT NULL,
+  transaction_id       INT                                                   NOT NULL,
+  item_type            ENUM('ticket', 'pass', 'merch', 'food', 'other')      NOT NULL,
+  quantity             INT                                                   NOT NULL CHECK (quantity >= 1),
+  unit_price           DECIMAL(10,2)                                         NOT NULL CHECK (unit_price > 0),
+
+  PRIMARY KEY (transaction_item_id),
+  FOREIGN KEY (transaction_id) REFERENCES `Transaction`(transaction_id)
+);
+
+CREATE TABLE QueueReservation (
+  reservation_id          INT                     AUTO_INCREMENT                    NOT NULL,
+  queue_id                INT                                                       NOT NULL,
+  customer_id             INT                                                       NOT NULL,
+  reservation_time        DATETIME                                                  NOT NULL,
+  reservation_fulfilled   BOOLEAN                                                   NOT NULL,
+
+  PRIMARY KEY (reservation_id),
+  FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
+  FOREIGN KEY (queue_id) REFERENCES VirtualQueue(queue_id)
+);
+
 CREATE TABLE Complaint (
   complaint_id             INT                     AUTO_INCREMENT                   NOT NULL,
   customer_id              INT                                                      NULL,
   location_id              INT                                                      NULL,
   venue_id                 INT                                                      NULL,
-  description_id           VARCHAR(300)                                             NULL,
+  ride_id                  INT                                                      NULL,
+  complaint_description    VARCHAR(300)                                      NULL,
   created_date             DATE                                                     NOT NULL,
   resolved                 BOOLEAN                                                  NOT NULL,
   resolved_date            DATE                                                     NULL,
 
   PRIMARY KEY (complaint_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
   FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
   FOREIGN KEY (location_id) REFERENCES Location(location_id),
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
+CREATE TABLE Review (
+  review_id                 INT                     AUTO_INCREMENT                    NOT NULL,
+  customer_id               INT                                                       NOT NULL,
+  ride_id                   INT                                                       NOT NULL,
+  venue_id                  INT                                                       NULL,
+  rating                    INT                                                       NOT NULL CHECK (rating BETWEEN 1 AND 10),
+  comment                   VARCHAR(10000)                                            NULL,
+  review_created_date       DATE                                                      NOT NULL,
 CREATE TABLE QueueReservation (
   reservation_id          INT                     AUTO_INCREMENT                    NOT NULL,
   queue_id                INT                                                       NOT NULL,
@@ -396,6 +429,21 @@ CREATE TABLE `Transaction` (
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
+CREATE TABLE Show (
+  show_id                  INT                        AUTO_INCREMENT                   NOT NULL,
+  venue_id                 INT                                                         NOT NULL,
+  location_id              INT                                                         NOT NULL,
+  category                 ENUM("magician","puppets","clown")                          NOT NULL,
+  duration                 INT                                                         NOT NULL CHECK (duration BETWEEN 0 AND 120),
+
+  PRIMARY KEY (show_id),
+  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id),
+  FOREIGN KEY (location_id) REFERENCES Location(location_id)
+);
+CREATE TABLE ShowTime (
+  show_time               INT                                                          NOT NULL,
+  show_id                 INT                                                          NOT NULL,
+  show_start_time         DATETIME                                                     NOT NULL,
 CREATE TABLE TransactionItem (
   transaction_item_id  INT                 AUTO_INCREMENT                    NOT NULL,
   transaction_id       INT                                                   NOT NULL,
@@ -405,4 +453,23 @@ CREATE TABLE TransactionItem (
 
   PRIMARY KEY (transaction_item_id),
   FOREIGN KEY (transaction_id) REFERENCES `Transaction`(transaction_id)
+);
+
+CREATE TABLE DailyRevenue (
+  date_of_revenue          DATE                                                        NOT NULL,
+  venue_id                 INT                                                         NOT NULL,
+  revenue                  INT UNSIGNED                                                NOT NULL,
+
+  PRIMARY KEY (date_of_revenue),
+  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
+);
+CREATE TABLE Department (
+  department_id            INT                       AUTO_INCREMENT                    NOT NULL,
+  department_name          VARCHAR(100)                                                NOT NULL,
+  ride_id                  INT                                                         NULL,
+  venue_id                 INT                                                         NULL,
+
+  PRIMARY KEY (department_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
+  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
