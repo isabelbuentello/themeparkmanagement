@@ -3,10 +3,10 @@ CREATE TABLE  Customer (
   customer_id   INT       AUTO_INCREMENT                        NOT NULL,
   first_name    VARCHAR(30)                                         NOT NULL,
   last_name     VARCHAR(30)                                         NOT NULL,
-  birthdate     DATE                                                NOT NULL,
-  phone         VARCHAR(20)                                         NOT NULL,
-  email         VARCHAR(80)                                         NOT NULL,
-  address       VARCHAR(100)                                        NULL,
+  customer_birthdate     DATE                                                NOT NULL,
+  customer_phone         VARCHAR(20)                                         NOT NULL,
+  customer_email         VARCHAR(80)                                         NOT NULL,
+  customer_address       VARCHAR(100)                                        NULL,
 
   PRIMARY KEY (customer_id)
 );
@@ -22,7 +22,7 @@ CREATE TABLE MembershipTier (
 CREATE TABLE Perk (
   perk_id       INT       AUTO_INCREMENT                        NOT NULL,
   perk_name     VARCHAR(60)                                         NOT NULL,
-  description   TEXT                                                NULL,
+  perk_description   TEXT                                                NULL,
 
   PRIMARY KEY (perk_id)
 );
@@ -34,18 +34,18 @@ CREATE TABLE Employee (
   pay_rate          DECIMAL(10,2)                                               NOT NULL CHECK (pay_rate > 7.50),
   start_date        DATE                                                        NOT NULL,
   department        VARCHAR(50)                                                 NOT NULL,
-  phone             VARCHAR(20)                                                 NOT NULL,
-  email             VARCHAR(80)                                                 NOT NULL,
-  address           VARCHAR(100)                                                NOT NULL,
+  employee_phone             VARCHAR(20)                                                 NOT NULL,
+  employee_email             VARCHAR(80)                                                 NOT NULL,
+  employee_address           VARCHAR(100)                                                NOT NULL,
   gender            ENUM('male', 'female', 'non_binary', 'prefer_not_to_say')   NOT NULL,
-  birthdate         DATE                                                        NOT NULL,
+  employee_birthdate         DATE                                                        NOT NULL,
   ssn               CHAR(9)                                                     NOT NULL UNIQUE,
   PRIMARY KEY (employee_id)
 );
 
 CREATE TABLE ParkDay (
   day_id            INT                         AUTO_INCREMENT                  NOT NULL,
-  date              DATE                                                        NOT NULL,
+  park_date              DATE                                                        NOT NULL,
   rain              BOOLEAN                                                     NOT NULL,
   park_closed       BOOLEAN                                                     NOT NULL,
   weather_notes     VARCHAR(500)                                                NULL,
@@ -58,16 +58,16 @@ CREATE TABLE ParkDay (
 
 CREATE TABLE PassType (
   pass_type_id     INT                          AUTO_INCREMENT                   NOT NULL,
-  name             ENUM('fast pass', 'food pass', 'parking pass', 'season pass') NOT NULL,
-  description      VARCHAR(100)                                                  NULL,
+  pass_name             ENUM('fast pass', 'food pass', 'parking pass', 'season pass') NOT NULL,
+  pass_description      VARCHAR(100)                                                  NULL,
 
   PRIMARY KEY (pass_type_id)
 );
 
 CREATE TABLE TicketType (
   ticket_type_id   INT                        AUTO_INCREMENT                   NOT NULL,
-  name             ENUM('park entry', 'ride ticket')                           NOT NULL,
-  description      VARCHAR(200)                                                NULL,
+  ticket_name             ENUM('park entry', 'ride ticket')                           NOT NULL,
+  ticket_description      VARCHAR(200)                                                NULL,
 
   PRIMARY KEY (ticket_type_id)
 );
@@ -106,8 +106,8 @@ CREATE TABLE Venue (
   venue_id         INT                          AUTO_INCREMENT                  NOT NULL, 
   location_id      CHAR(10)                                                     NOT NULL,
   venue_type       ENUM('shop', 'restaurant', 'show')                           NOT NULL,
-  name             VARCHAR(60)                                                  NOT NULL,
-  hours            TIMESTAMP                                                    NOT NULL,
+  venue_name             VARCHAR(60)                                                  NOT NULL,
+  hours            VARCHAR(100)                                                    NOT NULL,
   latitude         DECIMAL(9,6)                                                 NOT NULL,
   longitude        DECIMAL(9,6)                                                 NOT NULL,
 
@@ -117,7 +117,7 @@ CREATE TABLE Venue (
 
 CREATE TABLE Ride (
   ride_id           INT                         AUTO_INCREMENT                  NOT NULL,
-  name              VARCHAR(60)                                                 NOT NULL,
+  ride_name              VARCHAR(60)                                                 NOT NULL,
   location_id       CHAR(10)                                                    NOT NULL,
   ride_type         ENUM('rollercoaster', 'water', 'kids')                      NOT NULL,
   is_seasonal       BOOLEAN                                                     NOT NULL,
@@ -127,7 +127,7 @@ CREATE TABLE Ride (
   speed_mph         INT                                                         NOT NULL CHECK (speed_mph BETWEEN 10 AND 200),
   min_height_ft     DECIMAL(3,1)                                                NOT NULL CHECK (min_height_ft BETWEEN 0 AND 5),
   affected_by_rain  BOOLEAN                                                     NOT NULL,
-  status            ENUM('open', 'broken', 'maintenance', 'closed_weather')     NOT NULL,
+  status_ride            ENUM('open', 'broken', 'maintenance', 'closed_weather')     NOT NULL,
 
   PRIMARY KEY (ride_id),
   FOREIGN KEY (location_id) REFERENCES Location(location_id)
@@ -179,9 +179,9 @@ CREATE TABLE Membership (
   tier_id         INT                                          NOT NULL,
   start_date      DATE                                              NOT NULL,
   end_date        DATE                                              NOT NULL,
-  status          ENUM('active', 'expired', 'canceled')             NOT NULL,
+  status_membership          ENUM('active', 'expired', 'canceled')             NOT NULL,
   auto_renew      BOOLEAN                                           NOT NULL,
-  payment_method  CHAR(4)                                           NOT NULL,
+  payment_method_membership  CHAR(4)                                           NOT NULL,
 
   PRIMARY KEY (membership_id),
   FOREIGN KEY (account_id) REFERENCES Account(account_id),
@@ -203,7 +203,7 @@ CREATE TABLE MaintenanceLog (
   ride_id           INT                                                         NOT NULL,
   employee_id       INT                                                         NOT NULL,
   issue_description VARCHAR(500)                                                NOT NULL,
-  status            ENUM('fixed', 'in-progress', 'broken')                      NOT NULL,
+  status_maintenance            ENUM('fixed', 'in-progress', 'broken')                      NOT NULL,
   cost_to_repair    DECIMAL(10,2)                                               NULL,
   reported_time     DATETIME                                                    NOT NULL,
   fixed_time        DATETIME                                                    NULL,
@@ -218,7 +218,7 @@ CREATE TABLE RideInspection (
   inspected_on      DATE                                                        NOT NULL,
   expires_on        DATE                                                        NOT NULL,
   inspector_id      INT                                                         NOT NULL,
-  notes             VARCHAR(500)                                                NULL,
+  inspection_notes             VARCHAR(500)                                                NULL,
   PRIMARY KEY (inspection_id),
   FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
   FOREIGN KEY (inspector_id) REFERENCES Employee(employee_id)
@@ -258,7 +258,7 @@ CREATE TABLE Show (
   show_id                  INT                        AUTO_INCREMENT                   NOT NULL,
   venue_id                 INT                                                         NOT NULL,
   location_id              INT                                                         NOT NULL,
-  category                 ENUM("magician","puppets","clown")                          NOT NULL,
+  show_category                 ENUM("magician","puppets","clown")                          NOT NULL,
   duration                 INT                                                         NOT NULL CHECK (duration BETWEEN 0 AND 120),
 
   PRIMARY KEY (show_id),
@@ -304,7 +304,7 @@ CREATE TABLE Pass (
   purchase_date          DATE                                                   NOT NULL,
   quantity_purchased     INT                                                    NOT NULL CHECK (quantity_purchased >= 1),
   quantity_remaining     INT                                                    NOT NULL CHECK (quantity_remaining >= 0),
-  status                 ENUM('active', 'expired')                              NOT NULL,
+  status_pass                 ENUM('active', 'expired')                              NOT NULL,
 
   PRIMARY KEY (pass_id),
   FOREIGN KEY (pass_type_id) REFERENCES PassType(pass_type_id),
@@ -316,7 +316,7 @@ CREATE TABLE Ticket (
   ticket_type_id   INT                                                         NOT NULL,
   customer_id      INT                                                         NOT NULL,
   valid_date       DATE                                                        NOT NULL,
-  status           ENUM('valid', 'used', 'expired')                            NOT NULL,
+  status_ticket           ENUM('valid', 'used', 'expired')                            NOT NULL,
 
   PRIMARY KEY (ticket_id),
   FOREIGN KEY (ticket_type_id) REFERENCES TicketType(ticket_type_id),
@@ -355,7 +355,7 @@ CREATE TABLE `Transaction` (
   account_id       INT                                                       NULL,
   transaction_time DATE                                                      NOT NULL,
   total_amount     DECIMAL(10,2)                                             NOT NULL CHECK (total_amount >= 0),
-  payment_method   ENUM('cash', 'card')                                      NOT NULL,
+  payment_method_transaction   ENUM('cash', 'card')                                      NOT NULL,
   venue_id         INT                                                       NULL,
 
   PRIMARY KEY (transaction_id),
