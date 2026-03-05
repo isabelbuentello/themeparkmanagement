@@ -1,18 +1,17 @@
-
 CREATE TABLE  Customer (
   customer_id   INT       AUTO_INCREMENT                        NOT NULL,
-  first_name    VARCHAR(30)                                         NOT NULL,
-  last_name     VARCHAR(30)                                         NOT NULL,
-  customer_birthdate     DATE                                                NOT NULL,
-  customer_phone         VARCHAR(20)                                         NOT NULL,
-  customer_email         VARCHAR(80)                                         NOT NULL,
-  customer_address       VARCHAR(100)                                        NULL,
+  first_name    VARCHAR(30)                                     NOT NULL,
+  last_name     VARCHAR(30)                                     NOT NULL,
+  customer_birthdate     DATE                                   NOT NULL,
+  customer_phone         VARCHAR(20)                            NOT NULL,
+  customer_email         VARCHAR(80)                            NOT NULL,
+  customer_address       VARCHAR(100)                           NULL,
 
   PRIMARY KEY (customer_id)
 );
 
 CREATE TABLE MembershipTier (
-  tier_id       INT       AUTO_INCREMENT                        NOT NULL,
+  tier_id       INT       AUTO_INCREMENT                            NOT NULL,
   tier_name     ENUM('gold', 'silver', 'platinum')                  NOT NULL,
   discount      DECIMAL(5,2)                                        NOT NULL CHECK (discount BETWEEN 0 AND 100),
 
@@ -27,25 +26,10 @@ CREATE TABLE Perk (
   PRIMARY KEY (perk_id)
 );
 
-CREATE TABLE Employee (
-  employee_id       INT                         AUTO_INCREMENT                  NOT NULL,
-  full_name         VARCHAR(60)                                                 NOT NULL,
-  role              ENUM('maintenance', 'manager', 'operator', 'attendant')     NOT NULL,
-  pay_rate          DECIMAL(10,2)                                               NOT NULL CHECK (pay_rate > 7.50),
-  start_date        DATE                                                        NOT NULL,
-  department        VARCHAR(50)                                                 NOT NULL,
-  employee_phone             VARCHAR(20)                                                 NOT NULL,
-  employee_email             VARCHAR(80)                                                 NOT NULL,
-  employee_address           VARCHAR(100)                                                NOT NULL,
-  gender            ENUM('male', 'female', 'non_binary', 'prefer_not_to_say')   NOT NULL,
-  employee_birthdate         DATE                                                        NOT NULL,
-  ssn               CHAR(9)                                                     NOT NULL UNIQUE,
-  PRIMARY KEY (employee_id)
-);
 
 CREATE TABLE ParkDay (
   day_id            INT                         AUTO_INCREMENT                  NOT NULL,
-  park_date              DATE                                                        NOT NULL,
+  park_date         DATE                                                        NOT NULL,
   rain              BOOLEAN                                                     NOT NULL,
   park_closed       BOOLEAN                                                     NOT NULL,
   weather_notes     VARCHAR(500)                                                NULL,
@@ -126,7 +110,35 @@ CREATE TABLE Ride (
   affected_by_rain  BOOLEAN                                                     NOT NULL,
   status_ride            ENUM('open', 'broken', 'maintenance', 'closed_weather')     NOT NULL,
 
-  PRIMARY KEY (ride_id),
+  PRIMARY KEY (ride_id)
+);
+
+CREATE TABLE Department (
+  department_id            INT                       AUTO_INCREMENT                    NOT NULL,
+  department_name          VARCHAR(100)                                                NOT NULL,
+  ride_id                  INT                                                         NULL,
+  venue_id                 INT                                                         NULL,
+
+  PRIMARY KEY (department_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
+  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
+);
+
+CREATE TABLE Employee (
+  employee_id       INT                         AUTO_INCREMENT                  NOT NULL,
+  full_name         VARCHAR(60)                                                 NOT NULL,
+  role              ENUM('maintenance', 'manager', 'operator', 'attendant')     NOT NULL,
+  pay_rate          DECIMAL(10,2)                                               NOT NULL CHECK (pay_rate > 7.50),
+  start_date        DATE                                                        NOT NULL,
+  department_id     INT                                                 NOT NULL,
+  employee_phone    VARCHAR(20)                                                 NOT NULL,
+  employee_email    VARCHAR(80)                                                 NOT NULL,
+  employee_address  VARCHAR(100)                                                NOT NULL,
+  gender            ENUM('male', 'female', 'non_binary', 'prefer_not_to_say')   NOT NULL,
+  employee_birthdate         DATE                                                        NOT NULL,
+  ssn               CHAR(9)                                                     NOT NULL UNIQUE,
+  PRIMARY KEY (employee_id),
+  FOREIGN KEY (department_id) REFERENCES Department(department_id)
 );
 
 CREATE TABLE RideRainout (
@@ -156,7 +168,7 @@ CREATE TABLE ParkingLot (
   operating_hours             VARCHAR(100)                                     NOT NULL,
   reserved_employee_spaces    INT UNSIGNED                                     NOT NULL CHECK (reserved_employee_spaces < 200),
 
-  PRIMARY KEY (lot_id),
+  PRIMARY KEY (lot_id)
 );
 
 CREATE TABLE EmergencyEvent (
@@ -166,7 +178,7 @@ CREATE TABLE EmergencyEvent (
   event_long                DECIMAL(9,6)                                               NOT NULL,
   event_description         VARCHAR(1000)                                              NOT NULL,
 
-  PRIMARY KEY (event_id),
+  PRIMARY KEY (event_id)
 );
 
 CREATE TABLE Membership (
@@ -250,16 +262,16 @@ CREATE TABLE MenuItem (
   FOREIGN KEY (restaurant_venue_id) REFERENCES Restaurant(venue_id)
 );
 
-CREATE TABLE Show (
+CREATE TABLE ParkShow (
   show_id                  INT                        AUTO_INCREMENT                   NOT NULL,
   venue_id                 INT                                                         NOT NULL,
   show_lat                 DECIMAL(9,6)                                                NOT NULL,
   show_long                DECIMAL(9,6)                                                NOT NULL,
-  show_category            ENUM("magician","puppets","clown", 'musician')              NOT NULL,
+  show_category            ENUM('magician','puppets','clown', 'musician')              NOT NULL,
   duration                 INT                                                         NOT NULL CHECK (duration BETWEEN 0 AND 120),
 
   PRIMARY KEY (show_id),
-  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id),
+  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
 CREATE TABLE ShowTime (
@@ -268,7 +280,7 @@ CREATE TABLE ShowTime (
   show_start_time         DATETIME                                                     NOT NULL,
 
   PRIMARY KEY (show_time),
-  FOREIGN KEY  (show_id) REFERENCES Show(show_id)
+  FOREIGN KEY  (show_id) REFERENCES ParkShow(show_id)
 );
 
 CREATE TABLE DailyRevenue (
@@ -276,7 +288,7 @@ CREATE TABLE DailyRevenue (
   venue_id                 INT                                                         NOT NULL,
   revenue                  INT UNSIGNED                                                NOT NULL,
 
-  PRIMARY KEY (date_of_revenue),
+  PRIMARY KEY (date_of_revenue, venue_id),
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
@@ -334,7 +346,7 @@ CREATE TABLE RidesVisited (
 CREATE TABLE Review (
   review_id                 INT                     AUTO_INCREMENT                    NOT NULL,
   customer_id               INT                                                       NOT NULL,
-  ride_id                   INT                                                       NOT NULL,
+  ride_id                   INT                                                       NULL,
   venue_id                  INT                                                       NULL,
   rating                    INT                                                       NOT NULL CHECK (rating BETWEEN 1 AND 10),
   comment                   VARCHAR(10000)                                            NULL,
@@ -398,13 +410,3 @@ CREATE TABLE Complaint (
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
-CREATE TABLE Department (
-  department_id            INT                       AUTO_INCREMENT                    NOT NULL,
-  department_name          VARCHAR(100)                                                NOT NULL,
-  ride_id                  INT                                                         NULL,
-  venue_id                 INT                                                         NULL,
-
-  PRIMARY KEY (department_id),
-  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
-  FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
-);
