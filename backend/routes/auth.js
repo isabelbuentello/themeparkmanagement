@@ -71,40 +71,59 @@ router.post('/login', (req, res) => {
 })
 
 // CUSTOMER REGISTRATION - anyone can do this
+// uses a transaction so both inserts succeed or both roll back
 router.post('/register', async (req, res) => {
   const { username, password, first_name, last_name, 
           customer_email, customer_phone, customer_birthdate } = req.body
 
   try {
-    // hash the password
     const hash = await bcrypt.hash(password, 10)
 
-    // first create the Customer row
-    db.query(
-      `INSERT INTO Customer (first_name, last_name, customer_birthdate, customer_phone, customer_email)
-       VALUES (?, ?, ?, ?, ?)`,
-      [first_name, last_name, customer_birthdate, customer_phone, customer_email],
-      (err, result) => {
-        if (err) return res.status(500).json({ message: 'Error creating customer' })
+    db.beginTransaction((err) => {
+      if (err) return res.status(500).json({ message: 'Server error' })
 
-        const customer_id = result.insertId
-
-        // then create the Account row linked to that customer
-        db.query(
-          `INSERT INTO Account (customer_id, username, password, date_created)
-           VALUES (?, ?, ?, CURDATE())`,
-          [customer_id, username, hash],
-          (err2) => {
-            if (err2) {
-              if (err2.code === 'ER_DUP_ENTRY') 
-                return res.status(400).json({ message: 'Username already taken' })
-              return res.status(500).json({ message: 'Error creating account' })
-            }
-            res.json({ message: 'Account created successfully' })
+      // first create the Customer row
+      db.query(
+        `INSERT INTO Customer (first_name, last_name, customer_birthdate, customer_phone, customer_email)
+         VALUES (?, ?, ?, ?, ?)`,
+        [first_name, last_name, customer_birthdate, customer_phone, customer_email],
+        (err, result) => {
+          if (err) {
+            return db.rollback(() => {
+              res.status(500).json({ message: 'Error creating customer' })
+            })
           }
-        )
-      }
-    )
+
+          const customer_id = result.insertId
+
+          // then create the Account row linked to that customer
+          db.query(
+            `INSERT INTO Account (customer_id, username, password, date_created)
+             VALUES (?, ?, ?, CURDATE())`,
+            [customer_id, username, hash],
+            (err2) => {
+              if (err2) {
+                return db.rollback(() => {
+                  if (err2.code === 'ER_DUP_ENTRY')
+                    return res.status(400).json({ message: 'Username already taken' })
+                  res.status(500).json({ message: 'Error creating account' })
+                })
+              }
+
+              // both inserts succeeded, commit the transaction
+              db.commit((err3) => {
+                if (err3) {
+                  return db.rollback(() => {
+                    res.status(500).json({ message: 'Server error' })
+                  })
+                }
+                res.json({ message: 'Account created successfully' })
+              })
+            }
+          )
+        }
+      )
+    })
   } catch (err) {
     res.status(500).json({ message: 'Server error' })
   }
@@ -112,7 +131,8 @@ router.post('/register', async (req, res) => {
 
 
 // EMPLOYEE REGISTRATION - managers only
-router.post('/register/employee', verifyToken, requireRole('manager'), async (req, res) => {
+// uses a transaction so both inserts succeed or both roll back
+router.post('/register/employee', verifyToken, requireRole('general_manager'), async (req, res) => {
   const { username, password, full_name, role, pay_rate, 
           start_date, department_id, employee_phone, 
           employee_email, employee_address, gender, 
@@ -121,34 +141,53 @@ router.post('/register/employee', verifyToken, requireRole('manager'), async (re
   try {
     const hash = await bcrypt.hash(password, 10)
 
-    // first create the Employee row
-    db.query(
-      `INSERT INTO Employee (full_name, role, pay_rate, start_date, department_id, 
-        employee_phone, employee_email, employee_address, gender, employee_birthdate, ssn)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [full_name, role, pay_rate, start_date, department_id,
-       employee_phone, employee_email, employee_address, gender, employee_birthdate, ssn],
-      (err, result) => {
-        if (err) return res.status(500).json({ message: 'Error creating employee' })
+    db.beginTransaction((err) => {
+      if (err) return res.status(500).json({ message: 'Server error' })
 
-        const employee_id = result.insertId
-
-        // then create the EmployeeAccount row
-        db.query(
-          `INSERT INTO EmployeeAccount (employee_id, username, password)
-           VALUES (?, ?, ?)`,
-          [employee_id, username, hash],
-          (err2) => {
-            if (err2) {
-              if (err2.code === 'ER_DUP_ENTRY')
-                return res.status(400).json({ message: 'Username already taken' })
-              return res.status(500).json({ message: 'Error creating employee account' })
-            }
-            res.json({ message: 'Employee account created successfully' })
+      // first create the Employee row
+      db.query(
+        `INSERT INTO Employee (full_name, role, pay_rate, start_date, department_id, 
+          employee_phone, employee_email, employee_address, gender, employee_birthdate, ssn)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [full_name, role, pay_rate, start_date, department_id,
+         employee_phone, employee_email, employee_address, gender, employee_birthdate, ssn],
+        (err, result) => {
+          if (err) {
+            return db.rollback(() => {
+              res.status(500).json({ message: 'Error creating employee' })
+            })
           }
-        )
-      }
-    )
+
+          const employee_id = result.insertId
+
+          // then create the EmployeeAccount row
+          db.query(
+            `INSERT INTO EmployeeAccount (employee_id, username, password)
+             VALUES (?, ?, ?)`,
+            [employee_id, username, hash],
+            (err2) => {
+              if (err2) {
+                return db.rollback(() => {
+                  if (err2.code === 'ER_DUP_ENTRY')
+                    return res.status(400).json({ message: 'Username already taken' })
+                  res.status(500).json({ message: 'Error creating employee account' })
+                })
+              }
+
+              // both inserts succeeded, commit the transaction
+              db.commit((err3) => {
+                if (err3) {
+                  return db.rollback(() => {
+                    res.status(500).json({ message: 'Server error' })
+                  })
+                }
+                res.json({ message: 'Employee account created successfully' })
+              })
+            }
+          )
+        }
+      )
+    })
   } catch (err) {
     res.status(500).json({ message: 'Server error' })
   }
