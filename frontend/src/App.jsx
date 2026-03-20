@@ -1,120 +1,85 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { Routes, Route } from 'react-router-dom'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
+import { ROLES, ALL_EMPLOYEES } from './constants/roles'
+import Home from './pages/Home.jsx'
+import Login from './pages/Login.jsx'
+import CustomerDash from './pages/CustomerDash.jsx'
+import EmployeeDash from './pages/EmployeeDash.jsx'
+import GMDash from './pages/GMDash.jsx'
+import MaintenanceDash from './pages/admin/MaintenanceDash.jsx'
+import RideAttendantDash from './pages/admin/RideAttendantDash.jsx'
+import ParkingDash from './pages/admin/ParkingDash.jsx'
+import TicketSellerDash from './pages/admin/TicketSellerDash.jsx'
+import RestaurantDash from './pages/admin/RestaurantDash.jsx'
+import ShopDash from './pages/admin/ShopDash.jsx'
+import ShowsDash from './pages/admin/ShowsDash.jsx'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
 
-      <div className="ticks"></div>
+      <Route path="/dashboard" element={
+        <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
+          <CustomerDash />
+        </ProtectedRoute>
+      } />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <Route path="/employee" element={
+        <ProtectedRoute allowedRoles={ALL_EMPLOYEES}>
+          <EmployeeDash />
+        </ProtectedRoute>
+      } />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <Route path="/admin/general-manager" element={
+        <ProtectedRoute allowedRoles={[ROLES.GENERAL_MANAGER]}>
+          <GMDash />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/maintenance" element={
+        <ProtectedRoute allowedRoles={[ROLES.MAINTENANCE]}>
+          <MaintenanceDash />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/ride-attendant" element={
+        <ProtectedRoute allowedRoles={[ROLES.RIDE_ATTENDANT_MANAGER]}>
+          <RideAttendantDash />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/parking" element={
+        <ProtectedRoute allowedRoles={[ROLES.PARKING_LOT_MANAGER]}>
+          <ParkingDash />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/ticket-seller" element={
+        <ProtectedRoute allowedRoles={[ROLES.TICKET_SELLER]}>
+          <TicketSellerDash />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/restaurant" element={
+        <ProtectedRoute allowedRoles={[ROLES.RESTAURANT_MANAGER]}>
+          <RestaurantDash />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/shop" element={
+        <ProtectedRoute allowedRoles={[ROLES.SHOP_MANAGER]}>
+          <ShopDash />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/shows" element={
+        <ProtectedRoute allowedRoles={[ROLES.SHOWS_MANAGER]}>
+          <ShowsDash />
+        </ProtectedRoute>
+      } />
+    </Routes>
   )
 }
 
