@@ -127,7 +127,7 @@ CREATE TABLE Department (
 CREATE TABLE Employee (
   employee_id       INT                         AUTO_INCREMENT                  NOT NULL,
   full_name         VARCHAR(60)                                                 NOT NULL,
-  role              ENUM('maintenance', 'manager', 'operator', 'attendant')     NOT NULL,
+  role              ENUM('general_manager', 'maintenance', 'ride_attendant_manager', 'parking_lot_manager', 'ticket_seller', 'restaurant_manager', 'shop_manager', 'shows_manager')     NOT NULL,
   pay_rate          DECIMAL(10,2)                                               NOT NULL CHECK (pay_rate > 7.50),
   start_date        DATE                                                        NOT NULL,
   department_id     INT                                                 NOT NULL,
@@ -139,6 +139,15 @@ CREATE TABLE Employee (
   ssn               CHAR(9)                                                     NOT NULL UNIQUE,
   PRIMARY KEY (employee_id),
   FOREIGN KEY (department_id) REFERENCES Department(department_id)
+);
+
+CREATE TABLE EmployeeAccount (
+  account_id    INT           AUTO_INCREMENT                NOT NULL,
+  employee_id   INT                                        NOT NULL,
+  username      VARCHAR(60)                                NOT NULL UNIQUE,
+  password      VARCHAR(255)                              NOT NULL,
+  PRIMARY KEY (account_id),
+  FOREIGN KEY (employee_id) REFERENCES Employee(employee_id)
 );
 
 CREATE TABLE RideRainout (
