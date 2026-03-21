@@ -18,9 +18,20 @@ function Register({ onSwitch }) {
   }
 
   const handleRegister = async () => {
-    setError('')
-    setSuccess('')
-    try {
+  setError('')
+  setSuccess('')
+
+  // validate that all fields are filled in
+  const { username, password, first_name, last_name,
+          customer_email, customer_phone, customer_birthdate } = form
+
+  if (!username || !password || !first_name || !last_name ||
+      !customer_email || !customer_phone || !customer_birthdate) {
+    setError('Please fill in all fields')
+    return
+  }
+
+  try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
