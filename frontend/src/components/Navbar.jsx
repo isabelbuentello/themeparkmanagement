@@ -19,7 +19,7 @@ function Navbar() {
     <header className="navbar">
       <div className="navbar-top">
         <NavLink to="/" className="nav-brand">
-          ThemePark Radical
+          Team6 ThemePark
         </NavLink>
 
         <div className="nav-status">
