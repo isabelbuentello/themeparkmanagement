@@ -178,7 +178,10 @@ router.post('/parking/start', verifyToken, requireRole('parking_lot_manager', 'g
      VALUES (?, ?, NOW(), 0)`,
     [lot_id, customer_id],
     (err, result) => {
-      if (err) return res.status(500).json({ message: 'Error starting parking session' })
+      if (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Error starting parking session' })
+      }
       res.json({ message: 'Parking session started', session_id: result.insertId })
     }
   )
