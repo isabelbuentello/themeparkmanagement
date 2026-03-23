@@ -125,7 +125,10 @@ router.post('/passes', verifyToken, requireRole('ticket_seller', 'parking_lot_ma
        VALUES (?, ?, CURDATE(), ?, ?, 'active')`,
       [pass_type_id, customer_id, quantity_purchased, quantity_purchased],
       (err, passResult) => {
-        if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating pass' }))
+        if (err) return db.rollback(() => {
+          console.log(err)
+          res.status(500).json({ message: 'Error creating pass' })
+        })
 
         db.query(
           `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
