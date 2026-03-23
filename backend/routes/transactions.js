@@ -25,10 +25,26 @@ function requireRole(...roles) {
 const router = express.Router()
 
 // ─────────────────────────────────────────
+// TICKET PRICES
+// ─────────────────────────────────────────
+
+const TICKET_PRICES = {
+  1: 25.00,  // park entry
+  2: 10.00   // ride ticket
+}
+
+const PASS_PRICES = {
+  1: 15.00,  // fast pass
+  2: 20.00,  // food pass
+  3: 10.00,  // parking pass
+  4: 150.00  // season pass
+}
+
+// ─────────────────────────────────────────
 // TICKETS
 // ─────────────────────────────────────────
 
-// GET all ticket types (so the seller knows what to sell)
+// GET all ticket types
 router.get('/ticket-types', verifyToken, requireRole('ticket_seller', 'general_manager'), (req, res) => {
   db.query('SELECT * FROM TicketType', (err, results) => {
     if (err) return res.status(500).json({ message: 'Server error' })
@@ -40,10 +56,12 @@ router.get('/ticket-types', verifyToken, requireRole('ticket_seller', 'general_m
 router.post('/tickets', verifyToken, requireRole('ticket_seller', 'general_manager'), (req, res) => {
   const { ticket_type_id, customer_id, valid_date, payment_method_transaction, account_id } = req.body
 
+  const unit_price = TICKET_PRICES[ticket_type_id]
+  if (!unit_price) return res.status(400).json({ message: 'Invalid ticket type' })
+
   db.beginTransaction((err) => {
     if (err) return res.status(500).json({ message: 'Server error' })
 
-    // insert the ticket
     db.query(
       `INSERT INTO Ticket (ticket_type_id, customer_id, valid_date, status_ticket)
        VALUES (?, ?, ?, 'valid')`,
@@ -51,27 +69,23 @@ router.post('/tickets', verifyToken, requireRole('ticket_seller', 'general_manag
       (err, ticketResult) => {
         if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating ticket' }))
 
-        // create the transaction record
         db.query(
           `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
-           VALUES (?, CURDATE(), (SELECT price FROM TicketType WHERE ticket_type_id = ?), ?)`,
-          [account_id || null, ticket_type_id, payment_method_transaction],
+           VALUES (?, CURDATE(), ?, ?)`,
+          [account_id || null, unit_price, payment_method_transaction],
           (err, transResult) => {
             if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction' }))
 
-            const transaction_id = transResult.insertId
-
-            // create the transaction item
             db.query(
               `INSERT INTO TransactionItem (transaction_id, item_type, quantity, unit_price)
-               VALUES (?, 'ticket', 1, (SELECT price FROM TicketType WHERE ticket_type_id = ?))`,
-              [transaction_id, ticket_type_id],
+               VALUES (?, 'ticket', 1, ?)`,
+              [transResult.insertId, unit_price],
               (err) => {
                 if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction item' }))
 
                 db.commit((err) => {
                   if (err) return db.rollback(() => res.status(500).json({ message: 'Server error' }))
-                  res.json({ message: 'Ticket sold successfully', ticket_id: ticketResult.insertId })
+                  res.json({ message: 'Ticket sold successfully', ticket_id: ticketResult.insertId, total: unit_price })
                 })
               }
             )
@@ -98,6 +112,11 @@ router.get('/pass-types', verifyToken, requireRole('ticket_seller', 'parking_lot
 router.post('/passes', verifyToken, requireRole('ticket_seller', 'parking_lot_manager', 'general_manager'), (req, res) => {
   const { pass_type_id, customer_id, quantity_purchased, payment_method_transaction, account_id } = req.body
 
+  const unit_price = PASS_PRICES[pass_type_id]
+  if (!unit_price) return res.status(400).json({ message: 'Invalid pass type' })
+
+  const total_amount = (unit_price * quantity_purchased).toFixed(2)
+
   db.beginTransaction((err) => {
     if (err) return res.status(500).json({ message: 'Server error' })
 
@@ -110,23 +129,21 @@ router.post('/passes', verifyToken, requireRole('ticket_seller', 'parking_lot_ma
 
         db.query(
           `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
-           VALUES (?, CURDATE(), 0, ?)`,
-          [account_id || null, payment_method_transaction],
+           VALUES (?, CURDATE(), ?, ?)`,
+          [account_id || null, total_amount, payment_method_transaction],
           (err, transResult) => {
             if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction' }))
 
-            const transaction_id = transResult.insertId
-
             db.query(
               `INSERT INTO TransactionItem (transaction_id, item_type, quantity, unit_price)
-               VALUES (?, 'pass', ?, 0)`,
-              [transaction_id, quantity_purchased],
+               VALUES (?, 'pass', ?, ?)`,
+              [transResult.insertId, quantity_purchased, unit_price],
               (err) => {
                 if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction item' }))
 
                 db.commit((err) => {
                   if (err) return db.rollback(() => res.status(500).json({ message: 'Server error' }))
-                  res.json({ message: 'Pass sold successfully', pass_id: passResult.insertId })
+                  res.json({ message: 'Pass sold successfully', pass_id: passResult.insertId, total: total_amount })
                 })
               }
             )
@@ -169,7 +186,6 @@ router.put('/parking/end/:session_id', verifyToken, requireRole('parking_lot_man
   const { session_id } = req.params
   const { payment_method_transaction, account_id } = req.body
 
-  // get the session and lot rate
   db.query(
     `SELECT ps.*, pl.hourly_rate 
      FROM ParkingSession ps 
@@ -187,14 +203,12 @@ router.put('/parking/end/:session_id', verifyToken, requireRole('parking_lot_man
       db.beginTransaction((err) => {
         if (err) return res.status(500).json({ message: 'Server error' })
 
-        // close out the session
         db.query(
           `UPDATE ParkingSession SET exit_time = NOW(), amount_paid = ? WHERE session_id = ?`,
           [amount_paid, session_id],
           (err) => {
             if (err) return db.rollback(() => res.status(500).json({ message: 'Error ending session' }))
 
-            // record the transaction
             db.query(
               `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
                VALUES (?, CURDATE(), ?, ?)`,
@@ -248,7 +262,6 @@ router.post('/shops/sell', verifyToken, requireRole('shop_manager', 'general_man
   db.beginTransaction((err) => {
     if (err) return res.status(500).json({ message: 'Server error' })
 
-    // update total_merch_sold
     db.query(
       `UPDATE Shop SET total_merch_sold = total_merch_sold + ? WHERE venue_id = ?`,
       [quantity, venue_id],
@@ -271,7 +284,7 @@ router.post('/shops/sell', verifyToken, requireRole('shop_manager', 'general_man
 
                 db.commit((err) => {
                   if (err) return db.rollback(() => res.status(500).json({ message: 'Server error' }))
-                  res.json({ message: 'Sale recorded successfully' })
+                  res.json({ message: 'Sale recorded successfully', total: total_amount })
                 })
               }
             )
@@ -290,7 +303,6 @@ router.post('/shops/sell', verifyToken, requireRole('shop_manager', 'general_man
 router.post('/restaurants/sell', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
   const { venue_id, menu_item_id, quantity, payment_method_transaction, account_id } = req.body
 
-  // get the price from the menu item
   db.query(
     `SELECT price FROM MenuItem WHERE menu_item_id = ? AND is_available = true`,
     [menu_item_id],
