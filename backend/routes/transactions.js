@@ -25,7 +25,7 @@ function requireRole(...roles) {
 const router = express.Router()
 
 // ─────────────────────────────────────────
-// TICKET PRICES
+// PRICES
 // ─────────────────────────────────────────
 
 const TICKET_PRICES = {
@@ -161,7 +161,7 @@ router.post('/passes', verifyToken, requireRole('ticket_seller', 'parking_lot_ma
 // PARKING
 // ─────────────────────────────────────────
 
-// GET all parking lots and their availability
+// GET all parking lots
 router.get('/parking-lots', verifyToken, requireRole('parking_lot_manager', 'general_manager'), (req, res) => {
   db.query('SELECT * FROM ParkingLot', (err, results) => {
     if (err) return res.status(500).json({ message: 'Server error' })
@@ -169,7 +169,7 @@ router.get('/parking-lots', verifyToken, requireRole('parking_lot_manager', 'gen
   })
 })
 
-// POST start a parking session (customer enters lot)
+// POST start a parking session
 router.post('/parking/start', verifyToken, requireRole('parking_lot_manager', 'general_manager'), (req, res) => {
   const { lot_id, customer_id } = req.body
 
@@ -305,7 +305,7 @@ router.post('/shops/sell', verifyToken, requireRole('shop_manager', 'general_man
 // RESTAURANT FOOD SALES
 // ─────────────────────────────────────────
 
-// POST sell food (restaurant manager rings up an order)
+// POST sell food
 router.post('/restaurants/sell', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
   const { venue_id, menu_item_id, quantity, payment_method_transaction, account_id } = req.body
 
