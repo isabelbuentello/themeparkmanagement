@@ -39,13 +39,13 @@ function App() {
       } />
 
       <Route path="/admin/maintenance" element={
-        <ProtectedRoute allowedRoles={[ROLES.MAINTENANCE]}>
+        <ProtectedRoute allowedRoles={[ROLES.MAINTENANCE, ROLES.GENERAL_MANAGER]}>
           <MaintenanceDash />
         </ProtectedRoute>
       } />
 
       <Route path="/admin/ride-attendant" element={
-        <ProtectedRoute allowedRoles={[ROLES.RIDE_ATTENDANT_MANAGER]}>
+        <ProtectedRoute allowedRoles={[ROLES.RIDE_ATTENDANT_MANAGER, ROLES.GENERAL_MANAGER]}>
           <RideAttendantDash />
         </ProtectedRoute>
       } />
