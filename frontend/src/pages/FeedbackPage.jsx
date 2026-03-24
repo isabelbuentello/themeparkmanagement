@@ -4,16 +4,11 @@ import AsyncState from '../components/AsyncState'
 import PageHero from '../components/PageHero'
 
 const reviewInitialState = {
-  guestName: '',
-  area: 'Dining',
   rating: '5',
   notes: ''
 }
 
 const complaintInitialState = {
-  guestName: '',
-  contactEmail: '',
-  category: 'Operations',
   notes: ''
 }
 
@@ -25,6 +20,10 @@ function FeedbackPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
+
+  const token = localStorage.getItem('token')
+  const role = localStorage.getItem('role')
+  const canSubmitReview = Boolean(token) && role === 'customer'
 
   useEffect(() => {
     setFieldErrors({})
@@ -61,10 +60,6 @@ function FeedbackPage() {
   const validateComplaintForm = () => {
     const nextErrors = {}
 
-    if (complaintForm.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(complaintForm.contactEmail)) {
-      nextErrors.contactEmail = 'Enter a valid email address for follow-up.'
-    }
-
     if (!complaintForm.notes.trim()) {
       nextErrors.notes = 'Describe what happened.'
     } else if (complaintForm.notes.trim().length < 20) {
@@ -80,6 +75,11 @@ function FeedbackPage() {
 
     setSubmittedMessage('')
     setSubmitError('')
+
+    if (type === 'reviews' && !canSubmitReview) {
+      setSubmitError('You must be logged in as a customer to leave a review.')
+      return
+    }
 
     const isValid =
       type === 'reviews' ? validateReviewForm() : validateComplaintForm()
@@ -119,9 +119,7 @@ function FeedbackPage() {
 
   return (
     <div className="page">
-      <PageHero
-        title="Feedback"
-      />
+      <PageHero title="Feedback" />
 
       <div className="filter-row">
         <button
@@ -144,29 +142,14 @@ function FeedbackPage() {
         {activeTab === 'reviews' ? (
           <form className="content-card form-card" onSubmit={handleSubmit('reviews')}>
             <h2>Submit A Review</h2>
-            <label className="form-field">
-              <span>Name</span>
-              <input
-                type="text"
-                name="guestName"
-                value={reviewForm.guestName}
-                onChange={handleFormChange(setReviewForm)}
-                placeholder="Optional"
-              />
-            </label>
-            <label className="form-field">
-              <span>Experience area</span>
-              <select
-                name="area"
-                value={reviewForm.area}
-                onChange={handleFormChange(setReviewForm)}
-              >
-                <option>Dining</option>
-                <option>Attractions</option>
-                <option>Shows</option>
-                <option>Retail</option>
-              </select>
-            </label>
+
+            {!canSubmitReview ? (
+              <div className="confirmation-box">
+                <strong>Login required.</strong>
+                <p>You must be logged in as a customer to leave a review.</p>
+              </div>
+            ) : null}
+
             <label className="form-field">
               <span>Rating</span>
               <select
@@ -181,6 +164,7 @@ function FeedbackPage() {
                 <option value="1">1 - Poor</option>
               </select>
             </label>
+
             <label className="form-field">
               <span>Review details</span>
               <textarea
@@ -196,8 +180,14 @@ function FeedbackPage() {
                 <span className="field-error">{fieldErrors.notes}</span>
               ) : null}
             </label>
+
             <p className="character-count">{reviewForm.notes.length}/400</p>
-            <button type="submit" className="primary-btn full-width" disabled={isSubmitting}>
+
+            <button
+              type="submit"
+              className="primary-btn full-width"
+              disabled={isSubmitting || !canSubmitReview}
+            >
               {isSubmitting ? 'Submitting...' : 'Submit Review'}
             </button>
           </form>
@@ -207,42 +197,7 @@ function FeedbackPage() {
             onSubmit={handleSubmit('complaints')}
           >
             <h2>Submit A Complaint</h2>
-            <label className="form-field">
-              <span>Name</span>
-              <input
-                type="text"
-                name="guestName"
-                value={complaintForm.guestName}
-                onChange={handleFormChange(setComplaintForm)}
-                placeholder="Optional"
-              />
-            </label>
-            <label className="form-field">
-              <span>Contact email</span>
-              <input
-                type="email"
-                name="contactEmail"
-                value={complaintForm.contactEmail}
-                onChange={handleFormChange(setComplaintForm)}
-                placeholder="Optional follow-up contact"
-              />
-              {fieldErrors.contactEmail ? (
-                <span className="field-error">{fieldErrors.contactEmail}</span>
-              ) : null}
-            </label>
-            <label className="form-field">
-              <span>Category</span>
-              <select
-                name="category"
-                value={complaintForm.category}
-                onChange={handleFormChange(setComplaintForm)}
-              >
-                <option>Operations</option>
-                <option>Dining</option>
-                <option>Staff Interaction</option>
-                <option>Accessibility</option>
-              </select>
-            </label>
+
             <label className="form-field">
               <span>What happened?</span>
               <textarea
@@ -250,7 +205,7 @@ function FeedbackPage() {
                 value={complaintForm.notes}
                 onChange={handleFormChange(setComplaintForm)}
                 rows="6"
-                maxLength="500"
+                maxLength="300"
                 placeholder="Share enough detail for follow-up."
                 required
               />
@@ -258,8 +213,14 @@ function FeedbackPage() {
                 <span className="field-error">{fieldErrors.notes}</span>
               ) : null}
             </label>
-            <p className="character-count">{complaintForm.notes.length}/500</p>
-            <button type="submit" className="primary-btn full-width" disabled={isSubmitting}>
+
+            <p className="character-count">{complaintForm.notes.length}/300</p>
+
+            <button
+              type="submit"
+              className="primary-btn full-width"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? 'Submitting...' : 'Submit Complaint'}
             </button>
           </form>
@@ -273,6 +234,7 @@ function FeedbackPage() {
             </div>
           </div>
         ) : null}
+
         <AsyncState error={submitError} errorMessage={submitError} />
       </section>
     </div>

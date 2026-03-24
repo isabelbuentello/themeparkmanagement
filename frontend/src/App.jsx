@@ -16,6 +16,7 @@ import TicketsPage from './pages/TicketsPage'
 import VenueDetailPage from './pages/VenueDetailPage'
 import EmployeeLogin from './pages/EmployeeLogin'
 import './App.css'
+import './styles/CustomerFacing.css'
 
 function App() {
   return (

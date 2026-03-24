@@ -1,17 +1,50 @@
-import { withMockDelay } from './mockDelay'
+async function request(url, payload, token) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify(payload)
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Request failed')
+  }
+
+  return data
+}
 
 export async function submitReview(reviewForm) {
-  return withMockDelay({
+  const token = localStorage.getItem('token')
+
+  const payload = {
+    rating: reviewForm.rating,
+    notes: reviewForm.notes
+  }
+
+  const data = await request('/api/feedback/reviews', payload, token)
+
+  return {
     ok: true,
-    message: 'Review submitted for the customer experience feed.',
-    submission: reviewForm
-  })
+    message: data.message
+  }
 }
 
 export async function submitComplaint(complaintForm) {
-  return withMockDelay({
+  const token = localStorage.getItem('token')
+
+  const payload = {
+    notes: complaintForm.notes
+  }
+
+  const data = await request('/api/feedback/complaints', payload, token)
+
+  return {
     ok: true,
-    message: 'Complaint submitted for follow-up review.',
-    submission: complaintForm
-  })
+    message: data.message
+  }
 }
+
