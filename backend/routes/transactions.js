@@ -305,6 +305,17 @@ router.post('/shops/sell', verifyToken, requireRole('shop_manager', 'general_man
 // RESTAURANT FOOD SALES
 // ─────────────────────────────────────────
 
+// GET all available menu items
+router.get('/restaurants/menu', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  db.query(
+    `SELECT menu_item_id, item_name, price, restaurant_venue_id
+     FROM MenuItem WHERE is_available = true`,
+    (err, results) => {
+      if (err) return res.status(500).json({ message: 'Server error' })
+      res.json(results)
+    }
+  )
+})
 // POST sell food
 router.post('/restaurants/sell', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
   const { venue_id, menu_item_id, quantity, payment_method_transaction, account_id } = req.body
