@@ -1,5 +1,6 @@
 import express from 'express'
 import authRoutes from './routes/auth.js'
+import transactionRoutes from './routes/transactions.js' 
 import ridesRoutes from './routes/rides.js'
 import maintenanceRoutes from './routes/maintenance.js'
 
@@ -12,6 +13,7 @@ app.get('/', (req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
+app.use('/api/transactions', transactionRoutes)
 app.use('/api/rides', ridesRoutes)
 app.use('/api/maintenance', maintenanceRoutes)
 
