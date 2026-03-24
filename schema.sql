@@ -215,6 +215,37 @@ CREATE TABLE EmployeeRideTraining (
   FOREIGN KEY (ride_id) REFERENCES Ride(ride_id)
 );
 
+CREATE TABLE MaintenanceRequest (
+  request_id                 INT                         AUTO_INCREMENT                  NOT NULL,
+  ride_id                    INT                                                         NOT NULL,
+  submitted_by_employee_id   INT                                                         NULL,
+  issue_description          VARCHAR(500)                                                NOT NULL,
+  priority                   ENUM('low', 'medium', 'high')                              NOT NULL DEFAULT 'medium',
+  status_request             ENUM('new', 'assigned', 'in_progress', 'resolved')         NOT NULL DEFAULT 'new',
+  assigned_to_employee_id    INT                                                         NULL,
+  created_time               DATETIME                                                    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time               DATETIME                                                    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (request_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
+  FOREIGN KEY (submitted_by_employee_id) REFERENCES Employee(employee_id),
+  FOREIGN KEY (assigned_to_employee_id) REFERENCES Employee(employee_id)
+);
+
+CREATE TABLE TrainingApprovalRequest (
+  training_request_id        INT                         AUTO_INCREMENT                  NOT NULL,
+  employee_id                INT                                                         NOT NULL,
+  ride_id                    INT                                                         NOT NULL,
+  requested_level            ENUM('basic', 'intermediate', 'advanced')                  NOT NULL,
+  status_training_request    ENUM('pending', 'approved', 'rejected')                    NOT NULL DEFAULT 'pending',
+  requested_time             DATETIME                                                    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_by_employee_id    INT                                                         NULL,
+  reviewed_time              DATETIME                                                    NULL,
+  PRIMARY KEY (training_request_id),
+  FOREIGN KEY (employee_id) REFERENCES Employee(employee_id),
+  FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
+  FOREIGN KEY (reviewed_by_employee_id) REFERENCES Employee(employee_id)
+);
+
 CREATE TABLE MaintenanceLog (
   log_id            INT                         AUTO_INCREMENT                  NOT NULL,
   ride_id           INT                                                         NOT NULL,
