@@ -4,22 +4,6 @@ import db from '../db.js'
 
 const router = express.Router()
 
-// GET all ticket types (PUBLIC)
-router.get('/ticket-types', (req, res) => {
-  db.query('SELECT * FROM TicketType', (err, results) => {
-    if (err) return res.status(500).json({ message: 'Server error' })
-    res.json(results)
-  })
-})
-
-// GET all pass types (Now PUBLIC)
-router.get('/pass-types', (req, res) => {
-  db.query('SELECT * FROM PassType', (err, results) => {
-    if (err) return res.status(500).json({ message: 'Server error' })
-    res.json(results)
-  })
-})
-
 function verifyToken(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1]
   if (!token) return res.status(401).json({ message: 'No token provided' })
@@ -39,7 +23,6 @@ function requireRole(...roles) {
     next()
   }
 }
-
 
 // ─────────────────────────────────────────
 // PRICES
@@ -61,8 +44,8 @@ const PASS_PRICES = {
 // TICKETS
 // ─────────────────────────────────────────
 
-// GET all ticket types
-router.get('/ticket-types', verifyToken, requireRole('ticket_seller', 'general_manager'), (req, res) => {
+// GET all ticket types (PUBLIC)
+router.get('/ticket-types', (req, res) => {
   db.query('SELECT * FROM TicketType', (err, results) => {
     if (err) return res.status(500).json({ message: 'Server error' })
     res.json(results)
@@ -73,52 +56,65 @@ router.get('/ticket-types', verifyToken, requireRole('ticket_seller', 'general_m
 router.post('/tickets', verifyToken, requireRole('ticket_seller', 'general_manager'), (req, res) => {
   const { ticket_type_id, customer_id, valid_date, payment_method_transaction, account_id } = req.body
 
-  const unit_price = TICKET_PRICES[ticket_type_id]
-  if (!unit_price) return res.status(400).json({ message: 'Invalid ticket type' })
+  db.query(
+    'SELECT price FROM TicketType WHERE ticket_type_id = ? LIMIT 1',
+    [ticket_type_id],
+    (lookupErr, ticketTypeRows) => {
+      if (lookupErr) return res.status(500).json({ message: 'Server error' })
+      if (!ticketTypeRows.length) {
+        return res.status(400).json({ message: 'Invalid ticket type' })
+      }
 
-  db.beginTransaction((err) => {
-    if (err) return res.status(500).json({ message: 'Server error' })
+      const unit_price = Number(ticketTypeRows[0].price)
+      if (!Number.isFinite(unit_price) || unit_price <= 0) {
+        return res.status(400).json({ message: 'Ticket type price is invalid' })
+      }
 
-    db.query(
-      `INSERT INTO Ticket (ticket_type_id, customer_id, valid_date, status_ticket)
-       VALUES (?, ?, ?, 'valid')`,
-      [ticket_type_id, customer_id, valid_date],
-      (err, ticketResult) => {
-        if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating ticket' }))
+      db.beginTransaction((err) => {
+        if (err) return res.status(500).json({ message: 'Server error' })
 
         db.query(
-          `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
-           VALUES (?, CURDATE(), ?, ?)`,
-          [account_id || null, unit_price, payment_method_transaction],
-          (err, transResult) => {
-            if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction' }))
+          `INSERT INTO Ticket (ticket_type_id, customer_id, valid_date, status_ticket)
+           VALUES (?, ?, ?, 'valid')`,
+          [ticket_type_id, customer_id, valid_date],
+          (err, ticketResult) => {
+            if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating ticket' }))
 
             db.query(
-              `INSERT INTO TransactionItem (transaction_id, item_type, quantity, unit_price)
-               VALUES (?, 'ticket', 1, ?)`,
-              [transResult.insertId, unit_price],
-              (err) => {
-                if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction item' }))
+              `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
+               VALUES (?, CURDATE(), ?, ?)`,
+              [account_id || null, unit_price, payment_method_transaction],
+              (err, transResult) => {
+                if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction' }))
 
-                db.commit((err) => {
-                  if (err) return db.rollback(() => res.status(500).json({ message: 'Server error' }))
-                  res.json({ message: 'Ticket sold successfully', ticket_id: ticketResult.insertId, total: unit_price })
-                })
+                db.query(
+                  `INSERT INTO TransactionItem (transaction_id, item_type, quantity, unit_price)
+                   VALUES (?, 'ticket', 1, ?)`,
+                  [transResult.insertId, unit_price],
+                  (err) => {
+                    if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction item' }))
+
+                    db.commit((err) => {
+                      if (err) return db.rollback(() => res.status(500).json({ message: 'Server error' }))
+                      res.json({ message: 'Ticket sold successfully', ticket_id: ticketResult.insertId, total: unit_price })
+                    })
+                  }
+                )
               }
             )
           }
         )
-      }
-    )
-  })
+      })
+    }
+  )
 })
 
 // ─────────────────────────────────────────
 // PASSES
 // ─────────────────────────────────────────
 
-// GET all pass types
-router.get('/pass-types', verifyToken, requireRole('ticket_seller', 'parking_lot_manager', 'general_manager'), (req, res) => {
+// GET all pass types (PUBLIC)
+router.get('/pass-types', (req, res) => {
   db.query('SELECT * FROM PassType', (err, results) => {
     if (err) return res.status(500).json({ message: 'Server error' })
     res.json(results)
@@ -333,6 +329,47 @@ router.get('/restaurants/menu', verifyToken, requireRole('restaurant_manager', '
     }
   )
 })
+
+// GET all menu items including unavailable (for manage menu tab)
+router.get('/restaurants/menu-all', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  db.query(
+    `SELECT menu_item_id, item_name, price, is_available, restaurant_venue_id
+     FROM MenuItem`,
+    (err, results) => {
+      if (err) return res.status(500).json({ message: 'Server error' })
+      res.json(results)
+    }
+  )
+})
+
+// POST add a new menu item
+router.post('/restaurants/menu/add', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  const { restaurant_venue_id, item_name, price, is_available } = req.body
+  db.query(
+    `INSERT INTO MenuItem (restaurant_venue_id, item_name, price, is_available)
+     VALUES (?, ?, ?, ?)`,
+    [restaurant_venue_id, item_name, price, is_available ? 1 : 0],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: 'Error adding menu item' })
+      res.json({ message: 'Menu item added successfully', menu_item_id: result.insertId })
+    }
+  )
+})
+
+// PUT toggle menu item availability
+router.put('/restaurants/menu/toggle/:menu_item_id', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  const { menu_item_id } = req.params
+  const { is_available } = req.body
+  db.query(
+    `UPDATE MenuItem SET is_available = ? WHERE menu_item_id = ?`,
+    [is_available ? 1 : 0, menu_item_id],
+    (err) => {
+      if (err) return res.status(500).json({ message: 'Error updating menu item' })
+      res.json({ message: 'Menu item updated successfully' })
+    }
+  )
+})
+
 // POST sell food
 router.post('/restaurants/sell', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
   const { venue_id, menu_item_id, quantity, payment_method_transaction, account_id } = req.body
@@ -373,6 +410,58 @@ router.post('/restaurants/sell', verifyToken, requireRole('restaurant_manager', 
           }
         )
       })
+    }
+  )
+})
+
+// ─────────────────────────────────────────
+// RESTAURANT RESERVATIONS
+// ─────────────────────────────────────────
+
+// GET all reservations
+router.get('/restaurants/reservations', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  db.query(
+    `SELECT rr.*, c.first_name, c.last_name 
+     FROM RestaurantReservation rr
+     JOIN Customer c ON rr.customer_id = c.customer_id
+     ORDER BY rr.reservation_date, rr.reservation_time`,
+    (err, results) => {
+      if (err) return res.status(500).json({ message: 'Server error' })
+      res.json(results)
+    }
+  )
+})
+
+// POST add a reservation
+router.post('/restaurants/reservations', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  const { restaurant_venue_id, customer_id, reservation_date, reservation_time, party_size } = req.body
+
+  if (!restaurant_venue_id || !customer_id || !reservation_date || !reservation_time || !party_size) {
+    return res.status(400).json({ message: 'Please fill in all fields' })
+  }
+
+  db.query(
+    `INSERT INTO RestaurantReservation (restaurant_venue_id, customer_id, reservation_date, reservation_time, party_size, status_reservation)
+     VALUES (?, ?, ?, ?, ?, 'pending')`,
+    [restaurant_venue_id, customer_id, reservation_date, reservation_time, party_size],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: 'Error creating reservation' })
+      res.json({ message: 'Reservation created successfully', reservation_id: result.insertId })
+    }
+  )
+})
+
+// PUT update reservation status
+router.put('/restaurants/reservations/:reservation_id', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  const { reservation_id } = req.params
+  const { status_reservation } = req.body
+
+  db.query(
+    `UPDATE RestaurantReservation SET status_reservation = ? WHERE reservation_id = ?`,
+    [status_reservation, reservation_id],
+    (err) => {
+      if (err) return res.status(500).json({ message: 'Error updating reservation' })
+      res.json({ message: 'Reservation updated successfully' })
     }
   )
 })

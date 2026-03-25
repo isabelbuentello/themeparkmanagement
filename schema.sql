@@ -14,6 +14,7 @@ CREATE TABLE MembershipTier (
   tier_id       INT       AUTO_INCREMENT                            NOT NULL,
   tier_name     ENUM('gold', 'silver', 'platinum')                  NOT NULL,
   discount      DECIMAL(5,2)                                        NOT NULL CHECK (discount BETWEEN 0 AND 100),
+  price         DECIMAL(10,2)                                       NOT NULL,
 
   PRIMARY KEY (tier_id)
 );
@@ -49,10 +50,10 @@ CREATE TABLE PassType (
 );
 
 CREATE TABLE TicketType (
-  ticket_type_id   INT                        AUTO_INCREMENT                   NOT NULL,
-  ticket_name             ENUM('park entry', 'ride ticket')                           NOT NULL,
-  ticket_description      VARCHAR(200)                                                NULL,
-
+  ticket_type_id   INT                        AUTO_INCREMENT                       NOT NULL,
+  ticket_name             ENUM('park entry', 'ride ticket')                        NOT NULL,
+  ticket_description      VARCHAR(200)                                             NULL,
+  price                   DECIMAL(10,2)                                            NOT NULL,
   PRIMARY KEY (ticket_type_id)
 );
 
@@ -448,6 +449,20 @@ CREATE TABLE Complaint (
   FOREIGN KEY (ride_id) REFERENCES Ride(ride_id),
   FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
+);
+
+CREATE TABLE RestaurantReservation (
+  reservation_id      INT             AUTO_INCREMENT          NOT NULL,
+  restaurant_venue_id INT                                     NOT NULL,
+  customer_id         INT                                     NOT NULL,
+  reservation_date    DATE                                    NOT NULL,
+  reservation_time    TIME                                    NOT NULL,
+  party_size          INT                                     NOT NULL CHECK (party_size >= 1),
+  status_reservation  ENUM('pending', 'confirmed', 'cancelled') NOT NULL DEFAULT 'pending',
+
+  PRIMARY KEY (reservation_id),
+  FOREIGN KEY (restaurant_venue_id) REFERENCES Restaurant(venue_id),
+  FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
 );
 
 -- Triggers
