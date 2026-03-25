@@ -3,13 +3,19 @@ import { useNavigate } from 'react-router-dom'
 import { DEPARTMENT_ROUTES } from '../constants/roles'
 import Emergency from '../components/Emergency'
 import MaintenanceRequest from '../components/MaintenanceRequest'
+import EmployeeDirectory from '../components/EmployeeDirectory'
+import ParkMap from '../components/ParkMap'
 import '../styles/employee-dash.css'
+
 
 function EmployeeDash() {
   const navigate = useNavigate()
+  const token = localStorage.getItem('token')
   const role = localStorage.getItem('role')
   const [showEmergency, setShowEmergency] = useState(false)
   const [showMaintenance, setShowMaintenance] = useState(false)
+  const [showDirectory, setShowDirectory] = useState(false)
+  const [showMap, setShowMap] = useState(false)
 
   const handleLogout = () => {
     localStorage.clear()
@@ -23,22 +29,42 @@ function EmployeeDash() {
 
       <h2 className="emp-section-title">Shared Tools</h2>
       <div className="emp-tools-grid">
-        <button className="emp-btn">View Park Map</button>
-        <button className="emp-btn" onClick={() => { setShowMaintenance(!showMaintenance); setShowEmergency(false) }}>
+        <button 
+            className="emp-btn" 
+            onClick={() => { 
+                setShowMap(!showMap)
+                setShowMaintenance(false)
+                setShowEmergency(false)
+                setShowDirectory(false)
+            }}
+            >
+            View Park Map
+        </button>
+
+        <button className="emp-btn" onClick={() => { setShowMaintenance(!showMaintenance); setShowEmergency(false); setShowDirectory(false) }}>
           Submit Maintenance Request
         </button>
-        <button className="emp-btn" onClick={() => { setShowEmergency(!showEmergency); setShowMaintenance(false) }}>
+        <button className="emp-btn" onClick={() => { setShowEmergency(!showEmergency); setShowMaintenance(false); setShowDirectory(false) }}>
           Report Emergency
         </button>
-        <button className="emp-btn">View Employee Directory</button>
+        <button className="emp-btn" onClick={() => { setShowDirectory(!showDirectory); setShowEmergency(false); setShowMaintenance(false) }}>
+          View Employee Directory
+        </button>
       </div>
 
-      {/* Forms Wrapper */}
-      {(showMaintenance || showEmergency) && (
+        {showMap && <ParkMap token={token} />}
+      {showMaintenance && (
         <div className="emp-form-wrapper">
-          {showMaintenance && <MaintenanceRequest onClose={() => setShowMaintenance(false)} />}
-          {showEmergency && <Emergency onClose={() => setShowEmergency(false)} />}
+          <MaintenanceRequest onClose={() => setShowMaintenance(false)} />
         </div>
+      )}
+      {showEmergency && (
+        <div className="emp-form-wrapper">
+          <Emergency onClose={() => setShowEmergency(false)} />
+        </div>
+      )}
+      {showDirectory && (
+        <EmployeeDirectory token={token} isManager={false} />
       )}
 
       <h2 className="emp-section-title">My Department</h2>

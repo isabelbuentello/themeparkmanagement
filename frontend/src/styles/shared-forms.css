@@ -71,3 +71,14 @@ textarea.form-control {
 
 .msg-error { color: #dc3545; font-weight: bold; margin-bottom: 1rem; }
 .msg-success { color: #28a745; font-weight: bold; margin-bottom: 1rem; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-control[readonly] {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
