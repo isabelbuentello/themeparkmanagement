@@ -11,8 +11,7 @@ import parkRoutes from './routes/park.js'
 import adminRoutes from './routes/admin.js'
 import gmStatsRoutes from './routes/gm-stats.js'
 import employeesRoutes from './routes/employees.js'
-import departmentsRoutes from './routes/departments.js';
-import venueRoutes from './routes/venues.js';
+import departmentsRoutes from './routes/departments.js'
 
 const app = express()
 
@@ -30,13 +29,11 @@ app.use('/api/maintenance', maintenanceRoutes)
 app.use('/api/memberships', membershipsRoutes)
 app.use('/api/customer', customerRoutes)
 app.use('/api/venues', venuesRoutes)
-
 app.use('/api/park', parkRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/gm', gmStatsRoutes)
 app.use('/api/employees', employeesRoutes)
-app.use('/api/departments', departmentsRoutes);
-app.use('/api/venues', venueRoutes);
+app.use('/api/departments', departmentsRoutes)
 
 app.listen(3000, () => {
   console.log('Server running on port 3000')
