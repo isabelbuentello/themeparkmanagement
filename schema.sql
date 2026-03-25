@@ -450,3 +450,16 @@ CREATE TABLE Complaint (
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
+CREATE TABLE RestaurantReservation (
+  reservation_id      INT             AUTO_INCREMENT          NOT NULL,
+  restaurant_venue_id INT                                     NOT NULL,
+  customer_id         INT                                     NOT NULL,
+  reservation_date    DATE                                    NOT NULL,
+  reservation_time    TIME                                    NOT NULL,
+  party_size          INT                                     NOT NULL CHECK (party_size >= 1),
+  status_reservation  ENUM('pending', 'confirmed', 'cancelled') NOT NULL DEFAULT 'pending',
+
+  PRIMARY KEY (reservation_id),
+  FOREIGN KEY (restaurant_venue_id) REFERENCES Restaurant(venue_id),
+  FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
+);
