@@ -39,7 +39,7 @@ function GMDash() {
     <div className="gm-dash-container">
       <div className="gm-header-bar">
         <h1>General Manager Dashboard</h1>
-        <button className="gm-btn-back" onClick={() => navigate('/employee')}>Back to Employee Dashboard</button>
+        <button className="gm-btn-back" onClick={() => navigate('/account/employee')}>Back to Employee Dashboard</button>
       </div>
 
       <h2 className="gm-section-title">Management Tools</h2>

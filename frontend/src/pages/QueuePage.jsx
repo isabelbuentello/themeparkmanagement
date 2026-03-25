@@ -6,7 +6,7 @@ import PageHero from '../components/PageHero'
 import useCustomer from '../hooks/useCustomer'
 
 function QueuePage() {
-  const { activeQueueEntry, joinQueue, leaveQueue } = useCustomer()
+  const { activeQueueEntry, joinQueue, leaveQueue, setActiveQueueEntry } = useCustomer()
   const navigate = useNavigate()
   const [attractions, setAttractions] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -21,6 +21,7 @@ function QueuePage() {
       setAttractions([])
       setLoadError('')
       setIsLoading(false)
+      setActiveQueueEntry(null)
       return undefined
     }
 
@@ -35,6 +36,10 @@ function QueuePage() {
 
         if (isMounted) {
           setAttractions(attractionOptions)
+          const activeReservation =
+            attractionOptions.find((attraction) => attraction.myReservation)?.myReservation ??
+            null
+          setActiveQueueEntry(activeReservation)
         }
       } catch {
         if (isMounted) {
@@ -52,7 +57,7 @@ function QueuePage() {
     return () => {
       isMounted = false
     }
-  }, [canJoinQueue])
+  }, [canJoinQueue, setActiveQueueEntry])
 
   const handleQueueAction = async (attraction, isActive) => {
     setSubmittingAttractionId(attraction.id)

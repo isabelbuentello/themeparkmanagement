@@ -22,24 +22,24 @@ export const ALL_EMPLOYEES = [
 ]
 
 export const DEPARTMENT_ROUTES = {
-  [ROLES.GENERAL_MANAGER]: '/admin/general-manager',
-  [ROLES.MAINTENANCE]: '/admin/maintenance',
-  [ROLES.RIDE_ATTENDANT_MANAGER]: '/admin/ride-attendant',
-  [ROLES.PARKING_LOT_MANAGER]: '/admin/parking',
-  [ROLES.TICKET_SELLER]: '/admin/ticket-seller',
-  [ROLES.RESTAURANT_MANAGER]: '/admin/restaurant',
-  [ROLES.SHOP_MANAGER]: '/admin/shop',
-  [ROLES.SHOWS_MANAGER]: '/admin/shows'
+  [ROLES.GENERAL_MANAGER]: '/account/admin/general-manager',
+  [ROLES.MAINTENANCE]: '/account/admin/maintenance',
+  [ROLES.RIDE_ATTENDANT_MANAGER]: '/account/admin/ride-attendant',
+  [ROLES.PARKING_LOT_MANAGER]: '/account/admin/parking',
+  [ROLES.TICKET_SELLER]: '/account/admin/ticket-seller',
+  [ROLES.RESTAURANT_MANAGER]: '/account/admin/restaurant',
+  [ROLES.SHOP_MANAGER]: '/account/admin/shop',
+  [ROLES.SHOWS_MANAGER]: '/account/admin/shows'
 }
 
 export const ROLE_ROUTES = {
-  [ROLES.CUSTOMER]: '/dashboard',
-  [ROLES.GENERAL_MANAGER]: '/employee',
-  [ROLES.MAINTENANCE]: '/employee',
-  [ROLES.RIDE_ATTENDANT_MANAGER]: '/employee',
-  [ROLES.PARKING_LOT_MANAGER]: '/employee',
-  [ROLES.TICKET_SELLER]: '/employee',
-  [ROLES.RESTAURANT_MANAGER]: '/employee',
-  [ROLES.SHOP_MANAGER]: '/employee',
-  [ROLES.SHOWS_MANAGER]: '/employee'
+  [ROLES.CUSTOMER]: '/account/dashboard',
+  [ROLES.GENERAL_MANAGER]: '/account/employee',
+  [ROLES.MAINTENANCE]: '/account/employee',
+  [ROLES.RIDE_ATTENDANT_MANAGER]: '/account/employee',
+  [ROLES.PARKING_LOT_MANAGER]: '/account/employee',
+  [ROLES.TICKET_SELLER]: '/account/employee',
+  [ROLES.RESTAURANT_MANAGER]: '/account/employee',
+  [ROLES.SHOP_MANAGER]: '/account/employee',
+  [ROLES.SHOWS_MANAGER]: '/account/employee'
 }

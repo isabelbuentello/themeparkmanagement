@@ -122,6 +122,7 @@ export function CustomerProvider({ children }) {
     leaveQueue,
     removeFromCart,
     selectedMembershipId,
+    setActiveQueueEntry,
     setMembershipInCart,
     setSelectedMembershipId,
     updateCartQuantity
