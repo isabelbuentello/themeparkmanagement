@@ -25,6 +25,134 @@ function requireRole(...roles) {
 	}
 }
 
+function getCustomerIdFromTokenUser(userId, callback) {
+	db.query(
+		'SELECT customer_id FROM Account WHERE account_id = ?',
+		[userId],
+		(err, results) => {
+			if (err) return callback(err)
+			if (results.length === 0) return callback(null, null)
+			callback(null, results[0].customer_id)
+		}
+	)
+}
+
+router.get('/customer/queues', verifyToken, requireRole('customer'), (req, res) => {
+	getCustomerIdFromTokenUser(req.user.id, (customerLookupErr, customerId) => {
+		if (customerLookupErr) return res.status(500).json({ message: 'Server error' })
+		if (!customerId) return res.status(404).json({ message: 'Customer account not found' })
+
+		db.query(
+			`SELECT r.ride_id,
+			        r.ride_name,
+			        r.status_ride,
+			        vq.queue_id,
+			        SUM(CASE WHEN qr.reservation_fulfilled = 0 THEN 1 ELSE 0 END) AS pending_reservations,
+			        myqr.reservation_id AS my_reservation_id,
+			        myqr.reservation_time AS my_reservation_time,
+			        myqr.reservation_fulfilled AS my_reservation_fulfilled
+			 FROM VirtualQueue vq
+			 JOIN Ride r ON r.ride_id = vq.ride_id
+			 LEFT JOIN QueueReservation qr ON qr.queue_id = vq.queue_id
+			 LEFT JOIN QueueReservation myqr
+			   ON myqr.queue_id = vq.queue_id
+			  AND myqr.customer_id = ?
+			  AND myqr.reservation_fulfilled = 0
+			 GROUP BY r.ride_id, r.ride_name, r.status_ride, vq.queue_id,
+			          myqr.reservation_id, myqr.reservation_time, myqr.reservation_fulfilled
+			 ORDER BY r.ride_name`,
+			[customerId],
+			(err, results) => {
+				if (err) return res.status(500).json({ message: 'Server error' })
+				res.json(results)
+			}
+		)
+	})
+})
+
+router.post('/customer/queues/:rideId/join', verifyToken, requireRole('customer'), (req, res) => {
+	const { rideId } = req.params
+
+	getCustomerIdFromTokenUser(req.user.id, (customerLookupErr, customerId) => {
+		if (customerLookupErr) return res.status(500).json({ message: 'Server error' })
+		if (!customerId) return res.status(404).json({ message: 'Customer account not found' })
+
+		db.query(
+			`SELECT vq.queue_id, r.ride_name, r.status_ride
+			 FROM VirtualQueue vq
+			 JOIN Ride r ON r.ride_id = vq.ride_id
+			 WHERE vq.ride_id = ?`,
+			[rideId],
+			(queueErr, queueRows) => {
+				if (queueErr) return res.status(500).json({ message: 'Server error' })
+				if (queueRows.length === 0) {
+					return res.status(404).json({ message: 'This ride does not have a virtual queue' })
+				}
+
+				const queue = queueRows[0]
+				if (queue.status_ride !== 'open') {
+					return res.status(400).json({ message: 'Ride is currently not open for queue reservations' })
+				}
+
+				db.query(
+					`SELECT reservation_id
+					 FROM QueueReservation
+					 WHERE queue_id = ? AND customer_id = ? AND reservation_fulfilled = 0
+					 LIMIT 1`,
+					[queue.queue_id, customerId],
+					(existingErr, existingRows) => {
+						if (existingErr) return res.status(500).json({ message: 'Server error' })
+						if (existingRows.length > 0) {
+							return res.status(409).json({ message: 'You already have a pending reservation for this queue' })
+						}
+
+						db.query(
+							`INSERT INTO QueueReservation (queue_id, customer_id, reservation_time, reservation_fulfilled)
+							 VALUES (?, ?, NOW(), 0)`,
+							[queue.queue_id, customerId],
+							(insertErr, insertResult) => {
+								if (insertErr) return res.status(500).json({ message: 'Server error' })
+								res.status(201).json({
+									message: 'Reservation created',
+									reservation_id: insertResult.insertId,
+									ride_id: Number(rideId),
+									ride_name: queue.ride_name
+								})
+							}
+						)
+					}
+				)
+			}
+		)
+	})
+})
+
+router.delete('/customer/reservations/:reservationId', verifyToken, requireRole('customer'), (req, res) => {
+	const { reservationId } = req.params
+
+	getCustomerIdFromTokenUser(req.user.id, (customerLookupErr, customerId) => {
+		if (customerLookupErr) return res.status(500).json({ message: 'Server error' })
+		if (!customerId) return res.status(404).json({ message: 'Customer account not found' })
+
+		db.query(
+			`DELETE FROM QueueReservation
+			 WHERE reservation_id = ? AND customer_id = ? AND reservation_fulfilled = 0`,
+			[reservationId, customerId],
+			(err, result) => {
+				if (err) return res.status(500).json({ message: 'Server error' })
+				if (result.affectedRows === 0) {
+					return res.status(404).json({ message: 'Reservation not found, already fulfilled, or not owned by customer' })
+				}
+
+				res.json({
+					message: 'Reservation canceled',
+					reservation_id: Number(reservationId)
+				})
+			}
+		)
+	})
+})
+
 router.get(
 	'/',
 	verifyToken,
