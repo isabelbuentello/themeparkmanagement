@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import '../styles/shared-forms.css'
 
 function Emergency({ onClose }) {
   const [form, setForm] = useState({
@@ -48,16 +49,30 @@ function Emergency({ onClose }) {
   }
 
   return (
-    <div>
+    <div className="shared-form-container">
       <h2>Report Emergency</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {success && <p style={{ color: 'green' }}>{success}</p>}
-      <input name="date_of_emergency" type="date" value={form.date_of_emergency} onChange={handleChange} />
-      <input name="event_lat" type="number" step="0.000001" placeholder="Latitude" value={form.event_lat} onChange={handleChange} />
-      <input name="event_long" type="number" step="0.000001" placeholder="Longitude" value={form.event_long} onChange={handleChange} />
-      <textarea name="event_description" placeholder="Describe the emergency" value={form.event_description} onChange={handleChange} />
-      <button onClick={handleSubmit}>Submit Emergency</button>
-      {onClose && <button onClick={onClose}>Cancel</button>}
+      {error && <p className="msg-error">{error}</p>}
+      {success && <p className="msg-success">{success}</p>}
+      
+      <div className="form-group">
+        <label>Date of Emergency</label>
+        <input className="form-control" name="date_of_emergency" type="date" value={form.date_of_emergency} onChange={handleChange} />
+      </div>
+
+      <div className="form-group">
+        <input className="form-control" name="event_lat" type="number" step="0.000001" placeholder="Latitude" value={form.event_lat} onChange={handleChange} />
+      </div>
+
+      <div className="form-group">
+        <input className="form-control" name="event_long" type="number" step="0.000001" placeholder="Longitude" value={form.event_long} onChange={handleChange} />
+      </div>
+
+      <div className="form-group">
+        <textarea className="form-control" name="event_description" placeholder="Describe the emergency" value={form.event_description} onChange={handleChange} />
+      </div>
+
+      <button className="btn-primary" onClick={handleSubmit}>Submit Emergency</button>
+      {onClose && <button className="btn-secondary" onClick={onClose}>Cancel</button>}
     </div>
   )
 }

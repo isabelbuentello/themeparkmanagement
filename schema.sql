@@ -42,9 +42,9 @@ CREATE TABLE ParkDay (
 
 CREATE TABLE PassType (
   pass_type_id     INT                          AUTO_INCREMENT                   NOT NULL,
-  pass_name             ENUM('fast pass', 'food pass', 'parking pass', 'season pass') NOT NULL,
-  pass_description      VARCHAR(100)                                                  NULL,
-
+  pass_name         ENUM('fast pass', 'food pass', 'parking pass', 'season pass', 'rides pass') NOT NULL,
+  pass_description   VARCHAR(100)                                                  NULL,
+  price            DECIMAL(10,2)                                                 NOT NULL,
   PRIMARY KEY (pass_type_id)
 );
 

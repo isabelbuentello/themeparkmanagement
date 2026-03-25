@@ -1,0 +1,104 @@
+.gm-dash-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: sans-serif;
+  color: #333;
+}
+
+.gm-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #343a40;
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+
+.gm-header-bar h1 {
+  margin: 0;
+  color: #343a40;
+}
+
+.gm-btn-back {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.gm-btn-back:hover {
+  background-color: #5a6268;
+}
+
+.gm-tools-nav {
+  display: flex;
+  gap: 1rem;
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  border: 1px solid #dee2e6;
+}
+
+.gm-tool-btn {
+  background-color: white;
+  color: #495057;
+  border: 1px solid #ced4da;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.gm-tool-btn:hover, .gm-tool-btn.active {
+  background-color: #343a40;
+  color: white;
+  border-color: #343a40;
+}
+
+.gm-section-title {
+  color: #495057;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* Table Styling */
+.gm-table-wrapper {
+  overflow-x: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.gm-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.gm-table th, .gm-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.gm-table th {
+  background-color: #343a40;
+  color: white;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.gm-table tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.gm-table tr:hover {
+  background-color: #e9ecef;
+}

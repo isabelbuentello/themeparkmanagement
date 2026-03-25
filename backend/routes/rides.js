@@ -197,11 +197,9 @@ router.post(
 	}
 )
 
-// GM can view full ride details
+// PUBLIC ROUTE: Anyone can view full ride details
 router.get(
 	'/all',
-	verifyToken,
-	requireRole('general_manager'),
 	(req, res) => {
 		db.query(
 			'SELECT * FROM Ride ORDER BY ride_name',
