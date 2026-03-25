@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import '../styles/shared-forms.css'
 
 function MaintenanceRequest({ onClose }) {
   const [rides, setRides] = useState([])
@@ -66,28 +67,36 @@ function MaintenanceRequest({ onClose }) {
   }
 
   return (
-    <div>
+    <div className="shared-form-container">
       <h2>Submit Maintenance Request</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {success && <p style={{ color: 'green' }}>{success}</p>}
+      {error && <p className="msg-error">{error}</p>}
+      {success && <p className="msg-success">{success}</p>}
 
-      <select name="ride_id" value={form.ride_id} onChange={handleChange}>
-        <option value="">Select a ride</option>
-        {rides.map(ride => (
-          <option key={ride.ride_id} value={ride.ride_id}>{ride.ride_name}</option>
-        ))}
-      </select>
+      <div className="form-group">
+        <label>Select Ride</label>
+        <select className="form-control" name="ride_id" value={form.ride_id} onChange={handleChange}>
+          <option value="">-- Choose a ride --</option>
+          {rides.map(ride => (
+            <option key={ride.ride_id} value={ride.ride_id}>{ride.ride_name}</option>
+          ))}
+        </select>
+      </div>
 
-      <textarea name="issue_description" placeholder="Describe the issue" value={form.issue_description} onChange={handleChange} />
+      <div className="form-group">
+        <textarea className="form-control" name="issue_description" placeholder="Describe the issue" value={form.issue_description} onChange={handleChange} />
+      </div>
 
-      <select name="priority" value={form.priority} onChange={handleChange}>
-        <option value="low">Low</option>
-        <option value="medium">Medium</option>
-        <option value="high">High</option>
-      </select>
+      <div className="form-group">
+        <label>Priority Level</label>
+        <select className="form-control" name="priority" value={form.priority} onChange={handleChange}>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
 
-      <button onClick={handleSubmit}>Submit Request</button>
-      {onClose && <button onClick={onClose}>Cancel</button>}
+      <button className="btn-primary" onClick={handleSubmit}>Submit Request</button>
+      {onClose && <button className="btn-secondary" onClick={onClose}>Cancel</button>}
     </div>
   )
 }
