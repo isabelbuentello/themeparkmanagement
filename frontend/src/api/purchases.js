@@ -9,6 +9,7 @@ export async function submitPurchase(orderPayload) {
     },
     body: JSON.stringify({
       cartItems: orderPayload.cartItems.map((item) => ({
+        kind: item.kind,
         productId: item.productId,
         quantity: item.quantity
       })),

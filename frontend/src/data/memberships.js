@@ -1,46 +1,45 @@
 export const memberships = [
   {
-    id: 'silver-pass',
-    name: 'Silver Pass',
+    id: '2',
+    name: 'Silver',
     price: '$19.99/month',
-    annualValue: '$210',
-    visitProfile: 'Casual visitor',
+    annualValue: '15% member discount',
+    visitProfile: 'Frequent visits',
     perks: [
-      'General park access on standard days',
-      'Monthly reward points drop',
-      'Select weekday dining discounts'
+      'Free parking',
+      'Food discount',
+      'Merchandise savings'
     ],
     spotlight:
-      'A low-commitment option for guests who want easy repeat visits without premium extras.'
+      'A balanced option for regular guests who want stronger savings and repeat-visit value.'
   },
   {
-    id: 'gold-pass',
-    name: 'Gold Pass',
-    price: '$39.99/month',
-    annualValue: '$465',
-    visitProfile: 'Frequent weekend guest',
+    id: '1',
+    name: 'Gold',
+    price: '$19.99/month',
+    annualValue: '10% member discount',
+    visitProfile: 'Occasional visits',
     perks: [
-      'Priority entry on peak weekends',
-      '10% dining and merchandise discount',
-      'Free standard parking',
-      'Invites to member-only seasonal events'
+      'Free parking',
+      'Food discount'
     ],
     spotlight:
-      'The sweet spot for families and regular guests who want everyday savings with a few elevated perks.'
+      'A lighter membership for guests who want a few extra perks during the year.'
   },
   {
-    id: 'platinum-pass',
-    name: 'Platinum Pass',
-    price: '$59.99/month',
-    annualValue: '$720',
-    visitProfile: 'Power user',
+    id: '3',
+    name: 'Platinum',
+    price: '$49.99/month',
+    annualValue: '25% member discount',
+    visitProfile: 'Unlimited park days',
     perks: [
-      'Unlimited priority access days',
-      '15% off food and merchandise',
-      'VIP lounge access',
-      'Monthly complimentary guest pass'
+      'Free parking',
+      'Food discount',
+      'Priority ride access',
+      'Member event access',
+      'Merchandise savings'
     ],
     spotlight:
-      'Designed for members who treat the park like their regular weekend hangout and want the premium lane.'
+      'The highest tier for guests who want the strongest benefits and premium flexibility.'
   }
 ]

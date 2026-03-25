@@ -180,8 +180,8 @@ function CheckoutPage() {
             <div className="confirmation-box">
               <strong>Purchase confirmed.</strong>
               <p>
-                Confirmation ID: {confirmationId}. Your tickets have been
-                reserved and your cart has been cleared.
+                Confirmation ID: {confirmationId}. Your order has been
+                confirmed and your cart has been cleared.
               </p>
             </div>
           ) : null}

@@ -27,8 +27,8 @@ function formatMembership(tier) {
     name: tier.tier_name.charAt(0).toUpperCase() + tier.tier_name.slice(1),
     visitProfile: ui.visitProfile,
     spotlight: ui.spotlight,
-    price: `${tier.discount}% off`,
-    annualValue: 'Database-backed tier',
+    price: `$${Number(tier.price).toFixed(2)}/month`,
+    annualValue: `${tier.discount}% member discount`,
     perks: tier.perks
   }
 }

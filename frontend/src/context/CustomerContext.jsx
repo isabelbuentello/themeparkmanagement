@@ -8,7 +8,7 @@ export function CustomerProvider({ children }) {
   const [cart, setCart] = usePersistentState('customer-cart', [])
   const [selectedMembershipId, setSelectedMembershipId] = usePersistentState(
     'selected-membership',
-    'gold-pass'
+    '1'
   )
   const [activeQueueEntry, setActiveQueueEntry] = usePersistentState(
     'active-queue-entry',
