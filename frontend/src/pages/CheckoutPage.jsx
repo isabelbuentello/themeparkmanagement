@@ -179,10 +179,7 @@ function CheckoutPage() {
           {orderConfirmed ? (
             <div className="confirmation-box">
               <strong>Purchase confirmed.</strong>
-              <p>
-                Confirmation ID: {confirmationId}. Your order has been
-                confirmed and your cart has been cleared.
-              </p>
+              <p>Your order has been confirmed and your cart has been cleared.</p>
             </div>
           ) : null}
           <AsyncState error={submitError} errorMessage={submitError} />
