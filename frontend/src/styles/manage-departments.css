@@ -1,0 +1,154 @@
+.dept-panel {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.dept-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 1rem;
+}
+
+.dept-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.dept-btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.dept-btn-add {
+  background-color: #28a745;
+  color: white;
+}
+
+.dept-btn-add:hover {
+  background-color: #218838;
+}
+
+.dept-btn-cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+.dept-btn-cancel:hover {
+  background-color: #5a6268;
+}
+
+.dept-btn-submit {
+  background-color: #28a745;
+  color: white;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.dept-btn-submit:hover {
+  background-color: #218838;
+}
+
+.dept-btn-delete {
+  background-color: #dc3545;
+  color: white;
+  padding: 0.4rem 0.8rem;
+}
+
+.dept-btn-delete:hover {
+  background-color: #c82333;
+}
+
+.dept-form-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  padding: 1.5rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+}
+
+.dept-form-card h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.dept-form-group {
+  margin-bottom: 1rem;
+}
+
+.dept-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.dept-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.dept-input,
+.dept-select {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.dept-input:focus,
+.dept-select:focus {
+  outline: none;
+  border-color: #28a745;
+}
+
+.dept-table-wrapper {
+  overflow-x: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.dept-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dept-table th,
+.dept-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.dept-table th {
+  background-color: #343a40;
+  color: white;
+  font-weight: 600;
+}
+
+.dept-table tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.dept-table tr:hover {
+  background-color: #e9ecef;
+}
+
+.dept-empty {
+  text-align: center;
+  color: #999;
+  padding: 2rem;
+}

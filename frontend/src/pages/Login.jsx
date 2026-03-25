@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Register from '../components/Register.jsx'
 import { ROLE_ROUTES } from '../constants/roles'
+import '../styles/auth-styles.css'
 
 function Login() {
   const [username, setUsername] = useState('')
@@ -36,23 +37,38 @@ function Login() {
   if (showRegister) return <Register onSwitch={() => setShowRegister(false)} />
 
   return (
-    <div>
-      <h1>Login</h1>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={e => setUsername(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-      />
-      <button onClick={handleLogin}>Login</button>
-      <p>Don't have an account? <span onClick={() => setShowRegister(true)} style={{ cursor: 'pointer', color: 'blue' }}>Sign up</span></p>
+    <div className="auth-page-wrapper">
+      <div className="auth-card">
+        <div className="auth-header">
+          <h1>Welcome Back</h1>
+        </div>
+        <div className="auth-body">
+          {error && <div className="error-msg">{error}</div>}
+          <div className="auth-input-group">
+            <input
+              className="auth-input"
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+            />
+          </div>
+          <div className="auth-input-group">
+            <input
+              className="auth-input"
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+            />
+          </div>
+          <button className="auth-button" onClick={handleLogin}>Login</button>
+          
+          <div className="auth-footer">
+            Don't have an account? <span className="auth-link" onClick={() => setShowRegister(true)}>Sign up</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

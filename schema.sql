@@ -450,3 +450,19 @@ CREATE TABLE Complaint (
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
+-- Triggers
+DELIMITER //
+
+CREATE TRIGGER trg_transaction_update_daily_revenue
+AFTER INSERT ON `Transaction`
+FOR EACH ROW
+BEGIN
+    IF NEW.venue_id IS NOT NULL THEN
+        INSERT INTO DailyRevenue (date_of_revenue, venue_id, revenue)
+        VALUES (NEW.transaction_time, NEW.venue_id, NEW.total_amount)
+        ON DUPLICATE KEY UPDATE
+            revenue = revenue + NEW.total_amount;
+    END IF;
+END //
+
+DELIMITER ;

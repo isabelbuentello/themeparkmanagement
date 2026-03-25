@@ -1,0 +1,205 @@
+import express from 'express'
+import jwt from 'jsonwebtoken'
+import db from '../db.js'
+
+const router = express.Router()
+
+
+function verifyToken(req, res, next) {
+	const token = req.headers.authorization?.split(' ')[1]
+	if (!token) return res.status(401).json({ message: 'No token provided' })
+
+	try {
+		req.user = jwt.verify(token, process.env.JWT_SECRET)
+		next()
+	} catch {
+		res.status(401).json({ message: 'Invalid token' })
+	}
+}
+
+function requireGM(req, res, next) {
+	if (req.user.role !== 'general_manager') {
+		return res.status(403).json({ message: 'Access denied' })
+	}
+	next()
+}
+
+// PARK DAY
+
+// POST /parkday — log a new park day
+// attendance is auto-counted from Visit table
+router.post('/parkday', verifyToken, requireGM, (req, res) => {
+	const { park_date, rain, park_closed, weather_notes } = req.body
+
+	if (!park_date || rain === undefined || park_closed === undefined) {
+		return res.status(400).json({ message: 'park_date, rain, and park_closed are required' })
+	}
+
+	// count attendance from Visit entries for that date
+	db.query(
+		'SELECT COUNT(*) AS attendance FROM Visit WHERE visit_date = ?',
+		[park_date],
+		(err, rows) => {
+			if (err) return res.status(500).json({ message: 'Server error' })
+
+			const total_attendance = rows[0].attendance
+
+			db.query(
+				`INSERT INTO ParkDay (park_date, rain, park_closed, weather_notes, total_attendance, employees_expected)
+				 VALUES (?, ?, ?, ?, ?, 0)`,
+				[park_date, rain, park_closed, weather_notes || null, total_attendance],
+				(err, result) => {
+					if (err) {
+						if (err.code === 'ER_DUP_ENTRY') {
+							return res.status(400).json({ message: 'A park day already exists for this date' })
+						}
+						return res.status(500).json({ message: 'Error creating park day' })
+					}
+					res.status(201).json({
+						message: 'Park day logged',
+						day_id: result.insertId,
+						total_attendance
+					})
+				}
+			)
+		}
+	)
+})
+
+// PATCH /parkday/:id — update rain, park_closed, weather_notes
+// re-calculates attendance from Visit table
+router.patch('/parkday/:id', verifyToken, requireGM, (req, res) => {
+	const { id } = req.params
+	const { rain, park_closed, weather_notes } = req.body
+
+	// first get the park_date so we can recount attendance
+	db.query(
+		'SELECT park_date FROM ParkDay WHERE day_id = ?',
+		[id],
+		(err, rows) => {
+			if (err) return res.status(500).json({ message: 'Server error' })
+			if (rows.length === 0) return res.status(404).json({ message: 'Park day not found' })
+
+			const park_date = rows[0].park_date
+
+			db.query(
+				'SELECT COUNT(*) AS attendance FROM Visit WHERE visit_date = ?',
+				[park_date],
+				(err, countRows) => {
+					if (err) return res.status(500).json({ message: 'Server error' })
+
+					const total_attendance = countRows[0].attendance
+
+					db.query(
+						`UPDATE ParkDay
+						 SET rain = COALESCE(?, rain),
+						     park_closed = COALESCE(?, park_closed),
+						     weather_notes = COALESCE(?, weather_notes),
+						     total_attendance = ?
+						 WHERE day_id = ?`,
+						[
+							rain !== undefined ? rain : null,
+							park_closed !== undefined ? park_closed : null,
+							weather_notes !== undefined ? weather_notes : null,
+							total_attendance,
+							id
+						],
+						(err, result) => {
+							if (err) return res.status(500).json({ message: 'Server error' })
+							if (result.affectedRows === 0) return res.status(404).json({ message: 'Park day not found' })
+							res.json({ message: 'Park day updated', total_attendance })
+						}
+					)
+				}
+			)
+		}
+	)
+})
+
+// GET /parkday — list park days with optional date range
+// query params: ?start=YYYY-MM-DD&end=YYYY-MM-DD
+router.get('/parkday', verifyToken, requireGM, (req, res) => {
+	const { start, end } = req.query
+	let sql = `SELECT day_id, park_date, rain, park_closed, weather_notes, total_attendance
+	           FROM ParkDay`
+	const params = []
+
+	if (start && end) {
+		sql += ' WHERE park_date BETWEEN ? AND ?'
+		params.push(start, end)
+	} else if (start) {
+		sql += ' WHERE park_date >= ?'
+		params.push(start)
+	} else if (end) {
+		sql += ' WHERE park_date <= ?'
+		params.push(end)
+	}
+
+	sql += ' ORDER BY park_date DESC'
+
+	db.query(sql, params, (err, results) => {
+		if (err) return res.status(500).json({ message: 'Server error' })
+		res.json(results)
+	})
+})
+
+// REVENUE 
+
+// GET /revenue — daily totals from Transaction table
+// query params: ?start=YYYY-MM-DD&end=YYYY-MM-DD
+router.get('/revenue', verifyToken, requireGM, (req, res) => {
+	const { start, end } = req.query
+	let sql = `SELECT transaction_time AS revenue_date,
+	                  SUM(total_amount) AS daily_total,
+	                  COUNT(*) AS transaction_count
+	           FROM \`Transaction\``
+	const params = []
+
+	if (start && end) {
+		sql += ' WHERE transaction_time BETWEEN ? AND ?'
+		params.push(start, end)
+	} else if (start) {
+		sql += ' WHERE transaction_time >= ?'
+		params.push(start)
+	} else if (end) {
+		sql += ' WHERE transaction_time <= ?'
+		params.push(end)
+	}
+
+	sql += ' GROUP BY transaction_time ORDER BY transaction_time DESC'
+
+	db.query(sql, params, (err, results) => {
+		if (err) return res.status(500).json({ message: 'Server error' })
+		res.json(results)
+	})
+})
+
+// GET /revenue/breakdown — revenue per venue per day from DailyRevenue
+// query params: ?start=YYYY-MM-DD&end=YYYY-MM-DD
+router.get('/revenue/breakdown', verifyToken, requireGM, (req, res) => {
+	const { start, end } = req.query
+	let sql = `SELECT dr.date_of_revenue, dr.venue_id, v.venue_name, v.venue_type, dr.revenue
+	           FROM DailyRevenue dr
+	           JOIN Venue v ON dr.venue_id = v.venue_id`
+	const params = []
+
+	if (start && end) {
+		sql += ' WHERE dr.date_of_revenue BETWEEN ? AND ?'
+		params.push(start, end)
+	} else if (start) {
+		sql += ' WHERE dr.date_of_revenue >= ?'
+		params.push(start)
+	} else if (end) {
+		sql += ' WHERE dr.date_of_revenue <= ?'
+		params.push(end)
+	}
+
+	sql += ' ORDER BY dr.date_of_revenue DESC, v.venue_name'
+
+	db.query(sql, params, (err, results) => {
+		if (err) return res.status(500).json({ message: 'Server error' })
+		res.json(results)
+	})
+})
+
+export default router
