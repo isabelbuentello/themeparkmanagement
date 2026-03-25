@@ -13,7 +13,6 @@ import TicketSellerDash from './pages/admin/TicketSellerDash.jsx'
 import RestaurantDash from './pages/admin/RestaurantDash.jsx'
 import ShopDash from './pages/admin/ShopDash.jsx'
 import ShowsDash from './pages/admin/ShowsDash.jsx'
-
 function App() {
   return (
     <Routes>
