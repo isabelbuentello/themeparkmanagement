@@ -18,7 +18,6 @@ import EmployeeLogin from './pages/EmployeeLogin'
 import './App.css'
 import './styles/customerFacing.css'
 
-
 function App() {
   return (
     <CustomerProvider>

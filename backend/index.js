@@ -7,7 +7,8 @@ import maintenanceRoutes from './routes/maintenance.js'
 import membershipsRoutes from './routes/memberships.js'
 import customerRoutes from './routes/customer.js'
 import venuesRoutes from './routes/venues.js'
-
+import parkRoutes from './routes/park.js'
+import adminRoutes from './routes/admin.js'
 
 const app = express()
 
@@ -26,6 +27,8 @@ app.use('/api/memberships', membershipsRoutes)
 app.use('/api/customer', customerRoutes)
 app.use('/api/venues', venuesRoutes)
 
+app.use('/api/park', parkRoutes)
+app.use('/api/admin', adminRoutes)
 
 app.listen(3000, () => {
   console.log('Server running on port 3000')
