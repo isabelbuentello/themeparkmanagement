@@ -1,6 +1,6 @@
 import { CustomerContext } from './customerContextInstance'
 import { findMembershipById } from '../api/memberships'
-import { createQueueEntry } from '../api/queue'
+import { cancelQueueEntry, createQueueEntry } from '../api/queue'
 import { findTicketProductById } from '../api/tickets'
 import usePersistentState from '../hooks/usePersistentState'
 
@@ -77,6 +77,10 @@ export function CustomerProvider({ children }) {
   }
 
   const leaveQueue = async () => {
+    if (activeQueueEntry?.reservationId) {
+      await cancelQueueEntry(activeQueueEntry.reservationId)
+    }
+
     setActiveQueueEntry(null)
   }
 

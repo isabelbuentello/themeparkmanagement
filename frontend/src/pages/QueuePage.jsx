@@ -12,8 +12,18 @@ function QueuePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [submittingAttractionId, setSubmittingAttractionId] = useState('')
+  const token = localStorage.getItem('token')
+  const role = localStorage.getItem('role')
+  const canJoinQueue = Boolean(token) && role === 'customer'
 
   useEffect(() => {
+    if (!canJoinQueue) {
+      setAttractions([])
+      setLoadError('')
+      setIsLoading(false)
+      return undefined
+    }
+
     let isMounted = true
 
     const loadAttractions = async () => {
@@ -42,7 +52,7 @@ function QueuePage() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [canJoinQueue])
 
   const handleQueueAction = async (attraction, isActive) => {
     setSubmittingAttractionId(attraction.id)
@@ -66,6 +76,16 @@ function QueuePage() {
         title="Virtual queue"
       />
 
+      {!canJoinQueue ? (
+        <section className="purchase-grid">
+          <div className="async-state async-state-empty" role="status">
+            <p className="async-state-label">Login required</p>
+            <p className="async-state-message">
+              Please sign in as a customer to access the virtual queue.
+            </p>
+          </div>
+        </section>
+      ) : (
       <section className="purchase-grid">
         <AsyncState
           isLoading={isLoading}
@@ -106,6 +126,7 @@ function QueuePage() {
                 type="button"
                 className="purchase-button"
                 disabled={
+                  !canJoinQueue ||
                   isUnavailable ||
                   (!!activeQueueEntry && !isActive) ||
                   Boolean(submittingAttractionId)
@@ -116,6 +137,8 @@ function QueuePage() {
                   ? 'Updating...'
                   : isActive
                   ? 'Leave Queue'
+                  : !canJoinQueue
+                    ? 'Login Required'
                   : activeQueueEntry
                     ? 'One Queue Active'
                     : isUnavailable
@@ -126,6 +149,7 @@ function QueuePage() {
           )
         })}
       </section>
+      )}
     </div>
   )
 }

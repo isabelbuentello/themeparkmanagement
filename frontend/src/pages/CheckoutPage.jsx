@@ -19,6 +19,9 @@ function CheckoutPage() {
   const [submitError, setSubmitError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
+  const token = localStorage.getItem('token')
+  const role = localStorage.getItem('role')
+  const canCheckout = Boolean(token) && role === 'customer'
 
   const serviceFee = cartItems.length ? 12 : 0
   const total = cartSubtotal + serviceFee
@@ -44,11 +47,11 @@ function CheckoutPage() {
     today.setHours(0, 0, 0, 0)
 
     if (!formState.primaryGuest.trim()) {
-      nextErrors.primaryGuest = 'Enter the primary guest name.'
+      nextErrors.primaryGuest = 'Enter the account name.'
     }
 
     if (!formState.email.trim()) {
-      nextErrors.email = 'Enter an email for ticket delivery.'
+      nextErrors.email = 'Enter the account email.'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formState.email)) {
       nextErrors.email = 'Enter a valid email address.'
     }
@@ -92,8 +95,8 @@ function CheckoutPage() {
       setConfirmationId(response.confirmationId)
       clearCart()
       setFormState(initialFormState)
-    } catch {
-      setSubmitError('Purchase could not be completed. Please try again.')
+    } catch (error) {
+      setSubmitError(error.message || 'Purchase could not be completed. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -106,11 +109,21 @@ function CheckoutPage() {
         compact
       />
 
+      {!canCheckout ? (
+        <section className="purchase-grid">
+          <div className="async-state async-state-empty" role="status">
+            <p className="async-state-label">Login required</p>
+            <p className="async-state-message">
+              Please sign in as a customer to access checkout.
+            </p>
+          </div>
+        </section>
+      ) : (
       <section className="two-column-layout">
         <form className="content-card form-card" onSubmit={handleSubmit}>
-          <h2>Guest Details</h2>
+          <h2>Account Details</h2>
           <label className="form-field">
-            <span>Primary guest name</span>
+            <span>Account name</span>
             <input
               type="text"
               name="primaryGuest"
@@ -125,7 +138,7 @@ function CheckoutPage() {
           </label>
 
           <label className="form-field">
-            <span>Email for digital delivery</span>
+            <span>Account email</span>
             <input
               type="email"
               name="email"
@@ -167,8 +180,8 @@ function CheckoutPage() {
             <div className="confirmation-box">
               <strong>Purchase confirmed.</strong>
               <p>
-                Confirmation ID: {confirmationId}. Your order has been staged
-                through the frontend API layer and the cart was cleared.
+                Confirmation ID: {confirmationId}. Your tickets have been
+                reserved and your cart has been cleared.
               </p>
             </div>
           ) : null}
@@ -219,6 +232,7 @@ function CheckoutPage() {
           </Link>
         </aside>
       </section>
+      )}
     </div>
   )
 }

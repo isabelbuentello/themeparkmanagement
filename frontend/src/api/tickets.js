@@ -1,8 +1,14 @@
 import { ticketProducts } from '../data/tickets'
-import { withMockDelay } from './mockDelay'
 
 export async function getTicketProducts() {
-  return withMockDelay(ticketProducts)
+  const response = await fetch('/api/customer/tickets')
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to load ticket products')
+  }
+
+  return data
 }
 
 export function findTicketProductById(productId) {

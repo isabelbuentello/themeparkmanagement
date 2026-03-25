@@ -1,16 +1,21 @@
-import { directories } from '../data/directories'
-import { withMockDelay } from './mockDelay'
-
 export async function getDirectory(category) {
-  return withMockDelay(directories[category] ?? null)
+  const response = await fetch(`/api/venues/${category}`)
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to load directory')
+  }
+
+  return data
 }
 
 export async function getVenueById(category, itemId) {
-  const directory = directories[category]
-  const item = directory?.items.find((entry) => entry.id === itemId) ?? null
+  const response = await fetch(`/api/venues/${category}/${itemId}`)
+  const data = await response.json()
 
-  return withMockDelay({
-    config: directory ?? null,
-    item
-  })
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to load venue')
+  }
+
+  return data
 }

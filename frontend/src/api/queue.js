@@ -1,20 +1,56 @@
-import { attractions } from '../data/queue'
-import { withMockDelay } from './mockDelay'
-
 export async function getQueueAttractions() {
-  return withMockDelay(attractions)
+  const response = await fetch('/api/customer/queue')
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to load queue attractions')
+  }
+
+  return data
 }
 
 export async function createQueueEntry(attraction) {
-  return withMockDelay({
-    attractionId: attraction.id,
-    attractionName: attraction.name,
-    location: attraction.location,
-    returnWindow: attraction.returnWindow,
-    joinedAt: new Date().toISOString()
+  const token = localStorage.getItem('token')
+
+  const response = await fetch('/api/customer/queue', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({
+      rideId: attraction.id
+    })
   })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to create queue reservation')
+  }
+
+  return data
 }
 
-export async function cancelQueueEntry() {
-  return withMockDelay(true)
+export async function cancelQueueEntry(reservationId) {
+  const token = localStorage.getItem('token')
+
+  const response = await fetch(`/api/customer/queue/${reservationId}`, {
+    method: 'DELETE',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    }
+  })
+
+  if (response.status === 204) {
+    return true
+  }
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to cancel queue reservation')
+  }
+
+  return true
 }

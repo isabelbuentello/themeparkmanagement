@@ -160,7 +160,7 @@ function TicketSellerDash() {
             <option value="">Select a ticket type</option>
             {ticketTypes.map(t => (
               <option key={t.ticket_type_id} value={t.ticket_type_id}>
-                {t.ticket_name} — ${t.ticket_type_id === 1 ? '25.00' : '10.00'}
+                {t.ticket_name} — ${Number(t.price).toFixed(2)}
               </option>
             ))}
           </select>
