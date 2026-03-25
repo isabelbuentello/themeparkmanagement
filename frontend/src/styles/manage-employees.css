@@ -1,0 +1,87 @@
+.emp-actions {
+  margin-bottom: 1rem;
+}
+
+.emp-btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.emp-btn-add {
+  background-color: #28a745;
+  color: white;
+}
+
+.emp-btn-add:hover {
+  background-color: #218838;
+}
+
+.emp-btn-cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+.emp-btn-cancel:hover {
+  background-color: #5a6268;
+}
+
+.emp-btn-submit {
+  background-color: #28a745;
+  color: white;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.emp-btn-submit:hover {
+  background-color: #218838;
+}
+
+.emp-form-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  padding: 1.5rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+}
+
+.emp-form-card h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.emp-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.emp-form-group {
+  margin-bottom: 0.5rem;
+}
+
+.emp-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.emp-input,
+.emp-select {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.emp-input:focus,
+.emp-select:focus {
+  outline: none;
+  border-color: #28a745;
+}

@@ -464,3 +464,95 @@ CREATE TABLE RestaurantReservation (
   FOREIGN KEY (restaurant_venue_id) REFERENCES Restaurant(venue_id),
   FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
 );
+
+-- Triggers
+DELIMITER //
+
+CREATE TRIGGER trg_transaction_update_daily_revenue
+AFTER INSERT ON `Transaction`
+FOR EACH ROW
+BEGIN
+    IF NEW.venue_id IS NOT NULL THEN
+        INSERT INTO DailyRevenue (date_of_revenue, venue_id, revenue)
+        VALUES (NEW.transaction_time, NEW.venue_id, NEW.total_amount)
+        ON DUPLICATE KEY UPDATE
+            revenue = revenue + NEW.total_amount;
+    END IF;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+
+CREATE TRIGGER trg_visit_update_attendance
+AFTER INSERT ON Visit
+FOR EACH ROW
+BEGIN
+    UPDATE ParkDay
+    SET total_attendance = total_attendance + 1
+    WHERE park_date = DATE(NEW.visit_date);
+END //
+
+DELIMITER ;
+
+DELIMITER //
+
+CREATE TRIGGER trg_maintenance_update_ride_status
+AFTER INSERT ON MaintenanceLog
+FOR EACH ROW
+BEGIN
+    IF NEW.status_maintenance = 'broken' THEN
+        UPDATE Ride
+        SET status_ride = 'broken'
+        WHERE ride_id = NEW.ride_id;
+    ELSEIF NEW.status_maintenance = 'in-progress' THEN
+        UPDATE Ride
+        SET status_ride = 'maintenance'
+        WHERE ride_id = NEW.ride_id;
+    ELSEIF NEW.status_maintenance = 'fixed' THEN
+        UPDATE Ride
+        SET status_ride = 'open'
+        WHERE ride_id = NEW.ride_id;
+    END IF;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+
+CREATE TRIGGER trg_parkday_rain_close_rides
+AFTER UPDATE ON ParkDay
+FOR EACH ROW
+BEGIN
+    IF NEW.rain = TRUE AND OLD.rain = FALSE THEN
+        -- Rain started, close affected rides
+        UPDATE Ride
+        SET status_ride = 'closed_weather'
+        WHERE affected_by_rain = TRUE 
+          AND status_ride = 'open';
+    ELSEIF NEW.rain = FALSE AND OLD.rain = TRUE THEN
+        -- Rain stopped, reopen affected rides (only if they were closed due to weather)
+        UPDATE Ride
+        SET status_ride = 'open'
+        WHERE affected_by_rain = TRUE 
+          AND status_ride = 'closed_weather';
+    END IF;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+
+CREATE TRIGGER trg_parkday_rain_insert
+AFTER INSERT ON ParkDay
+FOR EACH ROW
+BEGIN
+    IF NEW.rain = TRUE THEN
+        UPDATE Ride
+        SET status_ride = 'closed_weather'
+        WHERE affected_by_rain = TRUE 
+          AND status_ride = 'open';
+    END IF;
+END //
+
+DELIMITER ;

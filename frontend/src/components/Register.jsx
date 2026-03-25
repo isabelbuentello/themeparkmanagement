@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import '../styles/auth-styles.css'
 
 function Register({ onSwitch }) {
   const [form, setForm] = useState({
@@ -52,19 +53,45 @@ function Register({ onSwitch }) {
   }
 
   return (
-    <div>
-      <h2>Create Account</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {success && <p style={{ color: 'green' }}>{success}</p>}
-      <input name="first_name"        placeholder="First Name"    onChange={handleChange} />
-      <input name="last_name"         placeholder="Last Name"     onChange={handleChange} />
-      <input name="customer_email"    placeholder="Email"         onChange={handleChange} />
-      <input name="customer_phone"    placeholder="Phone"         onChange={handleChange} />
-      <input name="customer_birthdate" type="date"                onChange={handleChange} />
-      <input name="username"          placeholder="Username"      onChange={handleChange} />
-      <input name="password"          type="password" placeholder="Password" onChange={handleChange} />
-      <button onClick={handleRegister}>Register</button>
-      <p>Already have an account? <span onClick={onSwitch} style={{ cursor: 'pointer', color: 'blue' }}>Log in</span></p>
+    <div className="auth-page-wrapper">
+      <div className="auth-card">
+        <div className="auth-header">
+          <h2>Create Account</h2>
+        </div>
+        <div className="auth-body">
+          {error && <div className="error-msg">{error}</div>}
+          {success && <div style={{color: 'green', textAlign:'center', marginBottom: '10px'}}>{success}</div>}
+          
+          <div className="auth-input-group">
+            <input className="auth-input" name="first_name" placeholder="First Name" onChange={handleChange} />
+          </div>
+          <div className="auth-input-group">
+            <input className="auth-input" name="last_name" placeholder="Last Name" onChange={handleChange} />
+          </div>
+          <div className="auth-input-group">
+            <input className="auth-input" name="customer_email" placeholder="Email" onChange={handleChange} />
+          </div>
+          <div className="auth-input-group">
+            <input className="auth-input" name="customer_phone" placeholder="Phone" onChange={handleChange} />
+          </div>
+          <div className="auth-input-group">
+            <label style={{fontSize: '0.8rem', color: '#64748b'}}>Birthdate</label>
+            <input className="auth-input" name="customer_birthdate" type="date" onChange={handleChange} />
+          </div>
+          <div className="auth-input-group">
+            <input className="auth-input" name="username" placeholder="Username" onChange={handleChange} />
+          </div>
+          <div className="auth-input-group">
+            <input className="auth-input" name="password" type="password" placeholder="Password" onChange={handleChange} />
+          </div>
+
+          <button className="auth-button" onClick={handleRegister}>Register</button>
+          
+          <div className="auth-footer">
+            Already have an account? <span className="auth-link" onClick={onSwitch}>Log in</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
