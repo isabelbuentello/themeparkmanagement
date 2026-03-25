@@ -11,9 +11,12 @@ function GMDash() {
   const [showAddRide, setShowAddRide] = useState(false)
   const [showEmergencies, setShowEmergencies] = useState(false)
   const [showConfig, setShowConfig] = useState(false)
+  const [showRainouts, setShowRainouts] = useState(false)
   
   const [rides, setRides] = useState([])
   const [emergencies, setEmergencies] = useState([])
+  const [rainouts, setRainouts] = useState([])
+  const [rainoutError, setRainoutError] = useState('')
 
   const fetchRides = async () => {
     try {
@@ -31,6 +34,25 @@ function GMDash() {
       })
       if (res.ok) setEmergencies(await res.json())
     } catch (err) { console.error('Error fetching emergencies') }
+  }
+
+  const fetchRainouts = async () => {
+    try {
+      const res = await fetch('/api/rides/rainouts', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        setRainouts(await res.json())
+        setRainoutError('')
+      } else {
+        const errorData = await res.json()
+        setRainoutError(`Error (${res.status}): ${errorData.message || 'Failed to load rainout history'}`)
+        console.error('Rainout fetch error:', errorData)
+      }
+    } catch (err) {
+      setRainoutError('Error fetching rainouts: ' + err.message)
+      console.error(err)
+    }
   }
 
   useEffect(() => { fetchRides() }, [])
@@ -56,8 +78,13 @@ function GMDash() {
         </button>
         <button 
           className={`gm-tool-btn ${showConfig ? 'active' : ''}`} 
-          onClick={() => { setShowConfig(!showConfig); setShowAddRide(false); setShowEmergencies(false) }}>
+          onClick={() => { setShowConfig(!showConfig); setShowAddRide(false); setShowEmergencies(false); setShowRainouts(false) }}>
           Park Configuration
+        </button>
+        <button 
+          className={`gm-tool-btn ${showRainouts ? 'active' : ''}`} 
+          onClick={() => { setShowRainouts(!showRainouts); setShowAddRide(false); setShowEmergencies(false); setShowConfig(false); fetchRainouts() }}>
+          Rainout Tracking
         </button>
         <button className="gm-tool-btn">Manage Employees</button>
       </div>
@@ -82,6 +109,46 @@ function GMDash() {
                     <td>{e.event_description}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {showRainouts && (
+        <div style={{ marginBottom: '3rem' }}>
+          <h3 className="gm-section-title">Rainout Tracking History</h3>
+          {rainoutError && <p style={{ color: 'red', marginBottom: '1rem' }}>{rainoutError}</p>}
+          <div className="gm-table-wrapper">
+            <table className="gm-table">
+              <thead>
+                <tr>
+                  <th>Rainout ID</th>
+                  <th>Ride Name</th>
+                  <th>Rainout Time</th>
+                  <th>Current Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rainouts.length === 0 ? (
+                  <tr><td colSpan="4" style={{ textAlign: 'center' }}>No rainouts recorded</td></tr>
+                ) : (
+                  rainouts.map(rainout => (
+                    <tr key={rainout.rainout_id}>
+                      <td>{rainout.rainout_id}</td>
+                      <td>{rainout.ride_name}</td>
+                      <td>{new Date(rainout.rainout_time).toLocaleString()}</td>
+                      <td>
+                        <span style={{
+                          color: rainout.status_ride === 'closed_weather' ? 'orange' : 'green',
+                          fontWeight: 'bold'
+                        }}>
+                          {rainout.status_ride.toUpperCase()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
