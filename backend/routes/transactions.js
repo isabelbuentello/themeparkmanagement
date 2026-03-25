@@ -317,6 +317,57 @@ router.post('/shops/sell', verifyToken, requireRole('shop_manager', 'general_man
     )
   })
 })
+// ─────────────────────────────────────────
+// RESTAURANT RESERVATIONS
+// ─────────────────────────────────────────
+
+// GET all reservations
+router.get('/restaurants/reservations', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  db.query(
+    `SELECT rr.*, c.first_name, c.last_name 
+     FROM RestaurantReservation rr
+     JOIN Customer c ON rr.customer_id = c.customer_id
+     ORDER BY rr.reservation_date, rr.reservation_time`,
+    (err, results) => {
+      if (err) return res.status(500).json({ message: 'Server error' })
+      res.json(results)
+    }
+  )
+})
+
+// POST add a reservation
+router.post('/restaurants/reservations', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  const { restaurant_venue_id, customer_id, reservation_date, reservation_time, party_size } = req.body
+
+  if (!restaurant_venue_id || !customer_id || !reservation_date || !reservation_time || !party_size) {
+    return res.status(400).json({ message: 'Please fill in all fields' })
+  }
+
+  db.query(
+    `INSERT INTO RestaurantReservation (restaurant_venue_id, customer_id, reservation_date, reservation_time, party_size, status_reservation)
+     VALUES (?, ?, ?, ?, ?, 'pending')`,
+    [restaurant_venue_id, customer_id, reservation_date, reservation_time, party_size],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: 'Error creating reservation' })
+      res.json({ message: 'Reservation created successfully', reservation_id: result.insertId })
+    }
+  )
+})
+
+// PUT update reservation status
+router.put('/restaurants/reservations/:reservation_id', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  const { reservation_id } = req.params
+  const { status_reservation } = req.body
+
+  db.query(
+    `UPDATE RestaurantReservation SET status_reservation = ? WHERE reservation_id = ?`,
+    [status_reservation, reservation_id],
+    (err) => {
+      if (err) return res.status(500).json({ message: 'Error updating reservation' })
+      res.json({ message: 'Reservation updated successfully' })
+    }
+  )
+})
 
 // ─────────────────────────────────────────
 // RESTAURANT FOOD SALES
