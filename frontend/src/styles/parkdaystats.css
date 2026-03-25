@@ -1,0 +1,146 @@
+
+:root {
+  --gm-navy: #373d49;
+  --gm-text-dark: #333333;
+  --gm-text-light: #666666;
+  --gm-border: #eef0f2;
+  --gm-white: #ffffff;
+  --gm-green: #2d8a39;
+  --gm-red: #d93025;
+  --gm-orange: #f2994a;
+  --gm-bg: #fdfdfd;
+}
+
+/* Section Headers */
+.gm-section-title {
+  color: var(--gm-text-dark);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  margin-top: 2rem;
+}
+
+/* Form Styling */
+.gm-form-card {
+  background: var(--gm-white);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--gm-border);
+  margin-bottom: 2.5rem;
+}
+
+.gm-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.gm-form-row label {
+  font-weight: 600;
+  color: var(--gm-text-dark);
+  min-width: 80px;
+}
+
+.gm-form-row input[type="text"],
+.gm-form-row input[type="date"] {
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.gm-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* Button Styling (Based on standard dashboard themes) */
+.gm-submit-btn {
+  background-color: rgb(26, 190, 26);
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.gm-submit-btn:hover {
+  opacity: 0.9;
+}
+
+/* Table Styling - Matches the reference image */
+.gm-table-wrapper {
+  background: var(--gm-white);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--gm-border);
+}
+
+.gm-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.gm-table thead tr {
+  background-color: var(--gm-navy);
+}
+
+.gm-table th {
+  color: var(--gm-white);
+  padding: 16px 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: capitalize;
+}
+
+.gm-table td {
+  padding: 16px 20px;
+  color: var(--gm-text-dark);
+  border-bottom: 1px solid var(--gm-border);
+  font-size: 0.95rem;
+}
+
+.gm-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Badges / Status Labels */
+.gm-badge {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+.gm-badge-ok {
+  color: var(--gm-green);
+}
+
+.gm-badge-warn {
+  color: var(--gm-orange);
+}
+
+.gm-badge-danger {
+  color: var(--gm-red);
+}
+
+.gm-badge-danger, .gm-badge-warn {
+    /* If you prefer the solid badge look */
+    background: transparent; 
+}
+
+.gm-form-message {
+  margin-top: 1rem;
+  font-weight: 600;
+  color: var(--gm-green);
+}

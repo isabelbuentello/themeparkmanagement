@@ -2,16 +2,18 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AddRide from '../components/AddRide'
 import GMForms from '../components/GMForms'
+import ParkDayStats from '../components/ParkDayStats'
+import RevenueStats from '../components/RevenueStats'
+import ManageEmployees from '../components/ManageEmployees'
+import ManageDepartments from '../components/ManageDepartments'
+import ManageVenues from '../components/ManageVenues'
 import '../styles/gm-dash.css'
 
 function GMDash() {
   const navigate = useNavigate()
   const token = localStorage.getItem('token')
 
-  const [showAddRide, setShowAddRide] = useState(false)
-  const [showEmergencies, setShowEmergencies] = useState(false)
-  const [showConfig, setShowConfig] = useState(false)
-  
+  const [activePanel, setActivePanel] = useState(null)
   const [rides, setRides] = useState([])
   const [emergencies, setEmergencies] = useState([])
 
@@ -33,6 +35,15 @@ function GMDash() {
     } catch (err) { console.error('Error fetching emergencies') }
   }
 
+  const togglePanel = (panel, onOpen) => {
+    if (activePanel === panel) {
+      setActivePanel(null)
+    } else {
+      setActivePanel(panel)
+      if (onOpen) onOpen()
+    }
+  }
+
   useEffect(() => { fetchRides() }, [])
 
   return (
@@ -44,29 +55,58 @@ function GMDash() {
 
       <h2 className="gm-section-title">Management Tools</h2>
       <div className="gm-tools-nav">
-        <button 
-          className={`gm-tool-btn ${showAddRide ? 'active' : ''}`} 
-          onClick={() => { setShowAddRide(!showAddRide); setShowEmergencies(false); setShowConfig(false) }}>
+        <button
+          className={`gm-tool-btn ${activePanel === 'addRide' ? 'active' : ''}`}
+          onClick={() => togglePanel('addRide')}>
           Add New Ride
         </button>
-        <button 
-          className={`gm-tool-btn ${showEmergencies ? 'active' : ''}`} 
-          onClick={() => { setShowEmergencies(!showEmergencies); setShowAddRide(false); setShowConfig(false); fetchEmergencies() }}>
+        <button
+          className={`gm-tool-btn ${activePanel === 'emergencies' ? 'active' : ''}`}
+          onClick={() => togglePanel('emergencies', fetchEmergencies)}>
           View Emergencies
         </button>
-        <button 
-          className={`gm-tool-btn ${showConfig ? 'active' : ''}`} 
-          onClick={() => { setShowConfig(!showConfig); setShowAddRide(false); setShowEmergencies(false) }}>
+        <button
+          className={`gm-tool-btn ${activePanel === 'config' ? 'active' : ''}`}
+          onClick={() => togglePanel('config')}>
           Park Configuration
         </button>
-        <button className="gm-tool-btn">Manage Employees</button>
+        <button
+          className={`gm-tool-btn ${activePanel === 'parkDay' ? 'active' : ''}`}
+          onClick={() => togglePanel('parkDay')}>
+          Park Day Stats
+        </button>
+        <button
+          className={`gm-tool-btn ${activePanel === 'revenue' ? 'active' : ''}`}
+          onClick={() => togglePanel('revenue')}>
+          Revenue
+        </button>
+        
+        <button
+          className={`gm-tool-btn ${activePanel === 'employees' ? 'active' : ''}`}
+          onClick={() => togglePanel('employees')}>
+          Manage Employees
+        </button>
+
+        <button
+          className={`gm-tool-btn ${activePanel === 'departments' ? 'active' : ''}`}
+          onClick={() => togglePanel('departments')}>
+          Manage Departments
+        </button>  
+
+        <button
+          className={`gm-tool-btn ${activePanel === 'venues' ? 'active' : ''}`}
+          onClick={() => togglePanel('venues')}>
+          Manage Venues
+        </button>
+
       </div>
 
-      {/* RENDER COMPONENTS BASED ON STATE */}
-      {showAddRide && <AddRide onRideAdded={fetchRides} />}
-      {showConfig && <GMForms token={token} />}
+      {activePanel === 'addRide' && <AddRide onRideAdded={fetchRides} />}
+      {activePanel === 'config' && <GMForms token={token} />}
+      {activePanel === 'employees' && <ManageEmployees token={token} />}
+      {activePanel === 'venues' && <ManageVenues token={token} />}
 
-      {showEmergencies && (
+      {activePanel === 'emergencies' && (
         <div style={{ marginBottom: '3rem' }}>
           <h3 className="gm-section-title">Emergency Events</h3>
           <div className="gm-table-wrapper">
@@ -88,6 +128,10 @@ function GMDash() {
         </div>
       )}
 
+      {activePanel === 'parkDay' && <ParkDayStats token={token} />}
+      {activePanel === 'revenue' && <RevenueStats token={token} />}
+      {activePanel === 'departments' && <ManageDepartments token={token} />}
+
       <h3 className="gm-section-title">All Rides</h3>
       <div className="gm-table-wrapper">
         <table className="gm-table">
@@ -105,7 +149,7 @@ function GMDash() {
                 <td>{ride.speed_mph}</td><td>{ride.min_height_ft}</td>
                 <td>{ride.affected_by_rain ? 'Yes' : 'No'}</td>
                 <td>
-                  <span style={{ 
+                  <span style={{
                     color: ride.status_ride === 'open' ? 'green' : ride.status_ride === 'broken' ? 'red' : 'orange',
                     fontWeight: 'bold'
                   }}>
@@ -120,4 +164,5 @@ function GMDash() {
     </div>
   )
 }
+
 export default GMDash
