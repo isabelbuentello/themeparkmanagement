@@ -4,22 +4,6 @@ import db from '../db.js'
 
 const router = express.Router()
 
-// GET all ticket types (PUBLIC)
-router.get('/ticket-types', (req, res) => {
-  db.query('SELECT * FROM TicketType', (err, results) => {
-    if (err) return res.status(500).json({ message: 'Server error' })
-    res.json(results)
-  })
-})
-
-// GET all pass types (Now PUBLIC)
-router.get('/pass-types', (req, res) => {
-  db.query('SELECT * FROM PassType', (err, results) => {
-    if (err) return res.status(500).json({ message: 'Server error' })
-    res.json(results)
-  })
-})
-
 function verifyToken(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1]
   if (!token) return res.status(401).json({ message: 'No token provided' })
@@ -39,7 +23,6 @@ function requireRole(...roles) {
     next()
   }
 }
-
 
 // ─────────────────────────────────────────
 // PRICES
@@ -61,8 +44,8 @@ const PASS_PRICES = {
 // TICKETS
 // ─────────────────────────────────────────
 
-// GET all ticket types
-router.get('/ticket-types', verifyToken, requireRole('ticket_seller', 'general_manager'), (req, res) => {
+// GET all ticket types (PUBLIC)
+router.get('/ticket-types', (req, res) => {
   db.query('SELECT * FROM TicketType', (err, results) => {
     if (err) return res.status(500).json({ message: 'Server error' })
     res.json(results)
@@ -117,8 +100,8 @@ router.post('/tickets', verifyToken, requireRole('ticket_seller', 'general_manag
 // PASSES
 // ─────────────────────────────────────────
 
-// GET all pass types
-router.get('/pass-types', verifyToken, requireRole('ticket_seller', 'parking_lot_manager', 'general_manager'), (req, res) => {
+// GET all pass types (PUBLIC)
+router.get('/pass-types', (req, res) => {
   db.query('SELECT * FROM PassType', (err, results) => {
     if (err) return res.status(500).json({ message: 'Server error' })
     res.json(results)
@@ -317,6 +300,107 @@ router.post('/shops/sell', verifyToken, requireRole('shop_manager', 'general_man
     )
   })
 })
+
+// ─────────────────────────────────────────
+// RESTAURANT FOOD SALES
+// ─────────────────────────────────────────
+
+// GET all available menu items
+router.get('/restaurants/menu', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  db.query(
+    `SELECT menu_item_id, item_name, price, restaurant_venue_id
+     FROM MenuItem WHERE is_available = true`,
+    (err, results) => {
+      if (err) return res.status(500).json({ message: 'Server error' })
+      res.json(results)
+    }
+  )
+})
+
+// GET all menu items including unavailable (for manage menu tab)
+router.get('/restaurants/menu-all', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  db.query(
+    `SELECT menu_item_id, item_name, price, is_available, restaurant_venue_id
+     FROM MenuItem`,
+    (err, results) => {
+      if (err) return res.status(500).json({ message: 'Server error' })
+      res.json(results)
+    }
+  )
+})
+
+// POST add a new menu item
+router.post('/restaurants/menu/add', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  const { restaurant_venue_id, item_name, price, is_available } = req.body
+  db.query(
+    `INSERT INTO MenuItem (restaurant_venue_id, item_name, price, is_available)
+     VALUES (?, ?, ?, ?)`,
+    [restaurant_venue_id, item_name, price, is_available ? 1 : 0],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: 'Error adding menu item' })
+      res.json({ message: 'Menu item added successfully', menu_item_id: result.insertId })
+    }
+  )
+})
+
+// PUT toggle menu item availability
+router.put('/restaurants/menu/toggle/:menu_item_id', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  const { menu_item_id } = req.params
+  const { is_available } = req.body
+  db.query(
+    `UPDATE MenuItem SET is_available = ? WHERE menu_item_id = ?`,
+    [is_available ? 1 : 0, menu_item_id],
+    (err) => {
+      if (err) return res.status(500).json({ message: 'Error updating menu item' })
+      res.json({ message: 'Menu item updated successfully' })
+    }
+  )
+})
+
+// POST sell food
+router.post('/restaurants/sell', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  const { venue_id, menu_item_id, quantity, payment_method_transaction, account_id } = req.body
+
+  db.query(
+    `SELECT price FROM MenuItem WHERE menu_item_id = ? AND is_available = true`,
+    [menu_item_id],
+    (err, results) => {
+      if (err) return res.status(500).json({ message: 'Server error' })
+      if (results.length === 0) return res.status(404).json({ message: 'Menu item not found or unavailable' })
+
+      const unit_price = results[0].price
+      const total_amount = (quantity * unit_price).toFixed(2)
+
+      db.beginTransaction((err) => {
+        if (err) return res.status(500).json({ message: 'Server error' })
+
+        db.query(
+          `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction, venue_id)
+           VALUES (?, CURDATE(), ?, ?, ?)`,
+          [account_id || null, total_amount, payment_method_transaction, venue_id],
+          (err, transResult) => {
+            if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction' }))
+
+            db.query(
+              `INSERT INTO TransactionItem (transaction_id, item_type, quantity, unit_price)
+               VALUES (?, 'food', ?, ?)`,
+              [transResult.insertId, quantity, unit_price],
+              (err) => {
+                if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction item' }))
+
+                db.commit((err) => {
+                  if (err) return db.rollback(() => res.status(500).json({ message: 'Server error' }))
+                  res.json({ message: 'Food sale recorded successfully', total_amount })
+                })
+              }
+            )
+          }
+        )
+      })
+    }
+  )
+})
+
 // ─────────────────────────────────────────
 // RESTAURANT RESERVATIONS
 // ─────────────────────────────────────────
@@ -365,65 +449,6 @@ router.put('/restaurants/reservations/:reservation_id', verifyToken, requireRole
     (err) => {
       if (err) return res.status(500).json({ message: 'Error updating reservation' })
       res.json({ message: 'Reservation updated successfully' })
-    }
-  )
-})
-
-// ─────────────────────────────────────────
-// RESTAURANT FOOD SALES
-// ─────────────────────────────────────────
-
-// GET all available menu items
-router.get('/restaurants/menu', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
-  db.query(
-    `SELECT menu_item_id, item_name, price, restaurant_venue_id
-     FROM MenuItem WHERE is_available = true`,
-    (err, results) => {
-      if (err) return res.status(500).json({ message: 'Server error' })
-      res.json(results)
-    }
-  )
-})
-// POST sell food
-router.post('/restaurants/sell', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
-  const { venue_id, menu_item_id, quantity, payment_method_transaction, account_id } = req.body
-
-  db.query(
-    `SELECT price FROM MenuItem WHERE menu_item_id = ? AND is_available = true`,
-    [menu_item_id],
-    (err, results) => {
-      if (err) return res.status(500).json({ message: 'Server error' })
-      if (results.length === 0) return res.status(404).json({ message: 'Menu item not found or unavailable' })
-
-      const unit_price = results[0].price
-      const total_amount = (quantity * unit_price).toFixed(2)
-
-      db.beginTransaction((err) => {
-        if (err) return res.status(500).json({ message: 'Server error' })
-
-        db.query(
-          `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction, venue_id)
-           VALUES (?, CURDATE(), ?, ?, ?)`,
-          [account_id || null, total_amount, payment_method_transaction, venue_id],
-          (err, transResult) => {
-            if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction' }))
-
-            db.query(
-              `INSERT INTO TransactionItem (transaction_id, item_type, quantity, unit_price)
-               VALUES (?, 'food', ?, ?)`,
-              [transResult.insertId, quantity, unit_price],
-              (err) => {
-                if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction item' }))
-
-                db.commit((err) => {
-                  if (err) return db.rollback(() => res.status(500).json({ message: 'Server error' }))
-                  res.json({ message: 'Food sale recorded successfully', total_amount })
-                })
-              }
-            )
-          }
-        )
-      })
     }
   )
 })
