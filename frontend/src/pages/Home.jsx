@@ -6,7 +6,7 @@ function Home() {
   return (
     <div>
         <nav>
-            <Link to="/login">Signup/Login</Link>
+            <Link to="/account">Signup/Login</Link>
         </nav>
         <h1> home page!!!</h1>
     </div>

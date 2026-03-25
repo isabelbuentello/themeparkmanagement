@@ -14,6 +14,7 @@ CREATE TABLE MembershipTier (
   tier_id       INT       AUTO_INCREMENT                            NOT NULL,
   tier_name     ENUM('gold', 'silver', 'platinum')                  NOT NULL,
   discount      DECIMAL(5,2)                                        NOT NULL CHECK (discount BETWEEN 0 AND 100),
+  price         DECIMAL(10,2)                                       NOT NULL,
 
   PRIMARY KEY (tier_id)
 );
@@ -49,10 +50,10 @@ CREATE TABLE PassType (
 );
 
 CREATE TABLE TicketType (
-  ticket_type_id   INT                        AUTO_INCREMENT                   NOT NULL,
-  ticket_name             ENUM('park entry', 'ride ticket')                           NOT NULL,
-  ticket_description      VARCHAR(200)                                                NULL,
-
+  ticket_type_id   INT                        AUTO_INCREMENT                       NOT NULL,
+  ticket_name             ENUM('park entry', 'ride ticket')                        NOT NULL,
+  ticket_description      VARCHAR(200)                                             NULL,
+  price                   DECIMAL(10,2)                                            NOT NULL,
   PRIMARY KEY (ticket_type_id)
 );
 

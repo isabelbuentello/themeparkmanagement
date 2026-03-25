@@ -13,7 +13,7 @@ function EmployeeDash() {
 
   const handleLogout = () => {
     localStorage.clear()
-    navigate('/login')
+    navigate('/account')
   }
 
   return (

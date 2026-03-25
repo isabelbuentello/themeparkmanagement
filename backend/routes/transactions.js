@@ -56,44 +56,57 @@ router.get('/ticket-types', (req, res) => {
 router.post('/tickets', verifyToken, requireRole('ticket_seller', 'general_manager'), (req, res) => {
   const { ticket_type_id, customer_id, valid_date, payment_method_transaction, account_id } = req.body
 
-  const unit_price = TICKET_PRICES[ticket_type_id]
-  if (!unit_price) return res.status(400).json({ message: 'Invalid ticket type' })
+  db.query(
+    'SELECT price FROM TicketType WHERE ticket_type_id = ? LIMIT 1',
+    [ticket_type_id],
+    (lookupErr, ticketTypeRows) => {
+      if (lookupErr) return res.status(500).json({ message: 'Server error' })
+      if (!ticketTypeRows.length) {
+        return res.status(400).json({ message: 'Invalid ticket type' })
+      }
 
-  db.beginTransaction((err) => {
-    if (err) return res.status(500).json({ message: 'Server error' })
+      const unit_price = Number(ticketTypeRows[0].price)
+      if (!Number.isFinite(unit_price) || unit_price <= 0) {
+        return res.status(400).json({ message: 'Ticket type price is invalid' })
+      }
 
-    db.query(
-      `INSERT INTO Ticket (ticket_type_id, customer_id, valid_date, status_ticket)
-       VALUES (?, ?, ?, 'valid')`,
-      [ticket_type_id, customer_id, valid_date],
-      (err, ticketResult) => {
-        if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating ticket' }))
+      db.beginTransaction((err) => {
+        if (err) return res.status(500).json({ message: 'Server error' })
 
         db.query(
-          `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
-           VALUES (?, CURDATE(), ?, ?)`,
-          [account_id || null, unit_price, payment_method_transaction],
-          (err, transResult) => {
-            if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction' }))
+          `INSERT INTO Ticket (ticket_type_id, customer_id, valid_date, status_ticket)
+           VALUES (?, ?, ?, 'valid')`,
+          [ticket_type_id, customer_id, valid_date],
+          (err, ticketResult) => {
+            if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating ticket' }))
 
             db.query(
-              `INSERT INTO TransactionItem (transaction_id, item_type, quantity, unit_price)
-               VALUES (?, 'ticket', 1, ?)`,
-              [transResult.insertId, unit_price],
-              (err) => {
-                if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction item' }))
+              `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
+               VALUES (?, CURDATE(), ?, ?)`,
+              [account_id || null, unit_price, payment_method_transaction],
+              (err, transResult) => {
+                if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction' }))
 
-                db.commit((err) => {
-                  if (err) return db.rollback(() => res.status(500).json({ message: 'Server error' }))
-                  res.json({ message: 'Ticket sold successfully', ticket_id: ticketResult.insertId, total: unit_price })
-                })
+                db.query(
+                  `INSERT INTO TransactionItem (transaction_id, item_type, quantity, unit_price)
+                   VALUES (?, 'ticket', 1, ?)`,
+                  [transResult.insertId, unit_price],
+                  (err) => {
+                    if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating transaction item' }))
+
+                    db.commit((err) => {
+                      if (err) return db.rollback(() => res.status(500).json({ message: 'Server error' }))
+                      res.json({ message: 'Ticket sold successfully', ticket_id: ticketResult.insertId, total: unit_price })
+                    })
+                  }
+                )
               }
             )
           }
         )
-      }
-    )
-  })
+      })
+    }
+  )
 })
 
 // ─────────────────────────────────────────
