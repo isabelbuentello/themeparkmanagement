@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AddRide from '../components/AddRide'
+import GMForms from '../components/GMForms'
 
 function GMDash() {
   const navigate = useNavigate()
@@ -8,6 +9,8 @@ function GMDash() {
 
   const [showAddRide, setShowAddRide] = useState(false)
   const [showEmergencies, setShowEmergencies] = useState(false)
+  const [showConfig, setShowConfig] = useState(false)
+  
   const [rides, setRides] = useState([])
   const [emergencies, setEmergencies] = useState([])
 
@@ -37,15 +40,21 @@ function GMDash() {
       <button onClick={() => navigate('/employee')}>Back to Employee Dashboard</button>
 
       <h2>Management Tools</h2>
-      <button onClick={() => { setShowAddRide(!showAddRide); setShowEmergencies(false) }}>
+      <button onClick={() => { setShowAddRide(!showAddRide); setShowEmergencies(false); setShowConfig(false) }}>
         Add New Ride
       </button>
-      <button onClick={() => { setShowEmergencies(!showEmergencies); setShowAddRide(false); fetchEmergencies() }}>
+      <button onClick={() => { setShowEmergencies(!showEmergencies); setShowAddRide(false); setShowConfig(false); fetchEmergencies() }}>
         View Emergencies
+      </button>
+      <button onClick={() => { setShowConfig(!showConfig); setShowAddRide(false); setShowEmergencies(false) }}>
+        Park Configuration
       </button>
       <button>Manage Employees</button>
 
+      {/* RENDER COMPONENTS BASED ON STATE */}
       {showAddRide && <AddRide onRideAdded={fetchRides} />}
+      
+      {showConfig && <GMForms token={token} />}
 
       {showEmergencies && (
         <div>
