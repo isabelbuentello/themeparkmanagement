@@ -2,6 +2,24 @@ import jwt from 'jsonwebtoken'
 import express from 'express'
 import db from '../db.js'
 
+const router = express.Router()
+
+// GET all ticket types (PUBLIC)
+router.get('/ticket-types', (req, res) => {
+  db.query('SELECT * FROM TicketType', (err, results) => {
+    if (err) return res.status(500).json({ message: 'Server error' })
+    res.json(results)
+  })
+})
+
+// GET all pass types (Now PUBLIC)
+router.get('/pass-types', (req, res) => {
+  db.query('SELECT * FROM PassType', (err, results) => {
+    if (err) return res.status(500).json({ message: 'Server error' })
+    res.json(results)
+  })
+})
+
 function verifyToken(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1]
   if (!token) return res.status(401).json({ message: 'No token provided' })
@@ -22,7 +40,6 @@ function requireRole(...roles) {
   }
 }
 
-const router = express.Router()
 
 // ─────────────────────────────────────────
 // PRICES

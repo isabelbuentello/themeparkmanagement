@@ -150,32 +150,25 @@ router.post(
     }
 );
 
-// GET CONFIGURATION ROUTES (For dropdowns)
-
-// GET all Membership Tiers for dropdowns
+// GET all Membership Tiers (Public - no middleware)
 router.get(
     '/membership-tiers',
-    verifyToken,
-    requireRole('general_manager'),
     (req, res) => {
-        db.query('SELECT tier_id, tier_name FROM MembershipTier ORDER BY tier_id', (err, results) => {
+        db.query('SELECT tier_id, tier_name, discount, price FROM MembershipTier ORDER BY tier_id', (err, results) => {
             if (err) return res.status(500).json({ message: 'Server error', error: err.message });
             res.json(results);
         });
     }
 );
 
-// GET all Perks for dropdowns
+// GET all Perks (Public - no middleware)
 router.get(
     '/perks',
-    verifyToken,
-    requireRole('general_manager'),
     (req, res) => {
-        db.query('SELECT perk_id, perk_name FROM Perk ORDER BY perk_id', (err, results) => {
+        db.query('SELECT perk_id, perk_name, perk_description FROM Perk ORDER BY perk_id', (err, results) => {
             if (err) return res.status(500).json({ message: 'Server error', error: err.message });
             res.json(results);
         });
     }
 );
-
 export default router
