@@ -42,6 +42,50 @@ router.get(
 	}
 )
 
+// GM can add a new ride
+router.post(
+	'/',
+	verifyToken,
+	requireRole('general_manager'),
+	(req, res) => {
+		const { ride_name, ride_type, is_seasonal, size_sqft, ride_lat, ride_long,
+		        speed_mph, min_height_ft, affected_by_rain, status_ride } = req.body
+
+		if (!ride_name || !ride_type || !size_sqft || !ride_lat || !ride_long || !speed_mph || !min_height_ft || !status_ride) {
+			return res.status(400).json({ message: 'All fields are required' })
+		}
+
+		db.query(
+			`INSERT INTO Ride (ride_name, ride_type, is_seasonal, size_sqft, ride_lat, ride_long,
+			  speed_mph, min_height_ft, affected_by_rain, status_ride)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			[ride_name, ride_type, is_seasonal, size_sqft, ride_lat, ride_long,
+			 speed_mph, min_height_ft, affected_by_rain, status_ride],
+			(err) => {
+				if (err) return res.status(500).json({ message: 'Error adding ride' })
+				res.json({ message: 'Ride added successfully' })
+			}
+		)
+	}
+)
+
+// GM can view full ride details
+router.get(
+	'/all',
+	verifyToken,
+	requireRole('general_manager'),
+	(req, res) => {
+		db.query(
+			'SELECT * FROM Ride ORDER BY ride_name',
+			(err, results) => {
+				if (err) return res.status(500).json({ message: 'Server error' })
+				res.json(results)
+			}
+		)
+	}
+)
+
+
 router.patch(
 	'/:id/status',
 	verifyToken,
