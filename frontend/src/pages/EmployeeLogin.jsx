@@ -74,7 +74,7 @@ function EmployeeLogin() {
       } />
 
       <Route path="admin/shows" element={
-        <ProtectedRoute allowedRoles={[ROLES.SHOWS_MANAGER]}>
+        <ProtectedRoute allowedRoles={[ROLES.SHOWS_MANAGER, ROLES.GENERAL_MANAGER]}>
           <ShowsDash />
         </ProtectedRoute>
       } />

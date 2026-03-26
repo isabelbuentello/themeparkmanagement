@@ -16,6 +16,26 @@ function verifyToken(req, res, next) {
   }
 }
 
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Access denied' })
+    }
+
+    next()
+  }
+}
+
+function normalizeDateTimeInput(value) {
+  if (!value) return null
+
+  if (typeof value === 'string' && value.includes('T')) {
+    return `${value.replace('T', ' ')}:00`
+  }
+
+  return value
+}
+
 // any employee can report an emergency
 router.post('/emergency', verifyToken, (req, res) => {
   const { date_of_emergency, event_lat, event_long, event_description } = req.body
@@ -100,6 +120,188 @@ router.get('/rides', verifyToken, (req, res) => {
     }
   )
 })
+
+router.get(
+  '/shows',
+  verifyToken,
+  requireRole('shows_manager', 'general_manager'),
+  (req, res) => {
+    db.query(
+      `
+        SELECT
+          ps.show_id,
+          v.venue_id,
+          v.venue_name,
+          v.hours,
+          v.venue_lat,
+          v.venue_long,
+          ps.show_category,
+          ps.duration,
+          st.show_time,
+          st.show_start_time
+        FROM ParkShow ps
+        JOIN Venue v ON v.venue_id = ps.venue_id
+        LEFT JOIN ShowTime st ON st.show_id = ps.show_id
+        WHERE v.venue_type = 'show'
+        ORDER BY v.venue_name, st.show_start_time
+      `,
+      (err, results) => {
+        if (err) return res.status(500).json({ message: 'Server error' })
+
+        const showsById = new Map()
+
+        for (const row of results) {
+          if (!showsById.has(row.show_id)) {
+            showsById.set(row.show_id, {
+              show_id: row.show_id,
+              venue_id: row.venue_id,
+              venue_name: row.venue_name,
+              hours: row.hours,
+              venue_lat: row.venue_lat,
+              venue_long: row.venue_long,
+              show_category: row.show_category,
+              duration: row.duration,
+              showtimes: []
+            })
+          }
+
+          if (row.show_time) {
+            showsById.get(row.show_id).showtimes.push({
+              show_time: row.show_time,
+              show_start_time: row.show_start_time
+            })
+          }
+        }
+
+        res.json(Array.from(showsById.values()))
+      }
+    )
+  }
+)
+
+router.post(
+  '/shows',
+  verifyToken,
+  requireRole('shows_manager', 'general_manager'),
+  (req, res) => {
+    const {
+      venue_name,
+      hours,
+      venue_lat,
+      venue_long,
+      show_category,
+      duration
+    } = req.body
+
+    if (
+      !venue_name ||
+      !hours ||
+      venue_lat === undefined ||
+      venue_long === undefined ||
+      !show_category ||
+      duration === undefined
+    ) {
+      return res.status(400).json({ message: 'All fields are required' })
+    }
+
+    db.beginTransaction((txErr) => {
+      if (txErr) return res.status(500).json({ message: 'Server error' })
+
+      db.query(
+        `
+          INSERT INTO Venue (venue_type, venue_name, hours, venue_lat, venue_long)
+          VALUES ('show', ?, ?, ?, ?)
+        `,
+        [venue_name, hours, venue_lat, venue_long],
+        (venueErr, venueResult) => {
+          if (venueErr) {
+            return db.rollback(() =>
+              res.status(500).json({ message: 'Error creating show venue' })
+            )
+          }
+
+          db.query(
+            `
+              INSERT INTO ParkShow (venue_id, show_lat, show_long, show_category, duration)
+              VALUES (?, ?, ?, ?, ?)
+            `,
+            [
+              venueResult.insertId,
+              venue_lat,
+              venue_long,
+              show_category,
+              duration
+            ],
+            (showErr, showResult) => {
+              if (showErr) {
+                return db.rollback(() =>
+                  res.status(500).json({ message: 'Error creating show' })
+                )
+              }
+
+              db.commit((commitErr) => {
+                if (commitErr) {
+                  return db.rollback(() =>
+                    res.status(500).json({ message: 'Server error' })
+                  )
+                }
+
+                res.status(201).json({
+                  message: 'Show created successfully',
+                  show_id: showResult.insertId,
+                  venue_id: venueResult.insertId
+                })
+              })
+            }
+          )
+        }
+      )
+    })
+  }
+)
+
+router.post(
+  '/shows/:showId/times',
+  verifyToken,
+  requireRole('shows_manager', 'general_manager'),
+  (req, res) => {
+    const { showId } = req.params
+    const normalizedStartTime = normalizeDateTimeInput(req.body.show_start_time)
+
+    if (!normalizedStartTime) {
+      return res.status(400).json({ message: 'Show start time is required' })
+    }
+
+    db.query(
+      'SELECT show_id FROM ParkShow WHERE show_id = ? LIMIT 1',
+      [showId],
+      (lookupErr, showRows) => {
+        if (lookupErr) return res.status(500).json({ message: 'Server error' })
+        if (!showRows.length) {
+          return res.status(404).json({ message: 'Show not found' })
+        }
+
+        db.query(
+          `
+            INSERT INTO ShowTime (show_id, show_start_time)
+            VALUES (?, ?)
+          `,
+          [showId, normalizedStartTime],
+          (insertErr, insertResult) => {
+            if (insertErr) {
+              return res.status(500).json({ message: 'Error creating showtime' })
+            }
+
+            res.status(201).json({
+              message: 'Showtime added successfully',
+              show_time: insertResult.insertId
+            })
+          }
+        )
+      }
+    )
+  }
+)
 
 
 

@@ -306,6 +306,10 @@ router.delete('/:id', (req, res) => {
   })
 })
 
+// =============================================
+// DIRECTORY ROUTES (customer-facing)
+// =============================================
+
 // GET directory by category (dining, shops, shows)
 router.get('/directory/:category', async (req, res) => {
   const meta = getDirectoryMeta(req.params.category)
@@ -350,7 +354,11 @@ router.get('/directory/:category/:itemId', async (req, res) => {
 })
 
 // GET single venue by ID (must be last to avoid conflicts)
-router.get('/:id', (req, res) => {
+router.get('/:id', (req, res, next) => {
+  if (!/^\d+$/.test(req.params.id)) {
+    return next()
+  }
+
   db.query(
     `SELECT v.*,
             s.space_for_items_sqft, s.total_merch_sold,
@@ -371,3 +379,4 @@ router.get('/:id', (req, res) => {
 })
 
 export default router
+
