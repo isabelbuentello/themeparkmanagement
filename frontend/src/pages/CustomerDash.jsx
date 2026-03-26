@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 function CustomerDash() {
   return (
     <div>
-        <h1> customer dash </h1>
+        <h1> You are now logged in! </h1>
     </div>
   )
 }
