@@ -27,7 +27,6 @@ CREATE TABLE Perk (
   PRIMARY KEY (perk_id)
 );
 
-
 CREATE TABLE ParkDay (
   day_id            INT                         AUTO_INCREMENT                  NOT NULL,
   park_date         DATE                                                        NOT NULL,
