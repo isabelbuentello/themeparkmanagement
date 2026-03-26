@@ -36,6 +36,8 @@
 
 .gm-tools-nav {
   display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
   gap: 1rem;
   background-color: #f8f9fa;
   padding: 1rem;
@@ -45,6 +47,8 @@
 }
 
 .gm-tool-btn {
+  flex: 1 1 180px;
+  min-width: 0;
   background-color: white;
   color: #495057;
   border: 1px solid #ced4da;
