@@ -3,10 +3,6 @@ import db from '../db.js'
 
 const router = express.Router()
 
-// =============================================
-// DIRECTORY CONFIG (for customer-facing pages)
-// =============================================
-
 const DIRECTORY_CONFIG = {
   dining: {
     title: 'Restaurants & Dining'
@@ -186,9 +182,6 @@ async function getItemsForCategory(category) {
   return null
 }
 
-// =============================================
-// GM CRUD ROUTES (must come before :category)
-// =============================================
 
 // GET all venues with their type-specific info
 router.get('/', (req, res) => {
@@ -209,7 +202,7 @@ router.get('/', (req, res) => {
   )
 })
 
-// GET venues for dropdowns (just id, name, type)
+// GET venues for dropdowns (just id, name, type, coordinates)
 router.get('/list', (req, res) => {
   db.query(
     'SELECT venue_id, venue_name, venue_type, venue_lat, venue_long FROM Venue ORDER BY venue_name',
@@ -316,7 +309,50 @@ router.delete('/:id', (req, res) => {
 // DIRECTORY ROUTES (customer-facing)
 // =============================================
 
-// GET single venue by ID (must come after /list and /name/:name)
+// GET directory by category (dining, shops, shows)
+router.get('/directory/:category', async (req, res) => {
+  const meta = getDirectoryMeta(req.params.category)
+
+  if (!meta) {
+    return res.status(404).json({ message: 'Directory not found' })
+  }
+
+  try {
+    const items = await getItemsForCategory(req.params.category)
+    return res.json({
+      ...meta,
+      items
+    })
+  } catch {
+    return res.status(500).json({ message: 'Server error' })
+  }
+})
+
+// GET single item from directory
+router.get('/directory/:category/:itemId', async (req, res) => {
+  const meta = getDirectoryMeta(req.params.category)
+
+  if (!meta) {
+    return res.status(404).json({ message: 'Directory not found' })
+  }
+
+  try {
+    const items = await getItemsForCategory(req.params.category)
+    const item = items?.find((entry) => entry.id === req.params.itemId) ?? null
+
+    return res.json({
+      config: {
+        ...meta,
+        items: items ?? []
+      },
+      item
+    })
+  } catch {
+    return res.status(500).json({ message: 'Server error' })
+  }
+})
+
+// GET single venue by ID (must be last to avoid conflicts)
 router.get('/:id', (req, res, next) => {
   if (!/^\d+$/.test(req.params.id)) {
     return next()
@@ -339,49 +375,6 @@ router.get('/:id', (req, res, next) => {
       res.json(rows[0])
     }
   )
-})
-
-// GET directory by category (dining, shops, shows)
-router.get('/:category', async (req, res) => {
-  const meta = getDirectoryMeta(req.params.category)
-
-  if (!meta) {
-    return res.status(404).json({ message: 'Directory not found' })
-  }
-
-  try {
-    const items = await getItemsForCategory(req.params.category)
-    return res.json({
-      ...meta,
-      items
-    })
-  } catch {
-    return res.status(500).json({ message: 'Server error' })
-  }
-})
-
-// GET single item from directory
-router.get('/:category/:itemId', async (req, res) => {
-  const meta = getDirectoryMeta(req.params.category)
-
-  if (!meta) {
-    return res.status(404).json({ message: 'Directory not found' })
-  }
-
-  try {
-    const items = await getItemsForCategory(req.params.category)
-    const item = items?.find((entry) => entry.id === req.params.itemId) ?? null
-
-    return res.json({
-      config: {
-        ...meta,
-        items: items ?? []
-      },
-      item
-    })
-  } catch {
-    return res.status(500).json({ message: 'Server error' })
-  }
 })
 
 export default router

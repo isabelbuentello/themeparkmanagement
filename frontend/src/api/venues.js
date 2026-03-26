@@ -1,5 +1,5 @@
 export async function getDirectory(category) {
-  const response = await fetch(`/api/venues/${category}`)
+  const response = await fetch(`/api/venues/directory/${category}`)
   const data = await response.json()
 
   if (!response.ok) {
@@ -10,7 +10,7 @@ export async function getDirectory(category) {
 }
 
 export async function getVenueById(category, itemId) {
-  const response = await fetch(`/api/venues/${category}/${itemId}`)
+  const response = await fetch(`/api/venues/directory/${category}/${itemId}`)
   const data = await response.json()
 
   if (!response.ok) {
