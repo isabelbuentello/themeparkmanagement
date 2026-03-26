@@ -317,7 +317,11 @@ router.delete('/:id', (req, res) => {
 // =============================================
 
 // GET single venue by ID (must come after /list and /name/:name)
-router.get('/:id(\\d+)', (req, res) => {
+router.get('/:id', (req, res, next) => {
+  if (!/^\d+$/.test(req.params.id)) {
+    return next()
+  }
+
   db.query(
     `SELECT v.*,
             s.space_for_items_sqft, s.total_merch_sold,
