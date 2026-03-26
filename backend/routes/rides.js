@@ -301,6 +301,23 @@ router.post(
 )
 
 router.get(
+	'/rainouts',
+	verifyToken,
+	requireRole('general_manager', 'maintenance', 'ride_attendant_manager'),
+	(req, res) => {
+		db.query(
+			`SELECT rr.rainout_id, rr.ride_id, rr.rainout_time, r.ride_name, r.status_ride
+			 FROM RideRainout rr
+			 JOIN Ride r ON rr.ride_id = r.ride_id
+			 ORDER BY rr.rainout_time DESC`,
+			(err, results) => {
+				if (err) return res.status(500).json({ message: 'Server error' })
+				res.json(results)
+			}
+		)
+	}
+)
+router.get(
 	'/queue-overview',
 	verifyToken,
 	requireRole('ride_attendant_manager', 'maintenance', 'general_manager'),
