@@ -1,11 +1,8 @@
+
 import express from 'express'
 import db from '../db.js'
 
 const router = express.Router()
-
-// =============================================
-// DIRECTORY CONFIG (for customer-facing pages)
-// =============================================
 
 const DIRECTORY_CONFIG = {
   dining: {
@@ -186,9 +183,6 @@ async function getItemsForCategory(category) {
   return null
 }
 
-// =============================================
-// GM CRUD ROUTES (must come before :category)
-// =============================================
 
 // GET all venues with their type-specific info
 router.get('/', (req, res) => {
@@ -209,7 +203,7 @@ router.get('/', (req, res) => {
   )
 })
 
-// GET venues for dropdowns (just id, name, type)
+// GET venues for dropdowns (just id, name, type, coordinates)
 router.get('/list', (req, res) => {
   db.query(
     'SELECT venue_id, venue_name, venue_type, venue_lat, venue_long FROM Venue ORDER BY venue_name',
@@ -312,37 +306,8 @@ router.delete('/:id', (req, res) => {
   })
 })
 
-// =============================================
-// DIRECTORY ROUTES (customer-facing)
-// =============================================
-
-// GET single venue by ID (must come after /list and /name/:name)
-router.get('/:id', (req, res, next) => {
-  if (!/^\d+$/.test(req.params.id)) {
-    return next()
-  }
-
-  db.query(
-    `SELECT v.*,
-            s.space_for_items_sqft, s.total_merch_sold,
-            r.requires_booking, r.price_range, r.seating_capacity,
-            ps.show_category, ps.duration
-     FROM Venue v
-     LEFT JOIN Shop s ON v.venue_id = s.venue_id
-     LEFT JOIN Restaurant r ON v.venue_id = r.venue_id
-     LEFT JOIN ParkShow ps ON v.venue_id = ps.venue_id
-     WHERE v.venue_id = ?`,
-    [req.params.id],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message })
-      if (rows.length === 0) return res.status(404).json({ error: 'Venue not found' })
-      res.json(rows[0])
-    }
-  )
-})
-
 // GET directory by category (dining, shops, shows)
-router.get('/:category', async (req, res) => {
+router.get('/directory/:category', async (req, res) => {
   const meta = getDirectoryMeta(req.params.category)
 
   if (!meta) {
@@ -361,7 +326,7 @@ router.get('/:category', async (req, res) => {
 })
 
 // GET single item from directory
-router.get('/:category/:itemId', async (req, res) => {
+router.get('/directory/:category/:itemId', async (req, res) => {
   const meta = getDirectoryMeta(req.params.category)
 
   if (!meta) {
@@ -382,6 +347,27 @@ router.get('/:category/:itemId', async (req, res) => {
   } catch {
     return res.status(500).json({ message: 'Server error' })
   }
+})
+
+// GET single venue by ID (must be last to avoid conflicts)
+router.get('/:id', (req, res) => {
+  db.query(
+    `SELECT v.*,
+            s.space_for_items_sqft, s.total_merch_sold,
+            r.requires_booking, r.price_range, r.seating_capacity,
+            ps.show_category, ps.duration
+     FROM Venue v
+     LEFT JOIN Shop s ON v.venue_id = s.venue_id
+     LEFT JOIN Restaurant r ON v.venue_id = r.venue_id
+     LEFT JOIN ParkShow ps ON v.venue_id = ps.venue_id
+     WHERE v.venue_id = ?`,
+    [req.params.id],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message })
+      if (rows.length === 0) return res.status(404).json({ error: 'Venue not found' })
+      res.json(rows[0])
+    }
+  )
 })
 
 export default router
