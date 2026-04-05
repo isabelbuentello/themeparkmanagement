@@ -33,7 +33,7 @@ export const DEPARTMENT_ROUTES = {
 }
 
 export const ROLE_ROUTES = {
-  [ROLES.CUSTOMER]: '/account/dashboard',
+  [ROLES.CUSTOMER]: '/',
   [ROLES.GENERAL_MANAGER]: '/account/employee',
   [ROLES.MAINTENANCE]: '/account/employee',
   [ROLES.RIDE_ATTENDANT_MANAGER]: '/account/employee',

@@ -1,9 +1,42 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import useCustomer from '../hooks/useCustomer'
 
 function CartPage() {
   const { cartItems, cartSubtotal, removeFromCart, updateCartQuantity } =
     useCustomer()
+  const [quantityInputs, setQuantityInputs] = useState({})
+
+  useEffect(() => {
+    setQuantityInputs((currentInputs) => {
+      const nextInputs = {}
+
+      cartItems.forEach((item) => {
+        const key = `${item.kind}-${item.productId}`
+        nextInputs[key] =
+          currentInputs[key] !== undefined
+            ? currentInputs[key]
+            : String(item.quantity)
+      })
+
+      return nextInputs
+    })
+  }, [cartItems])
+
+  const commitQuantity = (item) => {
+    const key = `${item.kind}-${item.productId}`
+    const rawValue = quantityInputs[key] ?? ''
+    const parsedQuantity = Number.parseInt(rawValue, 10)
+    const nextQuantity = Number.isFinite(parsedQuantity) && parsedQuantity >= 1
+      ? parsedQuantity
+      : item.quantity
+
+    updateCartQuantity(item.productId, nextQuantity, item.kind)
+    setQuantityInputs((currentInputs) => ({
+      ...currentInputs,
+      [key]: String(nextQuantity)
+    }))
+  }
 
   return (
     <div className="page">
@@ -43,14 +76,24 @@ function CartPage() {
                           <span className="sr-only">Quantity</span>
                           <input
                             type="number"
-                            min="0"
-                            value={item.quantity}
-                            onChange={(event) =>
-                              updateCartQuantity(
-                                item.productId,
-                                Number(event.target.value)
-                              )
+                            min="1"
+                            value={
+                              quantityInputs[`${item.kind}-${item.productId}`] ??
+                              String(item.quantity)
                             }
+                            onChange={(event) =>
+                              setQuantityInputs((currentInputs) => ({
+                                ...currentInputs,
+                                [`${item.kind}-${item.productId}`]: event.target.value
+                              }))
+                            }
+                            onBlur={() => commitQuantity(item)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault()
+                                commitQuantity(item)
+                              }
+                            }}
                           />
                         </label>
                       )}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Register from '../components/Register.jsx'
 import { ROLE_ROUTES } from '../constants/roles'
@@ -10,6 +10,15 @@ function Login() {
   const [error, setError] = useState('')
   const [showRegister, setShowRegister] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const role = localStorage.getItem('role')
+
+    if (token && role) {
+      navigate(ROLE_ROUTES[role] || '/', { replace: true })
+    }
+  }, [navigate])
 
   const handleLogin = async () => {
     setError('')
@@ -25,6 +34,9 @@ function Login() {
 
       localStorage.setItem('token', data.token)
       localStorage.setItem('role', data.role)
+      if (data.role !== 'customer') {
+        localStorage.removeItem('customer-name')
+      }
 
       navigate(ROLE_ROUTES[data.role] || '/')
 

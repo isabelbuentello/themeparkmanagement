@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt'
 import express from 'express'
 import jwt from 'jsonwebtoken'
 import db from '../db.js'
@@ -122,6 +123,31 @@ function requireCustomer(req, res, next) {
   next()
 }
 
+async function getCustomerAccountContext(accountId) {
+  const rows = await query(
+    `
+      SELECT
+        a.account_id,
+        a.username,
+        a.password,
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        c.customer_birthdate,
+        c.customer_email,
+        c.customer_phone,
+        c.customer_address
+      FROM Account a
+      JOIN Customer c ON c.customer_id = a.customer_id
+      WHERE a.account_id = ?
+      LIMIT 1
+    `,
+    [accountId]
+  )
+
+  return rows[0] ?? null
+}
+
 function formatReturnWindow(reservationTime) {
   const start = new Date(reservationTime)
   const end = new Date(start.getTime() + 30 * 60 * 1000)
@@ -185,6 +211,306 @@ router.get('/tickets', async (req, res) => {
     return res.json(products)
   } catch {
     return res.status(500).json({ message: 'Unable to load ticket products' })
+  }
+})
+
+router.get('/profile', requireCustomer, async (req, res) => {
+  try {
+    const customer = await getCustomerAccountContext(req.user.id)
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer account not found' })
+    }
+
+    return res.json({
+      name: `${customer.first_name} ${customer.last_name}`.trim(),
+      email: customer.customer_email ?? '',
+      username: customer.username ?? '',
+      firstName: customer.first_name ?? '',
+      lastName: customer.last_name ?? '',
+      birthdate: customer.customer_birthdate ?? '',
+      phone: customer.customer_phone ?? '',
+      address: customer.customer_address ?? ''
+    })
+  } catch {
+    return res.status(500).json({ message: 'Unable to load customer profile' })
+  }
+})
+
+router.put('/profile', requireCustomer, async (req, res) => {
+  const {
+    firstName = '',
+    lastName = '',
+    birthdate = '',
+    email = '',
+    phone = '',
+    address = ''
+  } = req.body
+
+  if (!firstName.trim() || !lastName.trim() || !birthdate || !email.trim() || !phone.trim()) {
+    return res.status(400).json({ message: 'First name, last name, birth date, email, and phone are required' })
+  }
+
+  try {
+    const customer = await getCustomerAccountContext(req.user.id)
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer account not found' })
+    }
+
+    await query(
+      `
+        UPDATE Customer
+        SET
+          first_name = ?,
+          last_name = ?,
+          customer_birthdate = ?,
+          customer_email = ?,
+          customer_phone = ?,
+          customer_address = ?
+        WHERE customer_id = ?
+      `,
+      [
+        firstName.trim(),
+        lastName.trim(),
+        birthdate,
+        email.trim(),
+        phone.trim(),
+        address.trim() || null,
+        customer.customer_id
+      ]
+    )
+
+    return res.json({
+      name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+      email: email.trim(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      birthdate,
+      phone: phone.trim(),
+      address: address.trim()
+    })
+  } catch {
+    return res.status(500).json({ message: 'Unable to update customer profile' })
+  }
+})
+
+router.get('/security', requireCustomer, async (req, res) => {
+  try {
+    const customer = await getCustomerAccountContext(req.user.id)
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer account not found' })
+    }
+
+    return res.json({
+      username: customer.username ?? ''
+    })
+  } catch {
+    return res.status(500).json({ message: 'Unable to load security settings' })
+  }
+})
+
+router.put('/security', requireCustomer, async (req, res) => {
+  const {
+    username = '',
+    currentPassword = '',
+    newPassword = '',
+    confirmPassword = ''
+  } = req.body
+
+  if (!username.trim() || !currentPassword) {
+    return res.status(400).json({ message: 'Username and current password are required' })
+  }
+
+  if (newPassword || confirmPassword) {
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters long' })
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'New password and confirm password must match' })
+    }
+  }
+
+  try {
+    const customer = await getCustomerAccountContext(req.user.id)
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer account not found' })
+    }
+
+    const currentPasswordMatches = await bcrypt.compare(
+      currentPassword,
+      customer.password
+    )
+
+    if (!currentPasswordMatches) {
+      return res.status(401).json({ message: 'Current password is incorrect' })
+    }
+
+    if (username.trim() !== customer.username) {
+      const existingUsernameRows = await query(
+        `
+          SELECT account_id
+          FROM Account
+          WHERE username = ?
+            AND account_id <> ?
+          LIMIT 1
+        `,
+        [username.trim(), customer.account_id]
+      )
+
+      if (existingUsernameRows.length) {
+        return res.status(400).json({ message: 'Username already taken' })
+      }
+    }
+
+    const nextPassword = newPassword
+      ? await bcrypt.hash(newPassword, 10)
+      : customer.password
+
+    await query(
+      `
+        UPDATE Account
+        SET username = ?, password = ?
+        WHERE account_id = ?
+      `,
+      [username.trim(), nextPassword, customer.account_id]
+    )
+
+    return res.json({
+      username: username.trim(),
+      message: newPassword
+        ? 'Security settings updated.'
+        : 'Username updated.'
+    })
+  } catch {
+    return res.status(500).json({ message: 'Unable to update security settings' })
+  }
+})
+
+router.get('/history', requireCustomer, async (req, res) => {
+  try {
+    const customer = await getCustomerAccountContext(req.user.id)
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer account not found' })
+    }
+
+    const [transactionsResult, membershipsResult, reviewsResult, complaintsResult] = await Promise.allSettled([
+      query(
+        `
+          SELECT
+            t.transaction_id,
+            t.transaction_time,
+            t.total_amount,
+            t.payment_method_transaction,
+            ti.item_type,
+            ti.quantity,
+            ti.unit_price
+          FROM \`Transaction\` t
+          LEFT JOIN TransactionItem ti ON ti.transaction_id = t.transaction_id
+          WHERE t.account_id = ?
+          ORDER BY t.transaction_time DESC, t.transaction_id DESC
+        `,
+        [customer.account_id]
+      ),
+      query(
+        `
+          SELECT
+            m.membership_id,
+            mt.tier_name,
+            m.start_date,
+            m.end_date,
+            m.status_membership
+          FROM Membership m
+          JOIN MembershipTier mt ON mt.tier_id = m.tier_id
+          WHERE m.account_id = ?
+          ORDER BY m.start_date DESC, m.membership_id DESC
+        `,
+        [customer.account_id]
+      ),
+      query(
+        `
+          SELECT review_id, rating, comment, review_created_date
+          FROM Review
+          WHERE customer_id = ?
+          ORDER BY review_created_date DESC, review_id DESC
+        `,
+        [customer.customer_id]
+      ),
+      query(
+        `
+          SELECT complaint_id, complaint_description, created_date, resolved
+          FROM Complaint
+          WHERE customer_id = ?
+          ORDER BY created_date DESC, complaint_id DESC
+        `,
+        [customer.customer_id]
+      )
+    ])
+
+    const transactions = transactionsResult.status === 'fulfilled' ? transactionsResult.value : []
+    const memberships = membershipsResult.status === 'fulfilled' ? membershipsResult.value : []
+    const reviews = reviewsResult.status === 'fulfilled' ? reviewsResult.value : []
+    const complaints = complaintsResult.status === 'fulfilled' ? complaintsResult.value : []
+
+    const groupedTransactions = []
+    const transactionsById = new Map()
+
+    transactions.forEach((row) => {
+      if (!transactionsById.has(row.transaction_id)) {
+        const entry = {
+          transactionId: row.transaction_id,
+          date: row.transaction_time,
+          total: Number(row.total_amount),
+          paymentMethod: row.payment_method_transaction,
+          items: []
+        }
+        transactionsById.set(row.transaction_id, entry)
+        groupedTransactions.push(entry)
+      }
+
+      if (row.item_type) {
+        transactionsById.get(row.transaction_id).items.push({
+          type: row.item_type,
+          quantity: row.quantity,
+          unitPrice: Number(row.unit_price)
+        })
+      }
+    })
+
+    return res.json({
+      transactions: groupedTransactions,
+      memberships: memberships.map((row) => ({
+        membershipId: row.membership_id,
+        tierName: row.tier_name,
+        startDate: row.start_date,
+        endDate: row.end_date,
+        status: row.status_membership
+      })),
+      reviews: reviews.map((row) => ({
+        reviewId: row.review_id,
+        rating: row.rating,
+        comment: row.comment,
+        createdDate: row.review_created_date
+      })),
+      complaints: complaints.map((row) => ({
+        complaintId: row.complaint_id,
+        description: row.complaint_description,
+        createdDate: row.created_date,
+        resolved: Boolean(row.resolved)
+      })),
+      partial: [
+        transactionsResult.status !== 'fulfilled' ? 'transactions' : null,
+        membershipsResult.status !== 'fulfilled' ? 'memberships' : null,
+        reviewsResult.status !== 'fulfilled' ? 'reviews' : null,
+        complaintsResult.status !== 'fulfilled' ? 'complaints' : null
+      ].filter(Boolean)
+    })
+  } catch {
+    return res.status(500).json({ message: 'Unable to load customer history' })
   }
 })
 

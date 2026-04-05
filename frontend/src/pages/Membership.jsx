@@ -19,6 +19,10 @@ function MembershipPage() {
   const [loadError, setLoadError] = useState('')
 
   const membershipInCart = cartItems.find((item) => item.kind === 'membership')
+  const maxPerkCount = memberships.reduce(
+    (highestCount, membership) => Math.max(highestCount, membership.perks.length),
+    0
+  )
 
   useEffect(() => {
     let isMounted = true
@@ -93,6 +97,17 @@ function MembershipPage() {
               <div className="purchase-divider" />
 
               <ul className="purchase-feature-list">
+                {Array.from({
+                  length: Math.max(0, maxPerkCount - membership.perks.length)
+                }).map((_, fillerIndex) => (
+                  <li
+                    key={`${membership.id}-placeholder-${fillerIndex}`}
+                    className="purchase-feature-item purchase-feature-item-placeholder"
+                    aria-hidden="true"
+                  >
+                    <span className="purchase-feature-placeholder-line" />
+                  </li>
+                ))}
                 {membership.perks.map((perk) => (
                   <li key={perk} className="purchase-feature-item">
                     <span className="purchase-check" aria-hidden="true" />

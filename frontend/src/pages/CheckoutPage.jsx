@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { submitPurchase } from '../api/purchases'
 import AsyncState from '../components/AsyncState'
@@ -15,7 +15,6 @@ function CheckoutPage() {
   const { cartItems, cartSubtotal, clearCart } = useCustomer()
   const [formState, setFormState] = useState(initialFormState)
   const [orderConfirmed, setOrderConfirmed] = useState(false)
-  const [confirmationId, setConfirmationId] = useState('')
   const [submitError, setSubmitError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
@@ -25,6 +24,44 @@ function CheckoutPage() {
 
   const serviceFee = cartItems.length ? 12 : 0
   const total = cartSubtotal + serviceFee
+
+  useEffect(() => {
+    if (!canCheckout || !token) {
+      return
+    }
+
+    let isMounted = true
+
+    const loadCustomerProfile = async () => {
+      try {
+        const response = await fetch('/api/customer/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        const data = await response.json()
+
+        if (!response.ok || !isMounted) {
+          return
+        }
+
+        setFormState((currentState) => ({
+          ...currentState,
+          primaryGuest: currentState.primaryGuest || data.name || '',
+          email: currentState.email || data.email || ''
+        }))
+      } catch {
+        // Leave the form editable and empty if profile prefill fails.
+      }
+    }
+
+    loadCustomerProfile()
+
+    return () => {
+      isMounted = false
+    }
+  }, [canCheckout, token])
 
   const handleInputChange = (event) => {
     const { name, value } = event.target
@@ -83,7 +120,7 @@ function CheckoutPage() {
     setSubmitError('')
 
     try {
-      const response = await submitPurchase({
+      await submitPurchase({
         ...formState,
         cartItems,
         cartSubtotal,
@@ -92,7 +129,6 @@ function CheckoutPage() {
       })
 
       setOrderConfirmed(true)
-      setConfirmationId(response.confirmationId)
       clearCart()
       setFormState(initialFormState)
     } catch (error) {
