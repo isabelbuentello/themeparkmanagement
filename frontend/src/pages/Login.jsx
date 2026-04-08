@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Register from '../components/Register.jsx'
 import { ROLE_ROUTES } from '../constants/roles'
 import '../styles/auth-styles.css'
@@ -10,6 +10,14 @@ function Login() {
   const [error, setError] = useState('')
   const [showRegister, setShowRegister] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.state?.message) {
+      setError(location.state.message)
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [location.pathname, location.state, navigate])
 
   useEffect(() => {
     const token = localStorage.getItem('token')

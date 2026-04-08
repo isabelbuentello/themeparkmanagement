@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AsyncState from '../components/AsyncState'
 import PageHero from '../components/PageHero'
 
@@ -21,6 +22,7 @@ const sections = [
 ]
 
 function AccountPage() {
+  const navigate = useNavigate()
   const token = localStorage.getItem('token')
   const role = localStorage.getItem('role')
   const canViewAccount = Boolean(token) && role === 'customer'
@@ -67,6 +69,16 @@ function AccountPage() {
     }
   }
 
+  const handleExpiredSession = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('role')
+    localStorage.removeItem('customer-name')
+    navigate('/account', {
+      replace: true,
+      state: { message: 'Your session expired. Please sign in again.' }
+    })
+  }
+
   useEffect(() => {
     if (!canViewAccount || !token) {
       return
@@ -83,6 +95,13 @@ function AccountPage() {
           headers: { Authorization: `Bearer ${token}` }
         })
         const data = await response.json()
+
+        if (response.status === 401 || response.status === 403) {
+          if (isMounted) {
+            handleExpiredSession()
+          }
+          return
+        }
 
         if (!response.ok) {
           throw new Error(data.message || 'Unable to load customer profile')
@@ -115,6 +134,13 @@ function AccountPage() {
         })
         const data = await response.json()
 
+        if (response.status === 401 || response.status === 403) {
+          if (isMounted) {
+            handleExpiredSession()
+          }
+          return
+        }
+
         if (!response.ok) {
           throw new Error(data.message || 'Unable to load security settings')
         }
@@ -144,7 +170,7 @@ function AccountPage() {
     return () => {
       isMounted = false
     }
-  }, [canViewAccount, token])
+  }, [canViewAccount, navigate, token])
 
   useEffect(() => {
     if (!canViewAccount || !token || activeSection === 'profile' || hasLoadedHistory) {
@@ -162,6 +188,13 @@ function AccountPage() {
           headers: { Authorization: `Bearer ${token}` }
         })
         const data = await response.json()
+
+        if (response.status === 401 || response.status === 403) {
+          if (isMounted) {
+            handleExpiredSession()
+          }
+          return
+        }
 
         if (!response.ok) {
           throw new Error(data.message || 'Unable to load customer history')
@@ -194,7 +227,7 @@ function AccountPage() {
     return () => {
       isMounted = false
     }
-  }, [activeSection, canViewAccount, hasLoadedHistory, token])
+  }, [activeSection, canViewAccount, hasLoadedHistory, navigate, token])
 
   const handleProfileChange = (event) => {
     const { name, value } = event.target
@@ -234,6 +267,11 @@ function AccountPage() {
 
       const data = await response.json()
 
+      if (response.status === 401 || response.status === 403) {
+        handleExpiredSession()
+        return
+      }
+
       if (!response.ok) {
         throw new Error(data.message || 'Unable to save profile changes')
       }
@@ -266,6 +304,11 @@ function AccountPage() {
       })
 
       const data = await response.json()
+
+      if (response.status === 401 || response.status === 403) {
+        handleExpiredSession()
+        return
+      }
 
       if (!response.ok) {
         throw new Error(data.message || 'Unable to update security settings')
