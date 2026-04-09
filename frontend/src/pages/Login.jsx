@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Register from '../components/Register.jsx'
 import { ROLE_ROUTES } from '../constants/roles'
 import '../styles/auth-styles.css'
@@ -10,6 +10,23 @@ function Login() {
   const [error, setError] = useState('')
   const [showRegister, setShowRegister] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.state?.message) {
+      setError(location.state.message)
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [location.pathname, location.state, navigate])
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const role = localStorage.getItem('role')
+
+    if (token && role) {
+      navigate(ROLE_ROUTES[role] || '/', { replace: true })
+    }
+  }, [navigate])
 
   const handleLogin = async () => {
     setError('')
@@ -25,6 +42,9 @@ function Login() {
 
       localStorage.setItem('token', data.token)
       localStorage.setItem('role', data.role)
+      if (data.role !== 'customer') {
+        localStorage.removeItem('customer-name')
+      }
 
       navigate(ROLE_ROUTES[data.role] || '/')
 

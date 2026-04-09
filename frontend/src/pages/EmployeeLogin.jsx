@@ -3,7 +3,7 @@ import ProtectedRoute from '../components/ProtectedRoute.jsx'
 import { ROLES, ALL_EMPLOYEES } from '../constants/roles.js'
 
 import Login from './Login.jsx'
-import CustomerDash from './CustomerDash.jsx'
+import AccountPage from './AccountPage.jsx'
 import EmployeeDash from './EmployeeDash.jsx'
 import GMDash from './GMDash.jsx'
 import MaintenanceDash from './admin/MaintenanceDash.jsx'
@@ -21,7 +21,7 @@ function EmployeeLogin() {
 
       <Route path="dashboard" element={
         <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
-          <CustomerDash />
+          <AccountPage />
         </ProtectedRoute>
       } />
 

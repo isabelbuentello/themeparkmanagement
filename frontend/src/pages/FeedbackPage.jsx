@@ -118,124 +118,155 @@ function FeedbackPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page feedback-page">
       <PageHero title="Feedback" />
 
-      <div className="filter-row">
-        <button
-          type="button"
-          className={`filter-pill${activeTab === 'reviews' ? ' filter-pill-active' : ''}`}
-          onClick={() => setActiveTab('reviews')}
+      <section
+        className="two-column-layout feedback-layout"
+        style={{ gridTemplateColumns: '220px minmax(0, 1fr)' }}
+      >
+        <aside
+          className="content-card feedback-sidebar"
+          style={{
+            background: 'transparent',
+            boxShadow: 'none',
+            maxWidth: '220px',
+            width: '100%'
+          }}
         >
-          Reviews
-        </button>
-        <button
-          type="button"
-          className={`filter-pill${activeTab === 'complaints' ? ' filter-pill-active' : ''}`}
-          onClick={() => setActiveTab('complaints')}
-        >
-          Complaints
-        </button>
-      </div>
+          <div className="feedback-sidebar-copy">
+            <strong>Share Feedback</strong>
+            <span className="muted-copy">Choose the type of message you want to send.</span>
+          </div>
 
-      <section className="feedback-layout">
-        {activeTab === 'reviews' ? (
-          <form className="content-card form-card" onSubmit={handleSubmit('reviews')}>
-            <h2>Submit A Review</h2>
+          <div className="feedback-sidebar-links">
+            <button
+              type="button"
+              className="text-link feedback-sidebar-link"
+              style={{ fontWeight: activeTab === 'reviews' ? '700' : '400' }}
+              onClick={() => setActiveTab('reviews')}
+            >
+              Reviews
+            </button>
+            <button
+              type="button"
+              className="text-link feedback-sidebar-link"
+              style={{ fontWeight: activeTab === 'complaints' ? '700' : '400' }}
+              onClick={() => setActiveTab('complaints')}
+            >
+              Complaints
+            </button>
+          </div>
+        </aside>
 
-            {!canSubmitReview ? (
-              <div className="confirmation-box">
-                <strong>Login required.</strong>
-                <p>You must be logged in as a customer to leave a review.</p>
+        <div className="content-card form-card">
+          {activeTab === 'reviews' ? (
+            <form className="feedback-form-panel" onSubmit={handleSubmit('reviews')}>
+              <div>
+                <h2 className="account-section-title">Submit A Review</h2>
+                <p className="account-security-subtitle">
+                  Tell us what stood out so we can keep improving the guest experience.
+                </p>
               </div>
-            ) : null}
 
-            <label className="form-field">
-              <span>Rating</span>
-              <select
-                name="rating"
-                value={reviewForm.rating}
-                onChange={handleFormChange(setReviewForm)}
+              <div className="account-section-divider" />
+
+              {!canSubmitReview ? (
+                <div className="confirmation-box">
+                  <strong>Login required.</strong>
+                  <p>You must be logged in as a customer to leave a review.</p>
+                </div>
+              ) : null}
+
+              <label className="form-field">
+                <span>Rating</span>
+                <select
+                  name="rating"
+                  value={reviewForm.rating}
+                  onChange={handleFormChange(setReviewForm)}
+                >
+                  <option value="5">5 - Excellent</option>
+                  <option value="4">4 - Strong</option>
+                  <option value="3">3 - Fine</option>
+                  <option value="2">2 - Needs work</option>
+                  <option value="1">1 - Poor</option>
+                </select>
+              </label>
+
+              <label className="form-field">
+                <span>Review details</span>
+                <textarea
+                  name="notes"
+                  value={reviewForm.notes}
+                  onChange={handleFormChange(setReviewForm)}
+                  rows="6"
+                  maxLength="400"
+                  placeholder="Tell us what stood out."
+                  required
+                />
+                {fieldErrors.notes ? (
+                  <span className="field-error">{fieldErrors.notes}</span>
+                ) : null}
+              </label>
+
+              <p className="character-count">{reviewForm.notes.length}/400</p>
+
+              <button
+                type="submit"
+                className="primary-btn account-submit-button"
+                disabled={isSubmitting || !canSubmitReview}
               >
-                <option value="5">5 - Excellent</option>
-                <option value="4">4 - Strong</option>
-                <option value="3">3 - Fine</option>
-                <option value="2">2 - Needs work</option>
-                <option value="1">1 - Poor</option>
-              </select>
-            </label>
+                {isSubmitting ? 'Submitting...' : 'Submit Review'}
+              </button>
+            </form>
+          ) : (
+            <form className="feedback-form-panel" onSubmit={handleSubmit('complaints')}>
+              <div>
+                <h2 className="account-section-title">Submit A Complaint</h2>
+                <p className="account-security-subtitle">
+                  Let us know what happened so the park team can follow up.
+                </p>
+              </div>
 
-            <label className="form-field">
-              <span>Review details</span>
-              <textarea
-                name="notes"
-                value={reviewForm.notes}
-                onChange={handleFormChange(setReviewForm)}
-                rows="6"
-                maxLength="400"
-                placeholder="Tell us what stood out."
-                required
-              />
-              {fieldErrors.notes ? (
-                <span className="field-error">{fieldErrors.notes}</span>
-              ) : null}
-            </label>
+              <div className="account-section-divider" />
 
-            <p className="character-count">{reviewForm.notes.length}/400</p>
+              <label className="form-field">
+                <span>What happened?</span>
+                <textarea
+                  name="notes"
+                  value={complaintForm.notes}
+                  onChange={handleFormChange(setComplaintForm)}
+                  rows="6"
+                  maxLength="300"
+                  placeholder="Share enough detail for follow-up."
+                  required
+                />
+                {fieldErrors.notes ? (
+                  <span className="field-error">{fieldErrors.notes}</span>
+                ) : null}
+              </label>
 
-            <button
-              type="submit"
-              className="primary-btn full-width"
-              disabled={isSubmitting || !canSubmitReview}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Review'}
-            </button>
-          </form>
-        ) : (
-          <form
-            className="content-card form-card"
-            onSubmit={handleSubmit('complaints')}
-          >
-            <h2>Submit A Complaint</h2>
+              <p className="character-count">{complaintForm.notes.length}/300</p>
 
-            <label className="form-field">
-              <span>What happened?</span>
-              <textarea
-                name="notes"
-                value={complaintForm.notes}
-                onChange={handleFormChange(setComplaintForm)}
-                rows="6"
-                maxLength="300"
-                placeholder="Share enough detail for follow-up."
-                required
-              />
-              {fieldErrors.notes ? (
-                <span className="field-error">{fieldErrors.notes}</span>
-              ) : null}
-            </label>
+              <button
+                type="submit"
+                className="primary-btn account-submit-button"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Complaint'}
+              </button>
+            </form>
+          )}
 
-            <p className="character-count">{complaintForm.notes.length}/300</p>
-
-            <button
-              type="submit"
-              className="primary-btn full-width"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Complaint'}
-            </button>
-          </form>
-        )}
-
-        {submittedMessage ? (
-          <div className="content-card">
+          {submittedMessage ? (
             <div className="confirmation-box">
               <strong>Submission received.</strong>
               <p>{submittedMessage}</p>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        <AsyncState error={submitError} errorMessage={submitError} />
+          <AsyncState error={submitError} errorMessage={submitError} />
+        </div>
       </section>
     </div>
   )

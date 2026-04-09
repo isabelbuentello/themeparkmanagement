@@ -2,7 +2,6 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import { CustomerProvider } from './context/CustomerContext'
 
-import AccountPage from './pages/AccountPage'
 import CartPage from './pages/CartPage'
 import CheckoutPage from './pages/CheckoutPage'
 import DirectoryPage from './pages/DirectoryPage'
