@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import '../../styles/gm-dash.css'
 
 function MaintenanceDash() {
+  const navigate = useNavigate()
   const [overview, setOverview] = useState([])
   const [broken, setBroken] = useState([])
   const [requests, setRequests] = useState([])
   const [logs, setLogs] = useState([])
   const [trainingRequests, setTrainingRequests] = useState([])
+  const [ridesOptions, setRidesOptions] = useState([])
+  const [employeeOptions, setEmployeeOptions] = useState([])
   const [pageError, setPageError] = useState('')
   const [requestError, setRequestError] = useState('')
   const [requestMessage, setRequestMessage] = useState('')
@@ -71,7 +76,7 @@ function MaintenanceDash() {
   const loadData = async () => {
     setPageError('')
     try {
-      const [overviewRes, brokenRes, requestsRes, logsRes, trainingRes] = await Promise.all([
+      const [overviewRes, brokenRes, requestsRes, logsRes, trainingRes, ridesRes, employeesRes] = await Promise.all([
         fetch('/api/maintenance/overview', {
           headers: authHeaders
         }),
@@ -86,6 +91,12 @@ function MaintenanceDash() {
         }),
         fetch('/api/maintenance/training-requests', {
           headers: authHeaders
+        }),
+        fetch('/api/rides/all', {
+          headers: authHeaders
+        }),
+        fetch('/api/employees', {
+          headers: authHeaders
         })
       ])
 
@@ -94,12 +105,16 @@ function MaintenanceDash() {
       const requestsData = await handleResponse(requestsRes)
       const logsData = await handleResponse(logsRes)
       const trainingData = await handleResponse(trainingRes)
+      const ridesData = await handleResponse(ridesRes)
+      const employeesData = await handleResponse(employeesRes)
 
       setOverview(overviewData)
       setBroken(brokenData)
       setRequests(requestsData)
       setLogs(logsData)
       setTrainingRequests(trainingData)
+      setRidesOptions(ridesData)
+      setEmployeeOptions(employeesData)
     } catch (err) {
       setPageError(err.message || 'Failed to connect to backend')
     }
@@ -296,11 +311,14 @@ function MaintenanceDash() {
   }
 
   return (
-    <div>
-      <h1>Maintenance Dashboard</h1>
+    <div className="gm-dash-container">
+      <div className="gm-header-bar">
+        <h1>Maintenance Dashboard</h1>
+        <button className="gm-btn-back" onClick={() => navigate('/account/employee')}>Back to Employee Dashboard</button>
+      </div>
       {pageError && <p style={{ color: 'red' }}>{pageError}</p>}
 
-      <h2>Broken or Under Maintenance</h2>
+      <h2 className="gm-section-title">Broken or Under Maintenance</h2>
       <ul>
         {broken.map((ride) => (
           <li key={ride.ride_id}>
@@ -309,7 +327,7 @@ function MaintenanceDash() {
         ))}
       </ul>
 
-      <h2>Ride Overview</h2>
+      <h2 className="gm-section-title">Ride Overview</h2>
       <ul>
         {overview.map((ride) => (
           <li key={ride.ride_id}>
@@ -318,13 +336,19 @@ function MaintenanceDash() {
         ))}
       </ul>
 
-      <h2>Maintenance Requests</h2>
+      <h2 className="gm-section-title">Maintenance Requests</h2>
       <div style={{ marginBottom: 10 }}>
-        <input
-          placeholder="Ride ID"
+        <select
           value={newRequest.ride_id}
           onChange={(e) => setNewRequest((prev) => ({ ...prev, ride_id: e.target.value }))}
-        />
+        >
+          <option value="">Select Ride</option>
+          {ridesOptions.map((ride) => (
+            <option key={ride.ride_id} value={ride.ride_id}>
+              {ride.ride_name}
+            </option>
+          ))}
+        </select>
         <input
           placeholder="Issue Description"
           value={newRequest.issue_description}
@@ -348,7 +372,8 @@ function MaintenanceDash() {
       {requestError && <p style={{ color: 'red' }}>{requestError}</p>}
       {requestMessage && <p style={{ color: 'green' }}>{requestMessage}</p>}
 
-      <table border="1" cellPadding="6">
+      <div className="gm-table-wrapper">
+      <table className="gm-table">
         <thead>
           <tr>
             <th>ID</th>
@@ -381,13 +406,20 @@ function MaintenanceDash() {
                 </select>
               </td>
               <td>
-                <input
+                <select
                   defaultValue={request.assigned_to_employee_id || ''}
                   onChange={(e) => {
                     request._assigned_to = e.target.value
                   }}
-                  style={{ width: 70 }}
-                />
+                  style={{ width: 190 }}
+                >
+                  <option value="">Unassigned</option>
+                  {employeeOptions.map((employee) => (
+                    <option key={employee.employee_id} value={employee.employee_id}>
+                      {employee.full_name}
+                    </option>
+                  ))}
+                </select>
               </td>
               <td>
                 <button
@@ -406,14 +438,21 @@ function MaintenanceDash() {
           ))}
         </tbody>
       </table>
+      </div>
 
-      <h2>Maintenance Logs</h2>
+      <h2 className="gm-section-title">Maintenance Logs</h2>
       <div style={{ marginBottom: 10 }}>
-        <input
-          placeholder="Ride ID"
+        <select
           value={newLog.ride_id}
           onChange={(e) => setNewLog((prev) => ({ ...prev, ride_id: e.target.value }))}
-        />
+        >
+          <option value="">Select Ride</option>
+          {ridesOptions.map((ride) => (
+            <option key={ride.ride_id} value={ride.ride_id}>
+              {ride.ride_name}
+            </option>
+          ))}
+        </select>
         <input
           placeholder="Issue Description"
           value={newLog.issue_description}
@@ -437,7 +476,8 @@ function MaintenanceDash() {
       {logError && <p style={{ color: 'red' }}>{logError}</p>}
       {logMessage && <p style={{ color: 'green' }}>{logMessage}</p>}
 
-      <table border="1" cellPadding="6">
+      <div className="gm-table-wrapper">
+      <table className="gm-table">
         <thead>
           <tr>
             <th>Log ID</th>
@@ -467,20 +507,33 @@ function MaintenanceDash() {
           ))}
         </tbody>
       </table>
+      </div>
 
-      <h2>Training Approval Requests</h2>
+      <h2 className="gm-section-title">Training Approval Requests</h2>
       <div style={{ marginBottom: 10 }}>
-        <input
-          placeholder="Employee ID"
+        <select
           value={newTrainingRequest.employee_id}
           onChange={(e) => setNewTrainingRequest((prev) => ({ ...prev, employee_id: e.target.value }))}
-        />
-        <input
-          placeholder="Ride ID"
+        >
+          <option value="">Select Employee</option>
+          {employeeOptions.map((employee) => (
+            <option key={employee.employee_id} value={employee.employee_id}>
+              {employee.full_name}
+            </option>
+          ))}
+        </select>
+        <select
           value={newTrainingRequest.ride_id}
           onChange={(e) => setNewTrainingRequest((prev) => ({ ...prev, ride_id: e.target.value }))}
           style={{ marginLeft: 8 }}
-        />
+        >
+          <option value="">Select Ride</option>
+          {ridesOptions.map((ride) => (
+            <option key={ride.ride_id} value={ride.ride_id}>
+              {ride.ride_name}
+            </option>
+          ))}
+        </select>
         <select
           value={newTrainingRequest.requested_level}
           onChange={(e) => setNewTrainingRequest((prev) => ({ ...prev, requested_level: e.target.value }))}
@@ -498,7 +551,8 @@ function MaintenanceDash() {
       {trainingError && <p style={{ color: 'red' }}>{trainingError}</p>}
       {trainingMessage && <p style={{ color: 'green' }}>{trainingMessage}</p>}
 
-      <table border="1" cellPadding="6">
+      <div className="gm-table-wrapper">
+      <table className="gm-table">
         <thead>
           <tr>
             <th>ID</th>
@@ -536,6 +590,7 @@ function MaintenanceDash() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

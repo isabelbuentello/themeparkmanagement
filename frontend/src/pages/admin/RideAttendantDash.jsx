@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import '../../styles/gm-dash.css'
 
 const STATUS_OPTIONS = ['open', 'broken', 'maintenance', 'closed_weather']
 
 function RideAttendantDash() {
+  const navigate = useNavigate()
   const [rides, setRides] = useState([])
   const [queueOverview, setQueueOverview] = useState([])
   const [selectedRideName, setSelectedRideName] = useState('')
@@ -161,12 +164,16 @@ function RideAttendantDash() {
   }
 
   return (
-    <div>
-      <h1>Ride Attendant Manager Dashboard</h1>
+    <div className="gm-dash-container">
+      <div className="gm-header-bar">
+        <h1>Ride Attendant Manager Dashboard</h1>
+        <button className="gm-btn-back" onClick={() => navigate('/account/employee')}>Back to Employee Dashboard</button>
+      </div>
       {rideError && <p style={{ color: 'red' }}>{rideError}</p>}
       {rideMessage && <p style={{ color: 'green' }}>{rideMessage}</p>}
 
-      <table border="1" cellPadding="8">
+      <div className="gm-table-wrapper">
+      <table className="gm-table">
         <thead>
           <tr>
             <th>Ride</th>
@@ -206,15 +213,17 @@ function RideAttendantDash() {
           ))}
         </tbody>
       </table>
+      </div>
 
       <button onClick={saveAllStatuses} disabled={isSavingAll} style={{ marginTop: 12 }}>
         {isSavingAll ? 'Saving...' : 'Save All Statuses'}
       </button>
 
-      <h2>Queue Overview</h2>
+      <h2 className="gm-section-title">Queue Overview</h2>
       {queueError && <p style={{ color: 'red' }}>{queueError}</p>}
       {queueMessage && <p style={{ color: 'green' }}>{queueMessage}</p>}
-      <table border="1" cellPadding="8">
+      <div className="gm-table-wrapper">
+      <table className="gm-table">
         <thead>
           <tr>
             <th>Ride</th>
@@ -240,9 +249,11 @@ function RideAttendantDash() {
           ))}
         </tbody>
       </table>
+      </div>
 
-      <h2>Reservations {selectedRideName ? ' - ' + selectedRideName : ''}</h2>
-      <table border="1" cellPadding="8">
+      <h2 className="gm-section-title">Reservations {selectedRideName ? ' - ' + selectedRideName : ''}</h2>
+      <div className="gm-table-wrapper">
+      <table className="gm-table">
         <thead>
           <tr>
             <th>Reservation ID</th>
@@ -262,6 +273,7 @@ function RideAttendantDash() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
