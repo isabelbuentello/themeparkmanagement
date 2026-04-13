@@ -81,7 +81,7 @@ router.post('/tickets', verifyToken, requireRole('ticket_seller', 'general_manag
             if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating ticket' }))
 
             db.query(
-              `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
+              `INSERT INTO Transactions (account_id, transaction_time, total_amount, payment_method_transaction)
                VALUES (?, CURDATE(), ?, ?)`,
               [account_id || null, unit_price, payment_method_transaction],
               (err, transResult) => {
@@ -144,7 +144,7 @@ router.post('/passes', verifyToken, requireRole('ticket_seller', 'parking_lot_ma
         })
 
         db.query(
-          `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
+          `INSERT INTO Transactions (account_id, transaction_time, total_amount, payment_method_transaction)
            VALUES (?, CURDATE(), ?, ?)`,
           [account_id || null, total_amount, payment_method_transaction],
           (err, transResult) => {
@@ -229,7 +229,7 @@ router.put('/parking/end/:session_id', verifyToken, requireRole('parking_lot_man
             if (err) return db.rollback(() => res.status(500).json({ message: 'Error ending session' }))
 
             db.query(
-              `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
+              `INSERT INTO Transactions (account_id, transaction_time, total_amount, payment_method_transaction)
                VALUES (?, CURDATE(), ?, ?)`,
               [account_id || null, amount_paid, payment_method_transaction],
               (err, transResult) => {
@@ -288,7 +288,7 @@ router.post('/shops/sell', verifyToken, requireRole('shop_manager', 'general_man
         if (err) return db.rollback(() => res.status(500).json({ message: 'Error updating shop inventory' }))
 
         db.query(
-          `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction, venue_id)
+          `INSERT INTO Transactions (account_id, transaction_time, total_amount, payment_method_transaction, venue_id)
            VALUES (?, CURDATE(), ?, ?, ?)`,
           [account_id || null, total_amount, payment_method_transaction, venue_id],
           (err, transResult) => {
@@ -388,7 +388,7 @@ router.post('/restaurants/sell', verifyToken, requireRole('restaurant_manager', 
         if (err) return res.status(500).json({ message: 'Server error' })
 
         db.query(
-          `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction, venue_id)
+          `INSERT INTO Transactions (account_id, transaction_time, total_amount, payment_method_transaction, venue_id)
            VALUES (?, CURDATE(), ?, ?, ?)`,
           [account_id || null, total_amount, payment_method_transaction, venue_id],
           (err, transResult) => {
