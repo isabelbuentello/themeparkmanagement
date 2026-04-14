@@ -6,7 +6,9 @@ function ShopDash() {
   const [quantity, setQuantity] = useState(1)
   const [unitPrice, setUnitPrice] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('card')
-  const [accountId, setAccountId] = useState('')
+  const [email, setEmail] = useState('')
+  const [customerInfo, setCustomerInfo] = useState(null)
+  const [emailError, setEmailError] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -27,6 +29,26 @@ function ShopDash() {
     }
     fetchShops()
   }, [])
+
+  const handleEmailLookup = async () => {
+    setEmailError('')
+    setCustomerInfo(null)
+    if (!email) return
+
+    try {
+      const res = await fetch(`/api/transactions/customer-lookup?email=${encodeURIComponent(email)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setCustomerInfo(data)
+      } else {
+        setEmailError('Customer not found — will sell as guest')
+      }
+    } catch {
+      setEmailError('Could not look up customer')
+    }
+  }
 
   const handleSell = async () => {
     setMessage('')
@@ -50,17 +72,19 @@ function ShopDash() {
           quantity: parseInt(quantity),
           unit_price: parseFloat(unitPrice),
           payment_method_transaction: paymentMethod,
-          account_id: accountId ? parseInt(accountId) : null
+          account_id: customerInfo?.account_id || null
         })
       })
 
       const data = await res.json()
       if (!res.ok) { setError(data.message); return }
 
-      setMessage(`✅ Sale recorded! Total: $${data.total}`)
+      setMessage(`✅ Sale recorded! Total: $${data.total}${customerInfo ? ` — linked to ${customerInfo.first_name} ${customerInfo.last_name}` : ' (guest)'}`)
       setQuantity(1)
       setUnitPrice('')
-      setAccountId('')
+      setEmail('')
+      setCustomerInfo(null)
+      setEmailError('')
 
       const refreshRes = await fetch('/api/transactions/shops', {
         headers: { Authorization: `Bearer ${token}` }
@@ -112,9 +136,7 @@ function ShopDash() {
         <select value={venueId} onChange={e => setVenueId(e.target.value)}>
           <option value="">Select a shop</option>
           {shops.map(shop => (
-            <option key={shop.venue_id} value={shop.venue_id}>
-              {shop.venue_name}
-            </option>
+            <option key={shop.venue_id} value={shop.venue_id}>{shop.venue_name}</option>
           ))}
         </select>
 
@@ -130,8 +152,25 @@ function ShopDash() {
           <option value="cash">Cash</option>
         </select>
 
-        <label>Customer Account ID (optional)</label>
-        <input type="number" placeholder="Enter customer account ID" value={accountId} onChange={e => setAccountId(e.target.value)} />
+        <label>Customer Email (optional)</label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <input
+            type="email"
+            placeholder="Enter customer email"
+            value={email}
+            onChange={e => { setEmail(e.target.value); setCustomerInfo(null); setEmailError('') }}
+            style={{ flex: 1 }}
+          />
+          <button type="button" onClick={handleEmailLookup} style={{ whiteSpace: 'nowrap' }}>
+            Look Up
+          </button>
+        </div>
+        {customerInfo && (
+          <p style={{ color: 'green', margin: 0 }}>✅ Found: {customerInfo.first_name} {customerInfo.last_name}</p>
+        )}
+        {emailError && (
+          <p style={{ color: 'orange', margin: 0 }}>{emailError}</p>
+        )}
 
         <button onClick={handleSell} disabled={loading}>
           {loading ? 'Processing...' : 'Complete Sale'}
