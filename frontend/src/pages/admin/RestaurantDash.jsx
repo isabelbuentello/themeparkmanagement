@@ -10,7 +10,9 @@ function RestaurantDash() {
   const [menuItemId, setMenuItemId] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [paymentMethod, setPaymentMethod] = useState('card')
-  const [accountId, setAccountId] = useState('')
+  const [email, setEmail] = useState('')
+  const [customerInfo, setCustomerInfo] = useState(null)
+  const [emailError, setEmailError] = useState('')
 
   // add menu item form
   const [newItemName, setNewItemName] = useState('')
@@ -59,6 +61,26 @@ function RestaurantDash() {
     fetchReservations()
   }, [])
 
+  const handleEmailLookup = async () => {
+    setEmailError('')
+    setCustomerInfo(null)
+    if (!email) return
+
+    try {
+      const res = await fetch(`/api/transactions/customer-lookup?email=${encodeURIComponent(email)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setCustomerInfo(data)
+      } else {
+        setEmailError('Customer not found — will sell as guest')
+      }
+    } catch {
+      setEmailError('Could not look up customer')
+    }
+  }
+
   const handleSell = async () => {
     setMessage('')
     setError('')
@@ -81,17 +103,19 @@ function RestaurantDash() {
           menu_item_id: parseInt(menuItemId),
           quantity: parseInt(quantity),
           payment_method_transaction: paymentMethod,
-          account_id: accountId ? parseInt(accountId) : null
+          account_id: customerInfo?.account_id || null
         })
       })
 
       const data = await res.json()
       if (!res.ok) { setError(data.message); return }
 
-      setMessage(`✅ Sale recorded! Total: $${data.total_amount}`)
+      setMessage(`✅ Sale recorded! Total: $${data.total_amount}${customerInfo ? ` — linked to ${customerInfo.first_name} ${customerInfo.last_name}` : ' (guest)'}`)
       setMenuItemId('')
       setQuantity(1)
-      setAccountId('')
+      setEmail('')
+      setCustomerInfo(null)
+      setEmailError('')
     } catch {
       setError('Something went wrong')
     } finally {
@@ -287,12 +311,7 @@ function RestaurantDash() {
           <h2>Ring Up Order</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <label>Venue ID</label>
-            <input
-              type="number"
-              placeholder="Enter venue ID"
-              value={venueId}
-              onChange={e => setVenueId(e.target.value)}
-            />
+            <input type="number" placeholder="Enter venue ID" value={venueId} onChange={e => setVenueId(e.target.value)} />
 
             <label>Menu Item</label>
             <select value={menuItemId} onChange={e => setMenuItemId(e.target.value)}>
@@ -305,12 +324,7 @@ function RestaurantDash() {
             </select>
 
             <label>Quantity</label>
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={e => setQuantity(e.target.value)}
-            />
+            <input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
 
             <label>Payment Method</label>
             <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
@@ -318,13 +332,25 @@ function RestaurantDash() {
               <option value="cash">Cash</option>
             </select>
 
-            <label>Customer Account ID (optional)</label>
-            <input
-              type="number"
-              placeholder="Enter customer account ID"
-              value={accountId}
-              onChange={e => setAccountId(e.target.value)}
-            />
+            <label>Customer Email (optional)</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="email"
+                placeholder="Enter customer email"
+                value={email}
+                onChange={e => { setEmail(e.target.value); setCustomerInfo(null); setEmailError('') }}
+                style={{ flex: 1 }}
+              />
+              <button type="button" onClick={handleEmailLookup} style={{ whiteSpace: 'nowrap' }}>
+                Look Up
+              </button>
+            </div>
+            {customerInfo && (
+              <p style={{ color: 'green', margin: 0 }}>✅ Found: {customerInfo.first_name} {customerInfo.last_name}</p>
+            )}
+            {emailError && (
+              <p style={{ color: 'orange', margin: 0 }}>{emailError}</p>
+            )}
 
             <button onClick={handleSell} disabled={loading}>
               {loading ? 'Processing...' : 'Complete Sale'}
@@ -372,31 +398,11 @@ function RestaurantDash() {
           <h2>Add Menu Item</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <label>Venue ID</label>
-            <input
-              type="number"
-              placeholder="Enter venue ID"
-              value={newItemVenueId}
-              onChange={e => setNewItemVenueId(e.target.value)}
-            />
-
+            <input type="number" placeholder="Enter venue ID" value={newItemVenueId} onChange={e => setNewItemVenueId(e.target.value)} />
             <label>Item Name</label>
-            <input
-              type="text"
-              placeholder="e.g. Cheeseburger"
-              value={newItemName}
-              onChange={e => setNewItemName(e.target.value)}
-            />
-
+            <input type="text" placeholder="e.g. Cheeseburger" value={newItemName} onChange={e => setNewItemName(e.target.value)} />
             <label>Price ($)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="e.g. 12.99"
-              value={newItemPrice}
-              onChange={e => setNewItemPrice(e.target.value)}
-            />
-
+            <input type="number" min="0" step="0.01" placeholder="e.g. 12.99" value={newItemPrice} onChange={e => setNewItemPrice(e.target.value)} />
             <button onClick={handleAddItem} disabled={loading}>
               {loading ? 'Adding...' : 'Add Menu Item'}
             </button>
@@ -438,14 +444,10 @@ function RestaurantDash() {
                     </td>
                     <td style={{ padding: '8px', display: 'flex', gap: '5px' }}>
                       {r.status_reservation !== 'confirmed' && (
-                        <button onClick={() => handleUpdateReservation(r.reservation_id, 'confirmed')}>
-                          Confirm
-                        </button>
+                        <button onClick={() => handleUpdateReservation(r.reservation_id, 'confirmed')}>Confirm</button>
                       )}
                       {r.status_reservation !== 'cancelled' && (
-                        <button onClick={() => handleUpdateReservation(r.reservation_id, 'cancelled')}>
-                          Cancel
-                        </button>
+                        <button onClick={() => handleUpdateReservation(r.reservation_id, 'cancelled')}>Cancel</button>
                       )}
                     </td>
                   </tr>

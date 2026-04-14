@@ -29,16 +29,41 @@ function requireRole(...roles) {
 // ─────────────────────────────────────────
 
 const TICKET_PRICES = {
-  1: 25.00,  // park entry
-  2: 10.00   // ride ticket
+  1: 25.00,
+  2: 10.00
 }
 
 const PASS_PRICES = {
-  1: 15.00,  // fast pass
-  2: 20.00,  // food pass
-  3: 10.00,  // parking pass
-  4: 150.00  // season pass
+  1: 15.00,
+  2: 20.00,
+  3: 10.00,
+  4: 150.00
 }
+
+// ─────────────────────────────────────────
+// CUSTOMER LOOKUP
+// ─────────────────────────────────────────
+
+// GET customer by email (for employee dashboards)
+router.get('/customer-lookup', verifyToken, (req, res) => {
+  const { email } = req.query
+
+  if (!email) return res.status(400).json({ message: 'Email is required' })
+
+  db.query(
+    `SELECT c.customer_id, a.account_id, c.first_name, c.last_name
+     FROM Customer c
+     LEFT JOIN Account a ON a.customer_id = c.customer_id
+     WHERE c.customer_email = ?
+     LIMIT 1`,
+    [email],
+    (err, results) => {
+      if (err) return res.status(500).json({ message: 'Server error' })
+      if (results.length === 0) return res.status(404).json({ message: 'Customer not found' })
+      res.json(results[0])
+    }
+  )
+})
 
 // ─────────────────────────────────────────
 // TICKETS
@@ -76,7 +101,7 @@ router.post('/tickets', verifyToken, requireRole('ticket_seller', 'general_manag
         db.query(
           `INSERT INTO Ticket (ticket_type_id, customer_id, valid_date, status_ticket)
            VALUES (?, ?, ?, 'valid')`,
-          [ticket_type_id, customer_id, valid_date],
+          [ticket_type_id, customer_id || null, valid_date],
           (err, ticketResult) => {
             if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating ticket' }))
 
@@ -136,7 +161,7 @@ router.post('/passes', verifyToken, requireRole('ticket_seller', 'parking_lot_ma
     db.query(
       `INSERT INTO Pass (pass_type_id, customer_id, purchase_date, quantity_purchased, quantity_remaining, status_pass)
        VALUES (?, ?, CURDATE(), ?, ?, 'active')`,
-      [pass_type_id, customer_id, quantity_purchased, quantity_purchased],
+      [pass_type_id, customer_id || null, quantity_purchased, quantity_purchased],
       (err, passResult) => {
         if (err) return db.rollback(() => {
           console.log(err)

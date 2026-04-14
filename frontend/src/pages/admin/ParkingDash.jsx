@@ -11,7 +11,9 @@ function ParkingDash() {
   // end session form
   const [sessionId, setSessionId] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('card')
-  const [endAccountId, setEndAccountId] = useState('')
+  const [email, setEmail] = useState('')
+  const [customerInfo, setCustomerInfo] = useState(null)
+  const [emailError, setEmailError] = useState('')
 
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -33,6 +35,26 @@ function ParkingDash() {
     }
     fetchLots()
   }, [])
+
+  const handleEmailLookup = async () => {
+    setEmailError('')
+    setCustomerInfo(null)
+    if (!email) return
+
+    try {
+      const res = await fetch(`/api/transactions/customer-lookup?email=${encodeURIComponent(email)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setCustomerInfo(data)
+      } else {
+        setEmailError('Customer not found — will record as guest')
+      }
+    } catch {
+      setEmailError('Could not look up customer')
+    }
+  }
 
   const handleStartSession = async () => {
     setMessage('')
@@ -89,16 +111,18 @@ function ParkingDash() {
         },
         body: JSON.stringify({
           payment_method_transaction: paymentMethod,
-          account_id: endAccountId ? parseInt(endAccountId) : null
+          account_id: customerInfo?.account_id || null
         })
       })
 
       const data = await res.json()
       if (!res.ok) { setError(data.message); return }
 
-      setMessage(`✅ Session ended! Amount charged: $${data.amount_paid}`)
+      setMessage(`✅ Session ended! Amount charged: $${data.amount_paid}${customerInfo ? ` — linked to ${customerInfo.first_name} ${customerInfo.last_name}` : ' (guest)'}`)
       setSessionId('')
-      setEndAccountId('')
+      setEmail('')
+      setCustomerInfo(null)
+      setEmailError('')
     } catch {
       setError('Something went wrong')
     } finally {
@@ -193,8 +217,25 @@ function ParkingDash() {
             <option value="cash">Cash</option>
           </select>
 
-          <label>Customer Account ID (optional)</label>
-          <input type="number" placeholder="Enter customer account ID" value={endAccountId} onChange={e => setEndAccountId(e.target.value)} />
+          <label>Customer Email (optional)</label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="email"
+              placeholder="Enter customer email"
+              value={email}
+              onChange={e => { setEmail(e.target.value); setCustomerInfo(null); setEmailError('') }}
+              style={{ flex: 1 }}
+            />
+            <button type="button" onClick={handleEmailLookup} style={{ whiteSpace: 'nowrap' }}>
+              Look Up
+            </button>
+          </div>
+          {customerInfo && (
+            <p style={{ color: 'green', margin: 0 }}>✅ Found: {customerInfo.first_name} {customerInfo.last_name}</p>
+          )}
+          {emailError && (
+            <p style={{ color: 'orange', margin: 0 }}>{emailError}</p>
+          )}
 
           <button onClick={handleEndSession} disabled={loading}>
             {loading ? 'Processing...' : 'End Session'}

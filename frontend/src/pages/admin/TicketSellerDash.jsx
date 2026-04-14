@@ -7,17 +7,19 @@ function TicketSellerDash() {
 
   // ticket form
   const [ticketTypeId, setTicketTypeId] = useState('')
-  const [customerId, setCustomerId] = useState('')
   const [validDate, setValidDate] = useState('')
   const [ticketPayment, setTicketPayment] = useState('card')
-  const [ticketAccountId, setTicketAccountId] = useState('')
+  const [ticketEmail, setTicketEmail] = useState('')
+  const [ticketCustomerInfo, setTicketCustomerInfo] = useState(null)
+  const [ticketEmailError, setTicketEmailError] = useState('')
 
   // pass form
   const [passTypeId, setPassTypeId] = useState('')
-  const [passCustomerId, setPassCustomerId] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [passPayment, setPassPayment] = useState('card')
-  const [passAccountId, setPassAccountId] = useState('')
+  const [passEmail, setPassEmail] = useState('')
+  const [passCustomerInfo, setPassCustomerInfo] = useState(null)
+  const [passEmailError, setPassEmailError] = useState('')
 
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -29,12 +31,8 @@ function TicketSellerDash() {
     const fetchTypes = async () => {
       try {
         const [ticketRes, passRes] = await Promise.all([
-          fetch('/api/transactions/ticket-types', {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch('/api/transactions/pass-types', {
-            headers: { Authorization: `Bearer ${token}` }
-          })
+          fetch('/api/transactions/ticket-types', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/transactions/pass-types', { headers: { Authorization: `Bearer ${token}` } })
         ])
         const ticketData = await ticketRes.json()
         const passData = await passRes.json()
@@ -47,11 +45,31 @@ function TicketSellerDash() {
     fetchTypes()
   }, [])
 
+  const handleEmailLookup = async (email, setCustomerInfo, setEmailError) => {
+    setEmailError('')
+    setCustomerInfo(null)
+    if (!email) return
+
+    try {
+      const res = await fetch(`/api/transactions/customer-lookup?email=${encodeURIComponent(email)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setCustomerInfo(data)
+      } else {
+        setEmailError('Customer not found — will sell as guest')
+      }
+    } catch {
+      setEmailError('Could not look up customer')
+    }
+  }
+
   const handleSellTicket = async () => {
     setMessage('')
     setError('')
 
-    if (!ticketTypeId || !customerId || !validDate) {
+    if (!ticketTypeId || !validDate) {
       setError('Please fill in all fields')
       return
     }
@@ -66,21 +84,22 @@ function TicketSellerDash() {
         },
         body: JSON.stringify({
           ticket_type_id: parseInt(ticketTypeId),
-          customer_id: parseInt(customerId),
+          customer_id: ticketCustomerInfo?.customer_id || null,
           valid_date: validDate,
           payment_method_transaction: ticketPayment,
-          account_id: ticketAccountId ? parseInt(ticketAccountId) : null
+          account_id: ticketCustomerInfo?.account_id || null
         })
       })
 
       const data = await res.json()
       if (!res.ok) { setError(data.message); return }
 
-      setMessage(`✅ Ticket sold! Total: $${data.total}`)
+      setMessage(`✅ Ticket sold! Total: $${data.total}${ticketCustomerInfo ? ` — linked to ${ticketCustomerInfo.first_name} ${ticketCustomerInfo.last_name}` : ' (guest)'}`)
       setTicketTypeId('')
-      setCustomerId('')
       setValidDate('')
-      setTicketAccountId('')
+      setTicketEmail('')
+      setTicketCustomerInfo(null)
+      setTicketEmailError('')
     } catch {
       setError('Something went wrong')
     } finally {
@@ -92,7 +111,7 @@ function TicketSellerDash() {
     setMessage('')
     setError('')
 
-    if (!passTypeId || !passCustomerId || !quantity) {
+    if (!passTypeId || !quantity) {
       setError('Please fill in all fields')
       return
     }
@@ -107,21 +126,22 @@ function TicketSellerDash() {
         },
         body: JSON.stringify({
           pass_type_id: parseInt(passTypeId),
-          customer_id: parseInt(passCustomerId),
+          customer_id: passCustomerInfo?.customer_id || null,
           quantity_purchased: parseInt(quantity),
           payment_method_transaction: passPayment,
-          account_id: passAccountId ? parseInt(passAccountId) : null
+          account_id: passCustomerInfo?.account_id || null
         })
       })
 
       const data = await res.json()
       if (!res.ok) { setError(data.message); return }
 
-      setMessage(`✅ Pass sold! Total: $${data.total}`)
+      setMessage(`✅ Pass sold! Total: $${data.total}${passCustomerInfo ? ` — linked to ${passCustomerInfo.first_name} ${passCustomerInfo.last_name}` : ' (guest)'}`)
       setPassTypeId('')
-      setPassCustomerId('')
       setQuantity(1)
-      setPassAccountId('')
+      setPassEmail('')
+      setPassCustomerInfo(null)
+      setPassEmailError('')
     } catch {
       setError('Something went wrong')
     } finally {
@@ -168,9 +188,6 @@ function TicketSellerDash() {
             ))}
           </select>
 
-          <label>Customer ID</label>
-          <input type="number" placeholder="Enter customer ID" value={customerId} onChange={e => setCustomerId(e.target.value)} />
-
           <label>Valid Date</label>
           <input type="date" value={validDate} onChange={e => setValidDate(e.target.value)} />
 
@@ -180,8 +197,25 @@ function TicketSellerDash() {
             <option value="cash">Cash</option>
           </select>
 
-          <label>Customer Account ID (optional)</label>
-          <input type="number" placeholder="Enter customer account ID" value={ticketAccountId} onChange={e => setTicketAccountId(e.target.value)} />
+          <label>Customer Email (optional)</label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="email"
+              placeholder="Enter customer email"
+              value={ticketEmail}
+              onChange={e => { setTicketEmail(e.target.value); setTicketCustomerInfo(null); setTicketEmailError('') }}
+              style={{ flex: 1 }}
+            />
+            <button type="button" onClick={() => handleEmailLookup(ticketEmail, setTicketCustomerInfo, setTicketEmailError)} style={{ whiteSpace: 'nowrap' }}>
+              Look Up
+            </button>
+          </div>
+          {ticketCustomerInfo && (
+            <p style={{ color: 'green', margin: 0 }}>✅ Found: {ticketCustomerInfo.first_name} {ticketCustomerInfo.last_name}</p>
+          )}
+          {ticketEmailError && (
+            <p style={{ color: 'orange', margin: 0 }}>{ticketEmailError}</p>
+          )}
 
           <button onClick={handleSellTicket} disabled={loading}>
             {loading ? 'Processing...' : 'Sell Ticket'}
@@ -197,14 +231,9 @@ function TicketSellerDash() {
           <select value={passTypeId} onChange={e => setPassTypeId(e.target.value)}>
             <option value="">Select a pass type</option>
             {passTypes.map(p => (
-              <option key={p.pass_type_id} value={p.pass_type_id}>
-                {p.pass_name}
-              </option>
+              <option key={p.pass_type_id} value={p.pass_type_id}>{p.pass_name}</option>
             ))}
           </select>
-
-          <label>Customer ID</label>
-          <input type="number" placeholder="Enter customer ID" value={passCustomerId} onChange={e => setPassCustomerId(e.target.value)} />
 
           <label>Quantity</label>
           <input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
@@ -215,8 +244,25 @@ function TicketSellerDash() {
             <option value="cash">Cash</option>
           </select>
 
-          <label>Customer Account ID (optional)</label>
-          <input type="number" placeholder="Enter customer account ID" value={passAccountId} onChange={e => setPassAccountId(e.target.value)} />
+          <label>Customer Email (optional)</label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="email"
+              placeholder="Enter customer email"
+              value={passEmail}
+              onChange={e => { setPassEmail(e.target.value); setPassCustomerInfo(null); setPassEmailError('') }}
+              style={{ flex: 1 }}
+            />
+            <button type="button" onClick={() => handleEmailLookup(passEmail, setPassCustomerInfo, setPassEmailError)} style={{ whiteSpace: 'nowrap' }}>
+              Look Up
+            </button>
+          </div>
+          {passCustomerInfo && (
+            <p style={{ color: 'green', margin: 0 }}>✅ Found: {passCustomerInfo.first_name} {passCustomerInfo.last_name}</p>
+          )}
+          {passEmailError && (
+            <p style={{ color: 'orange', margin: 0 }}>{passEmailError}</p>
+          )}
 
           <button onClick={handleSellPass} disabled={loading}>
             {loading ? 'Processing...' : 'Sell Pass'}
