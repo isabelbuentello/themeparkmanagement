@@ -10,6 +10,7 @@ function RestaurantDash() {
   const [menuItemId, setMenuItemId] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [paymentMethod, setPaymentMethod] = useState('card')
+  const [accountId, setAccountId] = useState('')
 
   // add menu item form
   const [newItemName, setNewItemName] = useState('')
@@ -80,7 +81,7 @@ function RestaurantDash() {
           menu_item_id: parseInt(menuItemId),
           quantity: parseInt(quantity),
           payment_method_transaction: paymentMethod,
-          account_id: null
+          account_id: accountId ? parseInt(accountId) : null
         })
       })
 
@@ -90,6 +91,7 @@ function RestaurantDash() {
       setMessage(`✅ Sale recorded! Total: $${data.total_amount}`)
       setMenuItemId('')
       setQuantity(1)
+      setAccountId('')
     } catch {
       setError('Something went wrong')
     } finally {
@@ -244,7 +246,6 @@ function RestaurantDash() {
       {message && <p style={{ color: 'green' }}>{message}</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      {/* Tabs */}
       <div style={{ marginBottom: '20px' }}>
         <button style={tabStyle('sell')} onClick={() => { setActiveTab('sell'); setMessage(''); setError('') }}>
           Ring Up Order
@@ -257,7 +258,6 @@ function RestaurantDash() {
         </button>
       </div>
 
-      {/* SELL TAB */}
       {activeTab === 'sell' && (
         <div>
           <h2>Available Menu Items</h2>
@@ -318,6 +318,14 @@ function RestaurantDash() {
               <option value="cash">Cash</option>
             </select>
 
+            <label>Customer Account ID (optional)</label>
+            <input
+              type="number"
+              placeholder="Enter customer account ID"
+              value={accountId}
+              onChange={e => setAccountId(e.target.value)}
+            />
+
             <button onClick={handleSell} disabled={loading}>
               {loading ? 'Processing...' : 'Complete Sale'}
             </button>
@@ -325,7 +333,6 @@ function RestaurantDash() {
         </div>
       )}
 
-      {/* MANAGE MENU TAB */}
       {activeTab === 'menu' && (
         <div>
           <h2>All Menu Items</h2>
@@ -397,7 +404,6 @@ function RestaurantDash() {
         </div>
       )}
 
-      {/* RESERVATIONS TAB */}
       {activeTab === 'reservations' && (
         <div>
           <h2>All Reservations</h2>
@@ -451,43 +457,15 @@ function RestaurantDash() {
           <h2>Add Reservation</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <label>Venue ID</label>
-            <input
-              type="number"
-              placeholder="Enter venue ID"
-              value={resVenueId}
-              onChange={e => setResVenueId(e.target.value)}
-            />
-
+            <input type="number" placeholder="Enter venue ID" value={resVenueId} onChange={e => setResVenueId(e.target.value)} />
             <label>Customer ID</label>
-            <input
-              type="number"
-              placeholder="Enter customer ID"
-              value={resCustomerId}
-              onChange={e => setResCustomerId(e.target.value)}
-            />
-
+            <input type="number" placeholder="Enter customer ID" value={resCustomerId} onChange={e => setResCustomerId(e.target.value)} />
             <label>Date</label>
-            <input
-              type="date"
-              value={resDate}
-              onChange={e => setResDate(e.target.value)}
-            />
-
+            <input type="date" value={resDate} onChange={e => setResDate(e.target.value)} />
             <label>Time</label>
-            <input
-              type="time"
-              value={resTime}
-              onChange={e => setResTime(e.target.value)}
-            />
-
+            <input type="time" value={resTime} onChange={e => setResTime(e.target.value)} />
             <label>Party Size</label>
-            <input
-              type="number"
-              min="1"
-              value={resPartySize}
-              onChange={e => setResPartySize(e.target.value)}
-            />
-
+            <input type="number" min="1" value={resPartySize} onChange={e => setResPartySize(e.target.value)} />
             <button onClick={handleAddReservation} disabled={loading}>
               {loading ? 'Adding...' : 'Add Reservation'}
             </button>
