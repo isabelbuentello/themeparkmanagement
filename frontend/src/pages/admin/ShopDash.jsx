@@ -6,13 +6,13 @@ function ShopDash() {
   const [quantity, setQuantity] = useState(1)
   const [unitPrice, setUnitPrice] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('card')
+  const [accountId, setAccountId] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const token = localStorage.getItem('token')
 
-  // fetch shops on load
   useEffect(() => {
     const fetchShops = async () => {
       try {
@@ -50,7 +50,7 @@ function ShopDash() {
           quantity: parseInt(quantity),
           unit_price: parseFloat(unitPrice),
           payment_method_transaction: paymentMethod,
-          account_id: null
+          account_id: accountId ? parseInt(accountId) : null
         })
       })
 
@@ -60,8 +60,8 @@ function ShopDash() {
       setMessage(`✅ Sale recorded! Total: $${data.total}`)
       setQuantity(1)
       setUnitPrice('')
+      setAccountId('')
 
-      // refresh shops to show updated merch sold count
       const refreshRes = await fetch('/api/transactions/shops', {
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -82,7 +82,6 @@ function ShopDash() {
       {message && <p style={{ color: 'green' }}>{message}</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      {/* Shops Overview */}
       <h2>Shops</h2>
       {shops.length === 0 ? (
         <p>No shops found.</p>
@@ -107,10 +106,8 @@ function ShopDash() {
         </table>
       )}
 
-      {/* Sell Form */}
       <h2>Sell Merchandise</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-
         <label>Shop</label>
         <select value={venueId} onChange={e => setVenueId(e.target.value)}>
           <option value="">Select a shop</option>
@@ -122,28 +119,19 @@ function ShopDash() {
         </select>
 
         <label>Quantity</label>
-        <input
-          type="number"
-          min="1"
-          value={quantity}
-          onChange={e => setQuantity(e.target.value)}
-        />
+        <input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
 
         <label>Unit Price ($)</label>
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="e.g. 19.99"
-          value={unitPrice}
-          onChange={e => setUnitPrice(e.target.value)}
-        />
+        <input type="number" min="0" step="0.01" placeholder="e.g. 19.99" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} />
 
         <label>Payment Method</label>
         <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
           <option value="card">Card</option>
           <option value="cash">Cash</option>
         </select>
+
+        <label>Customer Account ID (optional)</label>
+        <input type="number" placeholder="Enter customer account ID" value={accountId} onChange={e => setAccountId(e.target.value)} />
 
         <button onClick={handleSell} disabled={loading}>
           {loading ? 'Processing...' : 'Complete Sale'}

@@ -11,6 +11,7 @@ function ParkingDash() {
   // end session form
   const [sessionId, setSessionId] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('card')
+  const [endAccountId, setEndAccountId] = useState('')
 
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -18,7 +19,6 @@ function ParkingDash() {
 
   const token = localStorage.getItem('token')
 
-  // fetch parking lots on load
   useEffect(() => {
     const fetchLots = async () => {
       try {
@@ -89,7 +89,7 @@ function ParkingDash() {
         },
         body: JSON.stringify({
           payment_method_transaction: paymentMethod,
-          account_id: null
+          account_id: endAccountId ? parseInt(endAccountId) : null
         })
       })
 
@@ -98,6 +98,7 @@ function ParkingDash() {
 
       setMessage(`✅ Session ended! Amount charged: $${data.amount_paid}`)
       setSessionId('')
+      setEndAccountId('')
     } catch {
       setError('Something went wrong')
     } finally {
@@ -121,7 +122,6 @@ function ParkingDash() {
       {message && <p style={{ color: 'green' }}>{message}</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      {/* Parking Lots Overview */}
       <h2>Parking Lots</h2>
       {lots.length === 0 ? (
         <p>No parking lots found.</p>
@@ -148,7 +148,6 @@ function ParkingDash() {
         </table>
       )}
 
-      {/* Tabs */}
       <div style={{ marginBottom: '20px' }}>
         <button style={tabStyle('start')} onClick={() => { setActiveTab('start'); setMessage(''); setError('') }}>
           Start Session
@@ -173,12 +172,7 @@ function ParkingDash() {
           </select>
 
           <label>Customer ID</label>
-          <input
-            type="number"
-            placeholder="Enter customer ID"
-            value={customerId}
-            onChange={e => setCustomerId(e.target.value)}
-          />
+          <input type="number" placeholder="Enter customer ID" value={customerId} onChange={e => setCustomerId(e.target.value)} />
 
           <button onClick={handleStartSession} disabled={loading}>
             {loading ? 'Processing...' : 'Start Session'}
@@ -191,18 +185,16 @@ function ParkingDash() {
           <h2>End Parking Session</h2>
 
           <label>Session ID</label>
-          <input
-            type="number"
-            placeholder="Enter session ID"
-            value={sessionId}
-            onChange={e => setSessionId(e.target.value)}
-          />
+          <input type="number" placeholder="Enter session ID" value={sessionId} onChange={e => setSessionId(e.target.value)} />
 
           <label>Payment Method</label>
           <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
             <option value="card">Card</option>
             <option value="cash">Cash</option>
           </select>
+
+          <label>Customer Account ID (optional)</label>
+          <input type="number" placeholder="Enter customer account ID" value={endAccountId} onChange={e => setEndAccountId(e.target.value)} />
 
           <button onClick={handleEndSession} disabled={loading}>
             {loading ? 'Processing...' : 'End Session'}

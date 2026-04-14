@@ -10,12 +10,14 @@ function TicketSellerDash() {
   const [customerId, setCustomerId] = useState('')
   const [validDate, setValidDate] = useState('')
   const [ticketPayment, setTicketPayment] = useState('card')
+  const [ticketAccountId, setTicketAccountId] = useState('')
 
   // pass form
   const [passTypeId, setPassTypeId] = useState('')
   const [passCustomerId, setPassCustomerId] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [passPayment, setPassPayment] = useState('card')
+  const [passAccountId, setPassAccountId] = useState('')
 
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -23,7 +25,6 @@ function TicketSellerDash() {
 
   const token = localStorage.getItem('token')
 
-  // fetch ticket types and pass types on load
   useEffect(() => {
     const fetchTypes = async () => {
       try {
@@ -68,7 +69,7 @@ function TicketSellerDash() {
           customer_id: parseInt(customerId),
           valid_date: validDate,
           payment_method_transaction: ticketPayment,
-          account_id: null
+          account_id: ticketAccountId ? parseInt(ticketAccountId) : null
         })
       })
 
@@ -79,6 +80,7 @@ function TicketSellerDash() {
       setTicketTypeId('')
       setCustomerId('')
       setValidDate('')
+      setTicketAccountId('')
     } catch {
       setError('Something went wrong')
     } finally {
@@ -108,7 +110,7 @@ function TicketSellerDash() {
           customer_id: parseInt(passCustomerId),
           quantity_purchased: parseInt(quantity),
           payment_method_transaction: passPayment,
-          account_id: null
+          account_id: passAccountId ? parseInt(passAccountId) : null
         })
       })
 
@@ -119,6 +121,7 @@ function TicketSellerDash() {
       setPassTypeId('')
       setPassCustomerId('')
       setQuantity(1)
+      setPassAccountId('')
     } catch {
       setError('Something went wrong')
     } finally {
@@ -166,25 +169,19 @@ function TicketSellerDash() {
           </select>
 
           <label>Customer ID</label>
-          <input
-            type="number"
-            placeholder="Enter customer ID"
-            value={customerId}
-            onChange={e => setCustomerId(e.target.value)}
-          />
+          <input type="number" placeholder="Enter customer ID" value={customerId} onChange={e => setCustomerId(e.target.value)} />
 
           <label>Valid Date</label>
-          <input
-            type="date"
-            value={validDate}
-            onChange={e => setValidDate(e.target.value)}
-          />
+          <input type="date" value={validDate} onChange={e => setValidDate(e.target.value)} />
 
           <label>Payment Method</label>
           <select value={ticketPayment} onChange={e => setTicketPayment(e.target.value)}>
             <option value="card">Card</option>
             <option value="cash">Cash</option>
           </select>
+
+          <label>Customer Account ID (optional)</label>
+          <input type="number" placeholder="Enter customer account ID" value={ticketAccountId} onChange={e => setTicketAccountId(e.target.value)} />
 
           <button onClick={handleSellTicket} disabled={loading}>
             {loading ? 'Processing...' : 'Sell Ticket'}
@@ -207,26 +204,19 @@ function TicketSellerDash() {
           </select>
 
           <label>Customer ID</label>
-          <input
-            type="number"
-            placeholder="Enter customer ID"
-            value={passCustomerId}
-            onChange={e => setPassCustomerId(e.target.value)}
-          />
+          <input type="number" placeholder="Enter customer ID" value={passCustomerId} onChange={e => setPassCustomerId(e.target.value)} />
 
           <label>Quantity</label>
-          <input
-            type="number"
-            min="1"
-            value={quantity}
-            onChange={e => setQuantity(e.target.value)}
-          />
+          <input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
 
           <label>Payment Method</label>
           <select value={passPayment} onChange={e => setPassPayment(e.target.value)}>
             <option value="card">Card</option>
             <option value="cash">Cash</option>
           </select>
+
+          <label>Customer Account ID (optional)</label>
+          <input type="number" placeholder="Enter customer account ID" value={passAccountId} onChange={e => setPassAccountId(e.target.value)} />
 
           <button onClick={handleSellPass} disabled={loading}>
             {loading ? 'Processing...' : 'Sell Pass'}
