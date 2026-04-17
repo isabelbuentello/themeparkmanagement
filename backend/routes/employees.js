@@ -3,6 +3,18 @@ import db from '../db.js';
 
 const router = express.Router();
 
+function isFutureDate(dateStr) {
+  if (!dateStr) return false;
+  const inputDate = new Date(dateStr);
+  if (Number.isNaN(inputDate.getTime())) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  inputDate.setHours(0, 0, 0, 0);
+
+  return inputDate > today;
+}
+
 // GET all employees
 router.get('/', (req, res) => {
   db.query(
@@ -42,6 +54,10 @@ router.post('/', (req, res) => {
     employee_phone, employee_email, employee_address,
     gender, employee_birthdate, ssn
   } = req.body;
+
+  if (isFutureDate(employee_birthdate)) {
+    return res.status(400).json({ error: 'Birthdate cannot be in the future' });
+  }
 
   db.query(
     `INSERT INTO Employee 

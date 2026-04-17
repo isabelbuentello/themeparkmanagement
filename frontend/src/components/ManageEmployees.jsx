@@ -28,6 +28,7 @@ function ManageEmployees({ token }) {
   ]
 
   const genders = ['male', 'female', 'non_binary', 'prefer_not_to_say']
+  const todayDate = new Date().toISOString().split('T')[0]
 
   const fetchDepartments = async () => {
     try {
@@ -46,6 +47,12 @@ function ManageEmployees({ token }) {
 
   const handleCreate = async (e) => {
     e.preventDefault()
+
+    if (newEmployee.employee_birthdate && newEmployee.employee_birthdate > todayDate) {
+      alert('Birthdate cannot be in the future')
+      return
+    }
+
     try {
       const res = await fetch('/api/employees', {
         method: 'POST',
@@ -151,6 +158,7 @@ function ManageEmployees({ token }) {
                 <input
                   className="emp-input"
                   type="date"
+                  max={todayDate}
                   value={newEmployee.employee_birthdate}
                   onChange={e => setNewEmployee({ ...newEmployee, employee_birthdate: e.target.value })}
                   required

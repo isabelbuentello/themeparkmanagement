@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import ConfirmActionModal from './ConfirmActionModal'
 import '../styles/manage-departments.css'
 
 function ManageDepartments({ token }) {
@@ -7,6 +8,8 @@ function ManageDepartments({ token }) {
   const [venues, setVenues] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const [newDept, setNewDept] = useState({
     department_name: '',
@@ -83,21 +86,25 @@ function ManageDepartments({ token }) {
     }
   }
 
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(`Delete department "${name}"? This may fail if employees are assigned to it.`)) return
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setIsDeleting(true)
     try {
-      const res = await fetch(`/api/departments/${id}`, {
+      const res = await fetch(`/api/departments/${deleteTarget.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (res.ok) {
-        setDepartments(departments.filter(d => d.department_id !== id))
+        setDepartments(departments.filter((d) => d.department_id !== deleteTarget.id))
+        setDeleteTarget(null)
       } else {
         const err = await res.json()
         alert(err.error || 'Failed to delete department')
       }
     } catch (err) {
       alert('Error deleting department')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -191,7 +198,7 @@ function ManageDepartments({ token }) {
                   <td>
                     <button
                       className="dept-btn dept-btn-delete"
-                      onClick={() => handleDelete(dept.department_id, dept.department_name)}
+                      onClick={() => setDeleteTarget({ id: dept.department_id, name: dept.department_name })}
                     >
                       Delete
                     </button>
@@ -202,6 +209,19 @@ function ManageDepartments({ token }) {
           </tbody>
         </table>
       </div>
+
+      <ConfirmActionModal
+        open={!!deleteTarget}
+        title="Delete Department"
+        message={deleteTarget ? `Are you sure you want to delete department "${deleteTarget.name}"?` : ''}
+        confirmLabel="Confirm"
+        cancelLabel="Cancel"
+        isProcessing={isDeleting}
+        onCancel={() => {
+          if (!isDeleting) setDeleteTarget(null)
+        }}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }
