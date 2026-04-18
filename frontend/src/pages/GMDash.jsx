@@ -18,6 +18,8 @@ function GMDash() {
   const [emergencies, setEmergencies] = useState([])
   const [rainouts, setRainouts] = useState([])
   const [rainoutError, setRainoutError] = useState('')
+  const [complaints, setComplaints] = useState([])
+  const [reviews, setReviews] = useState([]) 
 
   const fetchRides = async () => {
     try {
@@ -55,6 +57,44 @@ function GMDash() {
     } catch (err) {
       setRainoutError('Error fetching rainouts: ' + err.message)
       console.error(err)
+    }
+  }
+
+  const fetchComplaints = async () => {
+  try {
+    const res = await fetch('/api/feedback/complaints', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (res.ok) setComplaints(await res.json())
+    } catch (err) {
+    console.error('Error fetching complaints')
+    }
+  }
+
+const fetchReviews = async () => {
+  try {
+    const res = await fetch('/api/feedback/reviews', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (res.ok) setReviews(await res.json())
+    } catch (err) {
+    console.error('Error fetching reviews')
+    }
+  }
+
+  const toggleComplaintResolved = async (complaint_id, currentStatus) => {
+    try {
+      const res = await fetch(`/api/feedback/complaints/${complaint_id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ resolved: !currentStatus })
+      })
+      if (res.ok) fetchComplaints() // refresh the list
+    } catch (err) {
+      console.error('Error updating complaint')
     }
   }
 
@@ -134,6 +174,18 @@ function GMDash() {
         >
           Manage Venues
         </button>
+        <button
+          className={`gm-tool-btn ${activePanel === 'complaints' ? 'active' : ''}`}
+          onClick={() => togglePanel('complaints', fetchComplaints)}
+        >
+          View Complaints
+        </button>
+        <button
+          className={`gm-tool-btn ${activePanel === 'reviews' ? 'active' : ''}`}
+          onClick={() => togglePanel('reviews', fetchReviews)}
+        >
+          View Reviews
+        </button>
       </div>
 
       {activePanel === 'addRide' && <AddRide onRideAdded={fetchRides} />}
@@ -211,6 +263,101 @@ function GMDash() {
                           {rainout.status_ride.toUpperCase()}
                         </span>
                       </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activePanel === 'complaints' && (
+        <div style={{ marginBottom: '3rem' }}>
+          <h3 className="gm-section-title">Customer Complaints</h3>
+          <div className="gm-table-wrapper">
+            <table className="gm-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer ID</th>
+                  <th>Venue</th>
+                  <th>Ride</th>
+                  <th>Description</th>
+                  <th>Date</th>
+                  <th>Resolved</th>
+                </tr>
+              </thead>
+              <tbody>
+                {complaints.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center' }}>No complaints found</td>
+                  </tr>
+                ) : (
+                  complaints.map((c) => (
+                    <tr key={c.complaint_id}>
+                      <td>{c.complaint_id}</td>
+                      <td>{c.customer_id || 'Anonymous'}</td>
+                      <td>{c.venue_id || '—'}</td>
+                      <td>{c.ride_id || '—'}</td>
+                      <td>{c.complaint_description}</td>
+                      <td>{new Date(c.created_date).toLocaleDateString()}</td>
+                      <td>
+                        <button
+                          onClick={() => toggleComplaintResolved(c.complaint_id, c.resolved)}
+                          style={{
+                            background: c.resolved ? 'green' : 'orange',
+                            color: 'white',
+                            border: 'none',
+                            padding: '4px 10px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {c.resolved ? 'RESOLVED' : 'UNRESOLVED'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activePanel === 'reviews' && (
+        <div style={{ marginBottom: '3rem' }}>
+          <h3 className="gm-section-title">Customer Reviews</h3>
+          <div className="gm-table-wrapper">
+            <table className="gm-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer ID</th>
+                  <th>Venue</th>
+                  <th>Ride</th>
+                  <th>Rating</th>
+                  <th>Comment</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviews.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center' }}>No reviews found</td>
+                  </tr>
+                ) : (
+                  reviews.map((r) => (
+                    <tr key={r.review_id}>
+                      <td>{r.review_id}</td>
+                      <td>{r.customer_id}</td>
+                      <td>{r.venue_id || '—'}</td>
+                      <td>{r.ride_id || '—'}</td>
+                      <td>{'⭐'.repeat(r.rating / 2)} ({r.rating / 2}/5)</td>
+                      <td>{r.comment}</td>
+                      <td>{new Date(r.review_created_date).toLocaleDateString()}</td>
                     </tr>
                   ))
                 )}
