@@ -409,7 +409,7 @@ router.get('/history', requireCustomer, async (req, res) => {
             ti.item_type,
             ti.quantity,
             ti.unit_price
-          FROM Transactions t
+          FROM \`Transaction\` t
           LEFT JOIN TransactionItem ti ON ti.transaction_id = t.transaction_id
           WHERE t.account_id = ?
           ORDER BY t.transaction_time DESC, t.transaction_id DESC
@@ -731,7 +731,15 @@ router.delete('/queue/:reservationId', requireCustomer, async (req, res) => {
 })
 
 router.post('/checkout', requireCustomer, async (req, res) => {
-  const { cartItems, visitDate, paymentMethod = 'card' } = req.body
+  const {
+    cartItems,
+    visitDate,
+    paymentMethod = 'card',
+    cardholderName = '',
+    cardNumber = '',
+    cardExpiry = '',
+    cardCvv = ''
+  } = req.body
 
   if (!Array.isArray(cartItems) || cartItems.length === 0) {
     return res.status(400).json({ message: 'Cart items are required' })
@@ -745,8 +753,52 @@ router.post('/checkout', requireCustomer, async (req, res) => {
     return res.status(400).json({ message: 'Invalid payment method' })
   }
 
+  if (paymentMethod === 'card') {
+    const normalizedCardNumber = String(cardNumber).replace(/\s+/g, '')
+    const trimmedCardholderName = String(cardholderName).trim()
+    const trimmedCardExpiry = String(cardExpiry).trim()
+    const trimmedCardCvv = String(cardCvv).trim()
+    const [expiryMonthText, expiryYearText] = trimmedCardExpiry.split('/')
+    const expiryMonth = Number(expiryMonthText)
+    const expiryYear = 2000 + Number(expiryYearText)
+    const currentDate = new Date()
+    const currentYear = currentDate.getFullYear()
+    const currentMonth = currentDate.getMonth() + 1
+
+    if (!trimmedCardholderName) {
+      return res.status(400).json({ message: 'Cardholder name is required for card payments' })
+    }
+
+    if (!/^\d{13,19}$/.test(normalizedCardNumber)) {
+      return res.status(400).json({ message: 'Card number is invalid' })
+    }
+
+    if (!/^\d{2}\/\d{2}$/.test(trimmedCardExpiry)) {
+      return res.status(400).json({ message: 'Card expiry must use MM/YY format' })
+    }
+
+    if (!Number.isInteger(expiryMonth) || expiryMonth < 1 || expiryMonth > 12) {
+      return res.status(400).json({ message: 'Card expiry month is invalid' })
+    }
+
+    if (expiryYear < currentYear || (expiryYear === currentYear && expiryMonth < currentMonth)) {
+      return res.status(400).json({ message: 'Card expiry must be this month or later' })
+    }
+
+    if (!/^\d{3,4}$/.test(trimmedCardCvv)) {
+      return res.status(400).json({ message: 'Card CVV is invalid' })
+    }
+  }
+
   try {
     const availableProducts = await getCustomerTicketProducts()
+    const passTypeRows = await query(
+      `
+        SELECT pass_type_id
+        FROM PassType
+      `
+    )
+    const availablePassTypeIds = new Set(passTypeRows.map((row) => Number(row.pass_type_id)))
     const membershipRows = await query(
       `
         SELECT tier_id, tier_name, discount, price
@@ -795,6 +847,16 @@ router.post('/checkout', requireCustomer, async (req, res) => {
         return res.status(400).json({ message: 'Invalid cart item submitted' })
       }
 
+      const missingPassType = product.passes.find(
+        (passConfig) => !availablePassTypeIds.has(Number(passConfig.pass_type_id))
+      )
+
+      if (missingPassType) {
+        return res.status(400).json({
+          message: `Checkout cannot complete because pass type ${missingPassType.pass_type_id} is not configured`
+        })
+      }
+
       normalizedItems.push({ kind: 'ticket', product, quantity })
     }
 
@@ -823,7 +885,7 @@ router.post('/checkout', requireCustomer, async (req, res) => {
     try {
       const transactionResult = await query(
         `
-          INSERT INTO Transactions (
+          INSERT INTO \`Transaction\` (
             account_id,
             transaction_time,
             total_amount,
@@ -944,8 +1006,11 @@ router.post('/checkout', requireCustomer, async (req, res) => {
         membershipIds,
         total: totalAmount
       })
-    } catch {
+    } catch (txError) {
       await rollback()
+      if (txError?.code === 'ER_NO_REFERENCED_ROW_2') {
+        return res.status(400).json({ message: 'Checkout references missing related data. Please contact support.' })
+      }
       return res.status(500).json({ message: 'Unable to complete checkout' })
     }
   } catch {

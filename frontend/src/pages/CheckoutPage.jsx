@@ -8,7 +8,60 @@ import useCustomer from '../hooks/useCustomer'
 const initialFormState = {
   email: '',
   visitDate: '',
-  primaryGuest: ''
+  primaryGuest: '',
+  paymentMethod: 'card',
+  cardholderName: '',
+  cardNumber: '',
+  cardExpiry: '',
+  cardCvv: ''
+}
+
+const formatCardExpiry = (value) => {
+  const digits = value.replace(/\D/g, '').slice(0, 4)
+
+  if (digits.length <= 2) {
+    return digits
+  }
+
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`
+}
+
+const isCardExpiryValid = (value) => {
+  const trimmedValue = value.trim()
+
+  if (!/^\d{2}\/\d{2}$/.test(trimmedValue)) {
+    return false
+  }
+
+  const [monthText, yearText] = trimmedValue.split('/')
+  const month = Number(monthText)
+  const year = 2000 + Number(yearText)
+
+  if (!Number.isInteger(month) || month < 1 || month > 12) {
+    return false
+  }
+
+  const currentDate = new Date()
+  const currentYear = currentDate.getFullYear()
+  const currentMonth = currentDate.getMonth() + 1
+
+  if (year < currentYear) {
+    return false
+  }
+
+  if (year === currentYear && month < currentMonth) {
+    return false
+  }
+
+  return true
+}
+
+const getLocalDateString = (date = new Date()) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
 }
 
 function CheckoutPage() {
@@ -24,6 +77,7 @@ function CheckoutPage() {
 
   const serviceFee = cartItems.length ? 12 : 0
   const total = cartSubtotal + serviceFee
+  const todayDate = getLocalDateString()
 
   useEffect(() => {
     if (!canCheckout || !token) {
@@ -65,10 +119,11 @@ function CheckoutPage() {
 
   const handleInputChange = (event) => {
     const { name, value } = event.target
+    const nextValue = name === 'cardExpiry' ? formatCardExpiry(value) : value
 
     setFormState((currentState) => ({
       ...currentState,
-      [name]: value
+      [name]: nextValue
     }))
     setFieldErrors((currentErrors) => ({
       ...currentErrors,
@@ -79,9 +134,8 @@ function CheckoutPage() {
 
   const validateForm = () => {
     const nextErrors = {}
-    const selectedVisitDate = formState.visitDate ? new Date(formState.visitDate) : null
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const selectedVisitDate = formState.visitDate || ''
+    const today = getLocalDateString()
 
     if (!formState.primaryGuest.trim()) {
       nextErrors.primaryGuest = 'Enter the account name.'
@@ -97,6 +151,31 @@ function CheckoutPage() {
       nextErrors.visitDate = 'Select a visit date.'
     } else if (selectedVisitDate < today) {
       nextErrors.visitDate = 'Choose today or a future visit date.'
+    }
+
+    if (formState.paymentMethod === 'card') {
+      if (!formState.cardholderName.trim()) {
+        nextErrors.cardholderName = 'Enter the cardholder name.'
+      }
+
+      const normalizedCardNumber = formState.cardNumber.replace(/\s+/g, '')
+      if (!normalizedCardNumber) {
+        nextErrors.cardNumber = 'Enter the card number.'
+      } else if (!/^\d{13,19}$/.test(normalizedCardNumber)) {
+        nextErrors.cardNumber = 'Enter a valid card number.'
+      }
+
+      if (!formState.cardExpiry.trim()) {
+        nextErrors.cardExpiry = 'Enter the card expiry.'
+      } else if (!/^\d{2}\/\d{2}$/.test(formState.cardExpiry.trim())) {
+        nextErrors.cardExpiry = 'Use MM/YY format.'
+      } else if (!isCardExpiryValid(formState.cardExpiry)) {
+        nextErrors.cardExpiry = 'Use an expiry this month or later.'
+      }
+
+      if (!/^\d{3,4}$/.test(formState.cardCvv.trim())) {
+        nextErrors.cardCvv = 'Enter a valid CVV.'
+      }
     }
 
     setFieldErrors(nextErrors)
@@ -193,6 +272,7 @@ function CheckoutPage() {
             <input
               type="date"
               name="visitDate"
+              min={todayDate}
               value={formState.visitDate}
               onChange={handleInputChange}
               required
@@ -201,6 +281,88 @@ function CheckoutPage() {
               <span className="field-error">{fieldErrors.visitDate}</span>
             ) : null}
           </label>
+
+          <label className="form-field">
+            <span>Payment method</span>
+            <select
+              name="paymentMethod"
+              value={formState.paymentMethod}
+              onChange={handleInputChange}
+            >
+              <option value="card">Card</option>
+              <option value="cash">Cash</option>
+            </select>
+          </label>
+
+          {formState.paymentMethod === 'card' ? (
+            <>
+              <label className="form-field">
+                <span>Cardholder name</span>
+                <input
+                  type="text"
+                  name="cardholderName"
+                  value={formState.cardholderName}
+                  onChange={handleInputChange}
+                  placeholder="Jordan Lee"
+                  autoComplete="cc-name"
+                />
+                {fieldErrors.cardholderName ? (
+                  <span className="field-error">{fieldErrors.cardholderName}</span>
+                ) : null}
+              </label>
+
+              <label className="form-field">
+                <span>Card number</span>
+                <input
+                  type="text"
+                  name="cardNumber"
+                  value={formState.cardNumber}
+                  onChange={handleInputChange}
+                  placeholder="4242 4242 4242 4242"
+                  inputMode="numeric"
+                  autoComplete="cc-number"
+                />
+                {fieldErrors.cardNumber ? (
+                  <span className="field-error">{fieldErrors.cardNumber}</span>
+                ) : null}
+              </label>
+
+              <div className="form-row">
+                <label className="form-field">
+                  <span>Expiry</span>
+                  <input
+                    type="text"
+                    name="cardExpiry"
+                    value={formState.cardExpiry}
+                    onChange={handleInputChange}
+                    placeholder="MM/YY"
+                    inputMode="numeric"
+                    autoComplete="cc-exp"
+                    maxLength="5"
+                  />
+                  {fieldErrors.cardExpiry ? (
+                    <span className="field-error">{fieldErrors.cardExpiry}</span>
+                  ) : null}
+                </label>
+
+                <label className="form-field">
+                  <span>CVV</span>
+                  <input
+                    type="password"
+                    name="cardCvv"
+                    value={formState.cardCvv}
+                    onChange={handleInputChange}
+                    placeholder="123"
+                    inputMode="numeric"
+                    autoComplete="cc-csc"
+                  />
+                  {fieldErrors.cardCvv ? (
+                    <span className="field-error">{fieldErrors.cardCvv}</span>
+                  ) : null}
+                </label>
+              </div>
+            </>
+          ) : null}
 
           <button
             type="submit"
