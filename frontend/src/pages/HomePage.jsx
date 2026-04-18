@@ -4,7 +4,6 @@ import { getMemberships } from '../api/memberships'
 import { getTicketProducts } from '../api/tickets'
 import { getDirectory } from '../api/venues'
 import AsyncState from '../components/AsyncState'
-import theme from '../assets/theme.avif'
 
 function HomePage() {
   const [homepageSections, setHomepageSections] = useState([])
@@ -145,10 +144,9 @@ function HomePage() {
           <p>
             Team6 ThemePark is an adventurous playground for your family and friends.
             Come join us with our fastest roller coasters in the south, fine dining with our chefs,
-            and romance, cry or laugh with our world class performers who put on the best shows right here at the park!
+            and romance, cry or laugh with our world class performers who put on the best 
       
           </p>
-          <img src={theme} alt="Theme park" style={{ width: "900px" }} />
         </div>
       </section>
 

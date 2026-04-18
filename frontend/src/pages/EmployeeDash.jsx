@@ -22,18 +22,10 @@ function EmployeeDash() {
     navigate('/account')
   }
 
-  const formatRole = (role) => {
-  if (!role) return ''
-  return role
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ')
-}
-
   return (
     <div className="emp-dash-container">
       <h1 className="emp-header">Employee Dashboard</h1>
-      <p className="emp-welcome">Welcome! You are logged in as: <strong>{formatRole(role)}</strong></p>
+      <p className="emp-welcome">Welcome! You are logged in as: <strong>{role}</strong></p>
 
       <h2 className="emp-section-title">Shared Tools</h2>
       <div className="emp-tools-grid">

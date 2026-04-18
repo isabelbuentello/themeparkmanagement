@@ -153,48 +153,4 @@ router.post('/complaints', attachOptionalUser, (req, res) => {
   )
 })
 
-// middleware for GM access
-function requireGM(req, res, next) {
-  const payload = getTokenPayload(req)
-  if (!payload) return res.status(401).json({ message: 'Login required' })
-  if (payload.role !== 'general_manager') {
-    return res.status(403).json({ message: 'GM access required' })
-  }
-  req.user = payload
-  next()
-}
-
-// GET all complaints (for GM)
-router.get('/complaints', requireGM, (req, res) => {
-  db.query('SELECT * FROM Complaint ORDER BY created_date DESC', (err, results) => {
-    if (err) return res.status(500).json({ message: 'Server error' })
-    res.json(results)
-  })
-})
-
-// GET all reviews (for GM)
-router.get('/reviews', requireGM, (req, res) => {
-  db.query('SELECT * FROM Review ORDER BY review_created_date DESC', (err, results) => {
-    if (err) return res.status(500).json({ message: 'Server error' })
-    res.json(results)
-  })
-})
-
-// PATCH resolve/unresolve a complaint
-router.patch('/complaints/:complaint_id', requireGM, (req, res) => {
-  const { complaint_id } = req.params
-  const { resolved } = req.body
-
-  db.query(
-    `UPDATE Complaint 
-     SET resolved = ?, resolved_date = ? 
-     WHERE complaint_id = ?`,
-    [resolved, resolved ? new Date() : null, complaint_id],
-    (err) => {
-      if (err) return res.status(500).json({ message: 'Error updating complaint' })
-      res.json({ message: `Complaint marked as ${resolved ? 'resolved' : 'unresolved'}` })
-    }
-  )
-})
-
 export default router
