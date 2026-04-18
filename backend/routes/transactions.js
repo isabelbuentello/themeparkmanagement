@@ -81,6 +81,23 @@ router.get('/ticket-types', (req, res) => {
 router.post('/tickets', verifyToken, requireRole('ticket_seller', 'general_manager'), (req, res) => {
   const { ticket_type_id, customer_id, valid_date, payment_method_transaction, account_id } = req.body
 
+  if (!valid_date) {
+    return res.status(400).json({ message: 'valid_date is required' })
+  }
+
+  const selectedDate = new Date(valid_date)
+  if (Number.isNaN(selectedDate.getTime())) {
+    return res.status(400).json({ message: 'valid_date is invalid' })
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  selectedDate.setHours(0, 0, 0, 0)
+
+  if (selectedDate < today) {
+    return res.status(400).json({ message: 'valid_date cannot be in the past' })
+  }
+
   db.query(
     'SELECT price FROM TicketType WHERE ticket_type_id = ? LIMIT 1',
     [ticket_type_id],
@@ -106,7 +123,7 @@ router.post('/tickets', verifyToken, requireRole('ticket_seller', 'general_manag
             if (err) return db.rollback(() => res.status(500).json({ message: 'Error creating ticket' }))
 
             db.query(
-              `INSERT INTO Transactions (account_id, transaction_time, total_amount, payment_method_transaction)
+              `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
                VALUES (?, CURDATE(), ?, ?)`,
               [account_id || null, unit_price, payment_method_transaction],
               (err, transResult) => {
@@ -169,7 +186,7 @@ router.post('/passes', verifyToken, requireRole('ticket_seller', 'parking_lot_ma
         })
 
         db.query(
-          `INSERT INTO Transactions (account_id, transaction_time, total_amount, payment_method_transaction)
+          `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
            VALUES (?, CURDATE(), ?, ?)`,
           [account_id || null, total_amount, payment_method_transaction],
           (err, transResult) => {
@@ -254,7 +271,7 @@ router.put('/parking/end/:session_id', verifyToken, requireRole('parking_lot_man
             if (err) return db.rollback(() => res.status(500).json({ message: 'Error ending session' }))
 
             db.query(
-              `INSERT INTO Transactions (account_id, transaction_time, total_amount, payment_method_transaction)
+              `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction)
                VALUES (?, CURDATE(), ?, ?)`,
               [account_id || null, amount_paid, payment_method_transaction],
               (err, transResult) => {
@@ -313,7 +330,7 @@ router.post('/shops/sell', verifyToken, requireRole('shop_manager', 'general_man
         if (err) return db.rollback(() => res.status(500).json({ message: 'Error updating shop inventory' }))
 
         db.query(
-          `INSERT INTO Transactions (account_id, transaction_time, total_amount, payment_method_transaction, venue_id)
+          `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction, venue_id)
            VALUES (?, CURDATE(), ?, ?, ?)`,
           [account_id || null, total_amount, payment_method_transaction, venue_id],
           (err, transResult) => {
@@ -413,7 +430,7 @@ router.post('/restaurants/sell', verifyToken, requireRole('restaurant_manager', 
         if (err) return res.status(500).json({ message: 'Server error' })
 
         db.query(
-          `INSERT INTO Transactions (account_id, transaction_time, total_amount, payment_method_transaction, venue_id)
+          `INSERT INTO \`Transaction\` (account_id, transaction_time, total_amount, payment_method_transaction, venue_id)
            VALUES (?, CURDATE(), ?, ?, ?)`,
           [account_id || null, total_amount, payment_method_transaction, venue_id],
           (err, transResult) => {

@@ -14,7 +14,11 @@ export async function submitPurchase(orderPayload) {
         quantity: item.quantity
       })),
       visitDate: orderPayload.visitDate,
-      paymentMethod: 'card'
+      paymentMethod: orderPayload.paymentMethod,
+      cardholderName: orderPayload.cardholderName,
+      cardNumber: orderPayload.cardNumber,
+      cardExpiry: orderPayload.cardExpiry,
+      cardCvv: orderPayload.cardCvv
     })
   })
 
