@@ -171,6 +171,15 @@ function formatQueueEntry(row) {
   }
 }
 
+function toPriceKey(value) {
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) {
+    return null
+  }
+
+  return numericValue.toFixed(2)
+}
+
 async function getTicketTypePrices() {
   const rows = await query(
     `
@@ -398,7 +407,18 @@ router.get('/history', requireCustomer, async (req, res) => {
       return res.status(404).json({ message: 'Customer account not found' })
     }
 
-    const [transactionsResult, membershipsResult, reviewsResult, complaintsResult] = await Promise.allSettled([
+    const [
+      transactionsResult,
+      membershipsResult,
+      reviewsResult,
+      complaintsResult,
+      ticketHistoryResult,
+      passHistoryResult,
+      membershipHistoryResult,
+      ticketProductsResult,
+      passTypesResult,
+      membershipPriceResult
+    ] = await Promise.allSettled([
       query(
         `
           SELECT
@@ -448,6 +468,58 @@ router.get('/history', requireCustomer, async (req, res) => {
           ORDER BY created_date DESC, complaint_id DESC
         `,
         [customer.customer_id]
+      ),
+      query(
+        `
+          SELECT
+            tk.valid_date AS activity_date,
+            tt.ticket_name,
+            COUNT(*) AS quantity
+          FROM Ticket tk
+          JOIN TicketType tt ON tt.ticket_type_id = tk.ticket_type_id
+          WHERE tk.customer_id = ?
+          GROUP BY tk.valid_date, tt.ticket_name
+        `,
+        [customer.customer_id]
+      ),
+      query(
+        `
+          SELECT
+            p.purchase_date AS activity_date,
+            pt.pass_name,
+            SUM(p.quantity_purchased) AS quantity
+          FROM Pass p
+          JOIN PassType pt ON pt.pass_type_id = p.pass_type_id
+          WHERE p.customer_id = ?
+          GROUP BY p.purchase_date, pt.pass_name
+        `,
+        [customer.customer_id]
+      ),
+      query(
+        `
+          SELECT
+            m.start_date AS activity_date,
+            mt.tier_name,
+            COUNT(*) AS quantity
+          FROM Membership m
+          JOIN MembershipTier mt ON mt.tier_id = m.tier_id
+          WHERE m.account_id = ?
+          GROUP BY m.start_date, mt.tier_name
+        `,
+        [customer.account_id]
+      ),
+      getCustomerTicketProducts(),
+      query(
+        `
+          SELECT pass_type_id, pass_name
+          FROM PassType
+        `
+      ),
+      query(
+        `
+          SELECT tier_name, price
+          FROM MembershipTier
+        `
       )
     ])
 
@@ -455,6 +527,82 @@ router.get('/history', requireCustomer, async (req, res) => {
     const memberships = membershipsResult.status === 'fulfilled' ? membershipsResult.value : []
     const reviews = reviewsResult.status === 'fulfilled' ? reviewsResult.value : []
     const complaints = complaintsResult.status === 'fulfilled' ? complaintsResult.value : []
+    const ticketHistory = ticketHistoryResult.status === 'fulfilled' ? ticketHistoryResult.value : []
+    const passHistory = passHistoryResult.status === 'fulfilled' ? passHistoryResult.value : []
+    const membershipHistory = membershipHistoryResult.status === 'fulfilled' ? membershipHistoryResult.value : []
+    const ticketProducts = ticketProductsResult.status === 'fulfilled' ? ticketProductsResult.value : []
+    const passTypes = passTypesResult.status === 'fulfilled' ? passTypesResult.value : []
+    const membershipPrices = membershipPriceResult.status === 'fulfilled' ? membershipPriceResult.value : []
+
+    const passTypeNameById = new Map(
+      passTypes.map((row) => [Number(row.pass_type_id), row.pass_name])
+    )
+
+    const productNameByPrice = new Map()
+    ticketProducts.forEach((product) => {
+      const priceKey = toPriceKey(product.price)
+      if (!priceKey || productNameByPrice.has(priceKey)) {
+        return
+      }
+
+      const includedPasses = (product.passes || [])
+        .map((passConfig) => {
+          const passTypeName = passTypeNameById.get(Number(passConfig.pass_type_id)) || `pass type ${passConfig.pass_type_id}`
+          const quantity = Number(passConfig.quantity || 0)
+          return quantity > 1 ? `${quantity} ${passTypeName}` : passTypeName
+        })
+        .join(', ')
+
+      productNameByPrice.set(
+        priceKey,
+        includedPasses ? `${product.name} (includes ${includedPasses})` : product.name
+      )
+    })
+
+    const membershipNameByPrice = new Map()
+    membershipPrices.forEach((row) => {
+      const priceKey = toPriceKey(row.price)
+      if (!priceKey || membershipNameByPrice.has(priceKey)) {
+        return
+      }
+      membershipNameByPrice.set(priceKey, `${row.tier_name} membership`)
+    })
+
+    const fallbackItemsByDate = new Map()
+    const upsertFallbackItem = (dateText, item) => {
+      if (!dateText) return
+      if (!fallbackItemsByDate.has(dateText)) {
+        fallbackItemsByDate.set(dateText, [])
+      }
+      fallbackItemsByDate.get(dateText).push(item)
+    }
+
+    ticketHistory.forEach((row) => {
+      upsertFallbackItem(String(row.activity_date), {
+        type: 'ticket',
+        name: row.ticket_name,
+        quantity: Number(row.quantity || 0),
+        unitPrice: null
+      })
+    })
+
+    passHistory.forEach((row) => {
+      upsertFallbackItem(String(row.activity_date), {
+        type: 'pass',
+        name: row.pass_name,
+        quantity: Number(row.quantity || 0),
+        unitPrice: null
+      })
+    })
+
+    membershipHistory.forEach((row) => {
+      upsertFallbackItem(String(row.activity_date), {
+        type: 'membership',
+        name: row.tier_name,
+        quantity: Number(row.quantity || 0),
+        unitPrice: null
+      })
+    })
 
     const groupedTransactions = []
     const transactionsById = new Map()
@@ -473,16 +621,45 @@ router.get('/history', requireCustomer, async (req, res) => {
       }
 
       if (row.item_type) {
+        let itemName = null
+        const unitPriceKey = toPriceKey(row.unit_price)
+
+        if (row.item_type === 'ticket' && unitPriceKey) {
+          itemName = productNameByPrice.get(unitPriceKey) || null
+        }
+
+        if (row.item_type === 'other' && unitPriceKey) {
+          itemName = membershipNameByPrice.get(unitPriceKey) || null
+        }
+
         transactionsById.get(row.transaction_id).items.push({
           type: row.item_type,
+          name: itemName,
           quantity: row.quantity,
           unitPrice: Number(row.unit_price)
         })
       }
     })
 
+    groupedTransactions.forEach((transaction) => {
+      if (transaction.items.length && transaction.items.some((item) => item.name)) {
+        return
+      }
+
+      const dateKey = String(transaction.date).slice(0, 10)
+      const fallbackItems = fallbackItemsByDate.get(dateKey)
+      if (fallbackItems?.length) {
+        transaction.items = fallbackItems
+      }
+    })
+
+    const transactionsWithUserNumber = groupedTransactions.map((transaction, index) => ({
+      ...transaction,
+      userTransactionNumber: index + 1
+    }))
+
     return res.json({
-      transactions: groupedTransactions,
+      transactions: transactionsWithUserNumber,
       memberships: memberships.map((row) => ({
         membershipId: row.membership_id,
         tierName: row.tier_name,
@@ -506,7 +683,13 @@ router.get('/history', requireCustomer, async (req, res) => {
         transactionsResult.status !== 'fulfilled' ? 'transactions' : null,
         membershipsResult.status !== 'fulfilled' ? 'memberships' : null,
         reviewsResult.status !== 'fulfilled' ? 'reviews' : null,
-        complaintsResult.status !== 'fulfilled' ? 'complaints' : null
+        complaintsResult.status !== 'fulfilled' ? 'complaints' : null,
+        ticketHistoryResult.status !== 'fulfilled' ? 'ticketHistory' : null,
+        passHistoryResult.status !== 'fulfilled' ? 'passHistory' : null,
+        membershipHistoryResult.status !== 'fulfilled' ? 'membershipHistory' : null,
+        ticketProductsResult.status !== 'fulfilled' ? 'ticketProducts' : null,
+        passTypesResult.status !== 'fulfilled' ? 'passTypes' : null,
+        membershipPriceResult.status !== 'fulfilled' ? 'membershipPrices' : null
       ].filter(Boolean)
     })
   } catch {
