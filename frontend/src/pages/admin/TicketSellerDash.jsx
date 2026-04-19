@@ -190,7 +190,12 @@ function TicketSellerDash() {
           </select>
 
           <label>Valid Date</label>
-          <input type="date" min={todayDate} value={validDate} onChange={e => setValidDate(e.target.value)} />
+          <input 
+            type="date" 
+            value={validDate} 
+            min={new Date().toISOString().split('T')[0]}
+            onChange={e => setValidDate(e.target.value)} 
+          />
 
           <label>Payment Method</label>
           <select value={ticketPayment} onChange={e => setTicketPayment(e.target.value)}>
