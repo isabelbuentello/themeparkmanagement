@@ -159,15 +159,15 @@ router.get('/revenue', verifyToken, requireGM, (req, res) => {
 	const params = []
 
   if (start && end) {
-    sql += ' WHERE transaction_time BETWEEN ? AND ?'
+    sql += ' WHERE DATE(transaction_time) BETWEEN ? AND ?'
     params.push(start, end)
-  } else if (start) {
-    sql += ' WHERE transaction_time >= ?'
+} else if (start) {
+    sql += ' WHERE DATE(transaction_time) >= ?'
     params.push(start)
-  } else if (end) {
-    sql += ' WHERE transaction_time <= ?'
+} else if (end) {
+    sql += ' WHERE DATE(transaction_time) <= ?'
     params.push(end)
-  }
+}
 
   sql += ' GROUP BY DATE(transaction_time) ORDER BY revenue_date DESC'
 
@@ -191,15 +191,15 @@ router.get('/revenue/breakdown', verifyToken, requireGM, (req, res) => {
   const params = []
 
   if (start && end) {
-    sql += ' WHERE t.transaction_time BETWEEN ? AND ?'
+    sql += ' WHERE DATE(t.transaction_time) BETWEEN ? AND ?'
     params.push(start, end)
-  } else if (start) {
-    sql += ' WHERE t.transaction_time >= ?'
+} else if (start) {
+    sql += ' WHERE DATE(t.transaction_time) >= ?'
     params.push(start)
-  } else if (end) {
-    sql += ' WHERE t.transaction_time <= ?'
+} else if (end) {
+    sql += ' WHERE DATE(t.transaction_time) <= ?'
     params.push(end)
-  }
+}
 
   sql += ' GROUP BY DATE(t.transaction_time), t.venue_id ORDER BY date_of_revenue DESC, v.venue_name'
 
