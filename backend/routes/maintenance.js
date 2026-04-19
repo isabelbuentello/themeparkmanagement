@@ -242,49 +242,25 @@ router.post(
 					if (fkMessage) return res.status(400).json({ message: fkMessage })
 					return res.status(500).json({ message: 'Server error' })
 				}
-				res.status(201).json({ message: 'Log created', log_id: result.insertId })
-			}
-		)
-	}
-)
 
-router.patch(
-	'/logs/:id/status',
-	verifyToken,
-	requireRole('maintenance', 'general_manager'),
-	(req, res) => {
-		const { id } = req.params
-		const { status_maintenance, cost_to_repair } = req.body
-		const allowedStatuses = ['broken', 'in-progress', 'fixed']
-
-		if (!allowedStatuses.includes(status_maintenance)) {
-			return res.status(400).json({ message: 'Invalid status_maintenance' })
-		}
-
-		if (status_maintenance === 'fixed') {
-			db.query(
-				`UPDATE MaintenanceLog
-				 SET status_maintenance = ?, cost_to_repair = COALESCE(?, cost_to_repair), fixed_time = NOW()
-				 WHERE log_id = ?`,
-				[status_maintenance, cost_to_repair || null, id],
-				(err, result) => {
-					if (err) return res.status(500).json({ message: 'Server error' })
-					if (result.affectedRows === 0) return res.status(404).json({ message: 'Log not found' })
-					res.json({ message: 'Log updated' })
-				}
-			)
-			return
-		}
-
-		db.query(
-			`UPDATE MaintenanceLog
-			 SET status_maintenance = ?, cost_to_repair = COALESCE(?, cost_to_repair), fixed_time = NULL
-			 WHERE log_id = ?`,
-			[status_maintenance, cost_to_repair || null, id],
-			(err, result) => {
-				if (err) return res.status(500).json({ message: 'Server error' })
-				if (result.affectedRows === 0) return res.status(404).json({ message: 'Log not found' })
-				res.json({ message: 'Log updated' })
+				// query what the trigger just set the ride status to
+				db.query(
+					'SELECT ride_name, status_ride FROM Ride WHERE ride_id = ?',
+					[ride_id],
+					(err, rows) => {
+						if (err || rows.length === 0) {
+							return res.status(201).json({ message: 'Log created', log_id: result.insertId })
+						}
+						res.status(201).json({
+							message: 'Log created',
+							log_id: result.insertId,
+							trigger_update: {
+								ride_name: rows[0].ride_name,
+								new_status: rows[0].status_ride
+							}
+						})
+					}
+				)
 			}
 		)
 	}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import '../styles/parkdaystats.css'
+import Toast from './Toast'
 
 function ParkDayStats({ token }) {
   const [parkDays, setParkDays] = useState([])
@@ -10,6 +11,7 @@ function ParkDayStats({ token }) {
     weather_notes: ''
   })
   const [message, setMessage] = useState('')
+  const [toast, setToast] = useState('')
 
   const fetchParkDays = async () => {
     try {
@@ -27,10 +29,7 @@ function ParkDayStats({ token }) {
     try {
       const res = await fetch('/api/gm/parkday', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           park_date: form.park_date,
           rain: form.rain,
@@ -40,54 +39,37 @@ function ParkDayStats({ token }) {
       })
       const data = await res.json()
       if (res.ok) {
-        setMessage(`Park day logged! Attendance: ${data.total_attendance}`)
+        setMessage('Park day logged!')
+        setToast(`Trigger fired: attendance auto-counted as ${data.total_attendance} from Visit records`)
         fetchParkDays()
       } else {
         setMessage(data.message || 'Error logging park day')
       }
-    } catch (err) {
-      setMessage('Error logging park day')
-    }
+    } catch (err) { setMessage('Error logging park day') }
   }
 
   return (
     <div style={{ marginBottom: '3rem' }}>
+      <Toast message={toast} onClose={() => setToast('')} />
       <h3 className="gm-section-title">Log Park Day</h3>
       <div className="gm-form-card">
         <div className="gm-form-row">
           <label>Date</label>
-          <input
-            type="date"
-            value={form.park_date}
-            onChange={e => setForm({ ...form, park_date: e.target.value })}
-          />
+          <input type="date" value={form.park_date} onChange={e => setForm({ ...form, park_date: e.target.value })} />
         </div>
         <div className="gm-form-row">
           <label className="gm-checkbox-label">
-            <input
-              type="checkbox"
-              checked={form.rain}
-              onChange={e => setForm({ ...form, rain: e.target.checked })}
-            />
+            <input type="checkbox" checked={form.rain} onChange={e => setForm({ ...form, rain: e.target.checked })} />
             Rain
           </label>
           <label className="gm-checkbox-label">
-            <input
-              type="checkbox"
-              checked={form.park_closed}
-              onChange={e => setForm({ ...form, park_closed: e.target.checked })}
-            />
+            <input type="checkbox" checked={form.park_closed} onChange={e => setForm({ ...form, park_closed: e.target.checked })} />
             Park Closed
           </label>
         </div>
         <div className="gm-form-row">
           <label>Weather Notes</label>
-          <input
-            type="text"
-            placeholder="Optional notes..."
-            value={form.weather_notes}
-            onChange={e => setForm({ ...form, weather_notes: e.target.value })}
-          />
+          <input type="text" placeholder="Optional notes..." value={form.weather_notes} onChange={e => setForm({ ...form, weather_notes: e.target.value })} />
         </div>
         <button className="gm-submit-btn" onClick={handleSubmit}>Log Park Day</button>
         {message && <p className="gm-form-message">{message}</p>}
