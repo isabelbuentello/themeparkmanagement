@@ -52,9 +52,9 @@ const CUSTOMER_TICKET_PRODUCTS = [
   }
 ]
 
-function query(sql, params = []) {
+function query(sql, params = [], executor = db) {
   return new Promise((resolve, reject) => {
-    db.query(sql, params, (err, results) => {
+    executor.query(sql, params, (err, results) => {
       if (err) {
         reject(err)
         return
@@ -65,9 +65,36 @@ function query(sql, params = []) {
   })
 }
 
-function beginTransaction() {
+function getConnection() {
   return new Promise((resolve, reject) => {
-    db.beginTransaction((err) => {
+    db.getConnection((err, connection) => {
+      if (err) {
+        reject(err)
+        return
+      }
+
+      resolve(connection)
+    })
+  })
+}
+
+function beginTransaction(connection) {
+  return new Promise((resolve, reject) => {
+    connection.beginTransaction((err) => {
+      if (err) {
+        connection.release()
+        reject(err)
+        return
+      }
+
+      resolve()
+    })
+  })
+}
+
+function commit(connection) {
+  return new Promise((resolve, reject) => {
+    connection.commit((err) => {
       if (err) {
         reject(err)
         return
@@ -78,22 +105,9 @@ function beginTransaction() {
   })
 }
 
-function commit() {
-  return new Promise((resolve, reject) => {
-    db.commit((err) => {
-      if (err) {
-        reject(err)
-        return
-      }
-
-      resolve()
-    })
-  })
-}
-
-function rollback() {
+function rollback(connection) {
   return new Promise((resolve) => {
-    db.rollback(() => resolve())
+    connection.rollback(() => resolve())
   })
 }
 
@@ -1063,7 +1077,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
       0
     )
 
-    await beginTransaction()
+    const connection = await getConnection()
+    await beginTransaction(connection)
 
     try {
       const transactionResult = await query(
@@ -1076,7 +1091,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
           )
           VALUES (?, CURDATE(), ?, ?)
         `,
-        [account_id, totalAmount, paymentMethod]
+        [account_id, totalAmount, paymentMethod],
+        connection
       )
 
       const ticketIds = []
@@ -1098,7 +1114,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
               )
               VALUES (?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR), 'active', false, ?)
             `,
-            [account_id, item.product.tier_id, paymentMethod]
+            [account_id, item.product.tier_id, paymentMethod],
+            connection
           )
 
           membershipIds.push(membershipResult.insertId)
@@ -1113,7 +1130,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
               )
               VALUES (?, 'other', ?, ?)
             `,
-            [transactionResult.insertId, 1, item.product.price]
+            [transactionResult.insertId, 1, item.product.price],
+            connection
           )
 
           continue
@@ -1132,7 +1150,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
                   )
                   VALUES (?, ?, ?, 'valid')
                 `,
-                [ticketConfig.ticket_type_id, customer_id, visitDate]
+                [ticketConfig.ticket_type_id, customer_id, visitDate],
+                connection
               )
 
               ticketIds.push(ticketResult.insertId)
@@ -1157,7 +1176,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
                 customer_id,
                 passConfig.quantity,
                 passConfig.quantity
-              ]
+              ],
+              connection
             )
 
             passIds.push(passResult.insertId)
@@ -1174,11 +1194,13 @@ router.post('/checkout', requireCustomer, async (req, res) => {
             )
             VALUES (?, 'ticket', ?, ?)
           `,
-          [transactionResult.insertId, item.quantity, item.product.price]
+          [transactionResult.insertId, item.quantity, item.product.price],
+          connection
         )
       }
 
-      await commit()
+      await commit(connection)
+      connection.release()
 
       return res.status(201).json({
         ok: true,
@@ -1190,13 +1212,16 @@ router.post('/checkout', requireCustomer, async (req, res) => {
         total: totalAmount
       })
     } catch (txError) {
-      await rollback()
+      await rollback(connection)
+      connection.release()
+      console.error('Checkout transaction failed:', txError)
       if (txError?.code === 'ER_NO_REFERENCED_ROW_2') {
         return res.status(400).json({ message: 'Checkout references missing related data. Please contact support.' })
       }
       return res.status(500).json({ message: 'Unable to complete checkout' })
     }
-  } catch {
+  } catch (error) {
+    console.error('Checkout failed:', error)
     return res.status(500).json({ message: 'Server error' })
   }
 })
