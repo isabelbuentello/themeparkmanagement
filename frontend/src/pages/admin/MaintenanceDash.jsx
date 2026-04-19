@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/gm-dash.css'
+import Toast from '../components/Toast'
 
 function MaintenanceDash() {
   const navigate = useNavigate()
@@ -28,6 +29,7 @@ function MaintenanceDash() {
   const [rideOverviewTypeFilter, setRideOverviewTypeFilter] = useState('all')
   const [rideOverviewStatusFilter, setRideOverviewStatusFilter] = useState('all')
   const [rideOverviewSort, setRideOverviewSort] = useState('none')
+  const [toast, setToast] = useState('')
 
   const [newLog, setNewLog] = useState({
     ride_id: '',
@@ -301,7 +303,7 @@ function MaintenanceDash() {
     }
 
     try {
-      await handleResponse(
+      const data = await handleResponse(
         await fetch('/api/maintenance/logs', {
           method: 'POST',
           headers: jsonHeaders,
@@ -315,6 +317,9 @@ function MaintenanceDash() {
 
       setLogMessage('Maintenance log created')
       setNewLog({ ride_id: '', issue_description: '', status_maintenance: 'broken' })
+      if (data.trigger_update) {
+        setToast(`${data.trigger_update.ride_name} → ${data.trigger_update.new_status}`)
+      }
       loadData()
     } catch (err) {
       setLogError(mapInvalidIdError(err, 'Failed to create log'))
@@ -326,7 +331,7 @@ function MaintenanceDash() {
     setLogError('')
     setLogMessage('')
     try {
-      await handleResponse(
+      const data = await handleResponse(
         await fetch('/api/maintenance/logs/' + logId + '/status', {
           method: 'PATCH',
           headers: jsonHeaders,
@@ -335,6 +340,9 @@ function MaintenanceDash() {
       )
 
       setLogMessage('Log updated')
+      if (data.trigger_update) {
+        setToast(`${data.trigger_update.ride_name} → ${data.trigger_update.new_status}`)
+      }
       loadData()
     } catch (err) {
       setLogError(err.message || 'Failed to update log')
@@ -397,6 +405,8 @@ function MaintenanceDash() {
       setTrainingError(err.message || 'Failed to review training request')
     }
   }
+
+  
 
   return (
     <div className="gm-dash-container">
@@ -854,6 +864,7 @@ function MaintenanceDash() {
           ))}
         </tbody>
       </table>
+      <Toast message={toast} onClose={() => setToast('')} />
       </div>
     </div>
   )
