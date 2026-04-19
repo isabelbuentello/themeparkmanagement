@@ -27,6 +27,65 @@ function requireRole(...roles) {
 
 const router = express.Router()
 
+function query(sql, params = [], executor = db) {
+  return new Promise((resolve, reject) => {
+    executor.query(sql, params, (err, results) => {
+      if (err) {
+        reject(err)
+        return
+      }
+
+      resolve(results)
+    })
+  })
+}
+
+function getConnection() {
+  return new Promise((resolve, reject) => {
+    db.getConnection((err, connection) => {
+      if (err) {
+        reject(err)
+        return
+      }
+
+      resolve(connection)
+    })
+  })
+}
+
+function beginTransaction(connection) {
+  return new Promise((resolve, reject) => {
+    connection.beginTransaction((err) => {
+      if (err) {
+        connection.release()
+        reject(err)
+        return
+      }
+
+      resolve()
+    })
+  })
+}
+
+function commit(connection) {
+  return new Promise((resolve, reject) => {
+    connection.commit((err) => {
+      if (err) {
+        reject(err)
+        return
+      }
+
+      resolve()
+    })
+  })
+}
+
+function rollback(connection) {
+  return new Promise((resolve) => {
+    connection.rollback(() => resolve())
+  })
+}
+
 router.post('/login', (req, res) => {
   const { username, password } = req.body
 
@@ -78,53 +137,40 @@ router.post('/register', async (req, res) => {
 
   try {
     const hash = await bcrypt.hash(password, 10)
+    const connection = await getConnection()
+    await beginTransaction(connection)
 
-    db.beginTransaction((err) => {
-      if (err) return res.status(500).json({ message: 'Server error' })
-
-      // first create the Customer row
-      db.query(
+    try {
+      const customerResult = await query(
         `INSERT INTO Customer (first_name, last_name, customer_birthdate, customer_phone, customer_email)
          VALUES (?, ?, ?, ?, ?)`,
         [first_name, last_name, customer_birthdate, customer_phone, customer_email],
-        (err, result) => {
-          if (err) {
-            return db.rollback(() => {
-              res.status(500).json({ message: 'Error creating customer' })
-            })
-          }
-
-          const customer_id = result.insertId
-
-          // then create the Account row linked to that customer
-          db.query(
-            `INSERT INTO Account (customer_id, username, password, date_created)
-             VALUES (?, ?, ?, CURDATE())`,
-            [customer_id, username, hash],
-            (err2) => {
-              if (err2) {
-                return db.rollback(() => {
-                  if (err2.code === 'ER_DUP_ENTRY')
-                    return res.status(400).json({ message: 'Username already taken' })
-                  res.status(500).json({ message: 'Error creating account' })
-                })
-              }
-
-              // both inserts succeeded, commit the transaction
-              db.commit((err3) => {
-                if (err3) {
-                  return db.rollback(() => {
-                    res.status(500).json({ message: 'Server error' })
-                  })
-                }
-                res.json({ message: 'Account created successfully' })
-              })
-            }
-          )
-        }
+        connection
       )
-    })
+
+      await query(
+        `INSERT INTO Account (customer_id, username, password, date_created)
+         VALUES (?, ?, ?, CURDATE())`,
+        [customerResult.insertId, username, hash],
+        connection
+      )
+
+      await commit(connection)
+      connection.release()
+      return res.json({ message: 'Account created successfully' })
+    } catch (txError) {
+      await rollback(connection)
+      connection.release()
+      console.error('Register transaction failed:', txError)
+
+      if (txError?.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ message: 'Username already taken' })
+      }
+
+      return res.status(500).json({ message: 'Error creating account' })
+    }
   } catch (err) {
+    console.error('Register route failed:', err)
     res.status(500).json({ message: 'Server error' })
   }
 })
@@ -140,54 +186,50 @@ router.post('/register/employee', verifyToken, requireRole('general_manager'), a
 
   try {
     const hash = await bcrypt.hash(password, 10)
+    const connection = await getConnection()
+    await beginTransaction(connection)
 
-    db.beginTransaction((err) => {
-      if (err) return res.status(500).json({ message: 'Server error' })
-
-      // first create the Employee row
-      db.query(
-        `INSERT INTO Employee (full_name, role, pay_rate, start_date, department_id, 
+    try {
+      const employeeResult = await query(
+        `INSERT INTO Employee (full_name, role, pay_rate, start_date, department_id,
           employee_phone, employee_email, employee_address, gender, employee_birthdate, ssn)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [full_name, role, pay_rate, start_date, department_id,
-         employee_phone, employee_email, employee_address, gender, employee_birthdate, ssn],
-        (err, result) => {
-          if (err) {
-            return db.rollback(() => {
-              res.status(500).json({ message: 'Error creating employee' })
-            })
-          }
-
-          const employee_id = result.insertId
-
-          // then create the EmployeeAccount row
-          db.query(
-            `INSERT INTO EmployeeAccount (employee_id, username, password)
-             VALUES (?, ?, ?)`,
-            [employee_id, username, hash],
-            (err2) => {
-              if (err2) {
-                return db.rollback(() => {
-                  if (err2.code === 'ER_DUP_ENTRY')
-                    return res.status(400).json({ message: 'Username already taken' })
-                  res.status(500).json({ message: 'Error creating employee account' })
-                })
-              }
-
-              // both inserts succeeded, commit the transaction
-              db.commit((err3) => {
-                if (err3) {
-                  return db.rollback(() => {
-                    res.status(500).json({ message: 'Server error' })
-                  })
-                }
-                res.json({ message: 'Employee account created successfully' })
-              })
-            }
-          )
-        }
+        [
+          full_name,
+          role,
+          pay_rate,
+          start_date,
+          department_id,
+          employee_phone,
+          employee_email,
+          employee_address,
+          gender,
+          employee_birthdate,
+          ssn
+        ],
+        connection
       )
-    })
+
+      await query(
+        `INSERT INTO EmployeeAccount (employee_id, username, password)
+         VALUES (?, ?, ?)`,
+        [employeeResult.insertId, username, hash],
+        connection
+      )
+
+      await commit(connection)
+      connection.release()
+      return res.json({ message: 'Employee account created successfully' })
+    } catch (txErr) {
+      await rollback(connection)
+      connection.release()
+
+      if (txErr?.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ message: 'Username already taken' })
+      }
+
+      return res.status(500).json({ message: 'Error creating employee account' })
+    }
   } catch (err) {
     res.status(500).json({ message: 'Server error' })
   }

@@ -669,7 +669,7 @@ router.get('/history', requireCustomer, async (req, res) => {
 
     const transactionsWithUserNumber = groupedTransactions.map((transaction, index) => ({
       ...transaction,
-      userTransactionNumber: index + 1
+      userTransactionNumber: groupedTransactions.length - index
     }))
 
     return res.json({
