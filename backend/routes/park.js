@@ -204,10 +204,16 @@ router.post(
       return res.status(400).json({ message: 'All fields are required' })
     }
 
-    db.beginTransaction((txErr) => {
-      if (txErr) return res.status(500).json({ message: 'Server error' })
+    db.getConnection((connErr, connection) => {
+      if (connErr) return res.status(500).json({ message: 'Server error' })
 
-      db.query(
+      connection.beginTransaction((txErr) => {
+        if (txErr) {
+          connection.release()
+          return res.status(500).json({ message: 'Server error' })
+        }
+
+        connection.query(
         `
           INSERT INTO Venue (venue_type, venue_name, hours, venue_lat, venue_long)
           VALUES ('show', ?, ?, ?, ?)
@@ -215,12 +221,13 @@ router.post(
         [venue_name, hours, venue_lat, venue_long],
         (venueErr, venueResult) => {
           if (venueErr) {
-            return db.rollback(() =>
+            return connection.rollback(() => {
+              connection.release()
               res.status(500).json({ message: 'Error creating show venue' })
-            )
+            })
           }
 
-          db.query(
+          connection.query(
             `
               INSERT INTO ParkShow (venue_id, show_lat, show_long, show_category, duration)
               VALUES (?, ?, ?, ?, ?)
@@ -234,17 +241,21 @@ router.post(
             ],
             (showErr, showResult) => {
               if (showErr) {
-                return db.rollback(() =>
+                return connection.rollback(() => {
+                  connection.release()
                   res.status(500).json({ message: 'Error creating show' })
-                )
+                })
               }
 
-              db.commit((commitErr) => {
+              connection.commit((commitErr) => {
                 if (commitErr) {
-                  return db.rollback(() =>
+                  return connection.rollback(() => {
+                    connection.release()
                     res.status(500).json({ message: 'Server error' })
-                  )
+                  })
                 }
+
+                connection.release()
 
                 res.status(201).json({
                   message: 'Show created successfully',
@@ -255,7 +266,8 @@ router.post(
             }
           )
         }
-      )
+        )
+      })
     })
   }
 )
