@@ -158,10 +158,29 @@ router.get(
 	verifyToken,
 	requireRole('ride_attendant_manager', 'maintenance', 'general_manager'),
 	(req, res) => {
+		const { status, rideType, sort } = req.query
+		const whereClauses = []
+		const queryParams = []
+
+		if (status && status !== 'all') {
+			whereClauses.push('status_ride = ?')
+			queryParams.push(status)
+		}
+
+		if (rideType && rideType !== 'all') {
+			whereClauses.push('ride_type = ?')
+			queryParams.push(rideType)
+		}
+
+		const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''
+		const orderSql = sort === 'alpha_desc' ? 'ORDER BY ride_name DESC' : 'ORDER BY ride_name ASC'
+
 		db.query(
 			`SELECT ride_id, ride_name, ride_type, status_ride, affected_by_rain
 			 FROM Ride
-			 ORDER BY ride_name`,
+			 ${whereSql}
+			 ${orderSql}`,
+			queryParams,
 			(err, results) => {
 				if (err) return res.status(500).json({ message: 'Server error' })
 				res.json(results)
@@ -318,11 +337,17 @@ router.get(
 	verifyToken,
 	requireRole('general_manager', 'maintenance', 'ride_attendant_manager'),
 	(req, res) => {
+		const { rideId } = req.query
+		const whereSql = rideId && rideId !== 'all' ? 'WHERE rr.ride_id = ?' : ''
+		const queryParams = rideId && rideId !== 'all' ? [rideId] : []
+
 		db.query(
 			`SELECT rr.rainout_id, rr.ride_id, rr.rainout_time, r.ride_name, r.status_ride
 			 FROM RideRainout rr
 			 JOIN Ride r ON rr.ride_id = r.ride_id
+			 ${whereSql}
 			 ORDER BY rr.rainout_time DESC`,
+			queryParams,
 			(err, results) => {
 				if (err) return res.status(500).json({ message: 'Server error' })
 				res.json(results)
@@ -335,6 +360,10 @@ router.get(
 	verifyToken,
 	requireRole('ride_attendant_manager', 'maintenance', 'general_manager'),
 	(req, res) => {
+		const { rideId } = req.query
+		const whereSql = rideId && rideId !== 'all' ? 'WHERE r.ride_id = ?' : ''
+		const queryParams = rideId && rideId !== 'all' ? [rideId] : []
+
 		db.query(
 			`SELECT r.ride_id, r.ride_name, vq.queue_id,
 			        COUNT(qr.reservation_id) AS total_reservations,
@@ -343,8 +372,10 @@ router.get(
 			 FROM Ride r
 			 LEFT JOIN VirtualQueue vq ON vq.ride_id = r.ride_id
 			 LEFT JOIN QueueReservation qr ON qr.queue_id = vq.queue_id
+			 ${whereSql}
 			 GROUP BY r.ride_id, r.ride_name, vq.queue_id
 			 ORDER BY r.ride_name`,
+			queryParams,
 			(err, results) => {
 				if (err) return res.status(500).json({ message: 'Server error' })
 				res.json(results)

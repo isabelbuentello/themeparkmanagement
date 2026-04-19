@@ -78,10 +78,29 @@ router.get(
 	verifyToken,
 	requireRole('maintenance', 'general_manager'),
 	(req, res) => {
+		const { rideType, status, sort } = req.query
+		const whereClauses = []
+		const queryParams = []
+
+		if (rideType && rideType !== 'all') {
+			whereClauses.push('ride_type = ?')
+			queryParams.push(rideType)
+		}
+
+		if (status && status !== 'all') {
+			whereClauses.push('status_ride = ?')
+			queryParams.push(status)
+		}
+
+		const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''
+		const orderSql = sort === 'desc' ? 'ORDER BY ride_name DESC' : 'ORDER BY ride_name ASC'
+
 		db.query(
 			`SELECT ride_id, ride_name, ride_type, status_ride, affected_by_rain
 			 FROM Ride
-			 ORDER BY ride_name`,
+			 ${whereSql}
+			 ${orderSql}`,
+			queryParams,
 			(err, results) => {
 				if (err) return res.status(500).json({ message: 'Server error' })
 				res.json(results)
@@ -95,13 +114,39 @@ router.get(
 	verifyToken,
 	requireRole('maintenance', 'general_manager'),
 	(req, res) => {
+		const { status, priority, assignment } = req.query
+		const whereClauses = []
+		const queryParams = []
+
+		if (status && status !== 'all') {
+			whereClauses.push('mr.status_request = ?')
+			queryParams.push(status)
+		}
+
+		if (priority && priority !== 'all') {
+			whereClauses.push('mr.priority = ?')
+			queryParams.push(priority)
+		}
+
+		if (assignment === 'assigned') {
+			whereClauses.push('mr.assigned_to_employee_id IS NOT NULL')
+		}
+
+		if (assignment === 'unassigned') {
+			whereClauses.push('mr.assigned_to_employee_id IS NULL')
+		}
+
+		const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''
+
 		db.query(
 			`SELECT mr.request_id, mr.ride_id, r.ride_name, mr.submitted_by_employee_id,
 			        mr.issue_description, mr.priority, mr.status_request,
 			        mr.assigned_to_employee_id, mr.created_time, mr.updated_time
 			 FROM MaintenanceRequest mr
 			 JOIN Ride r ON mr.ride_id = r.ride_id
+			 ${whereSql}
 			 ORDER BY mr.created_time DESC`,
+			queryParams,
 			(err, results) => {
 				if (err) return res.status(500).json({ message: 'Server error' })
 				res.json(results)
@@ -203,13 +248,19 @@ router.get(
 	verifyToken,
 	requireRole('maintenance', 'general_manager'),
 	(req, res) => {
+		const { status } = req.query
+		const whereSql = status && status !== 'all' ? 'WHERE ml.status_maintenance = ?' : ''
+		const queryParams = status && status !== 'all' ? [status] : []
+
 		db.query(
 			`SELECT ml.log_id, ml.ride_id, r.ride_name, ml.employee_id,
 			        ml.issue_description, ml.status_maintenance, ml.cost_to_repair,
 			        ml.reported_time, ml.fixed_time
 			 FROM MaintenanceLog ml
 			 JOIN Ride r ON ml.ride_id = r.ride_id
+			 ${whereSql}
 			 ORDER BY ml.reported_time DESC`,
+			queryParams,
 			(err, results) => {
 				if (err) return res.status(500).json({ message: 'Server error' })
 				res.json(results)
