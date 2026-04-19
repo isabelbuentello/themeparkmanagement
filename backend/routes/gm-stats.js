@@ -151,15 +151,12 @@ router.get('/parkday', verifyToken, requireGM, (req, res) => {
 
 // GET /revenue — daily totals
 router.get('/revenue', verifyToken, requireGM, (req, res) => {
-  const { start, end } = req.query
-  let sql = `
-    SELECT 
-      DATE(transaction_time) AS revenue_date,
-      SUM(total_amount)      AS daily_total,
-      COUNT(*)               AS transaction_count
-    FROM \`Transaction\`
-  `
-  const params = []
+	const { start, end } = req.query
+	let sql = `SELECT transaction_time AS revenue_date,
+	                  SUM(total_amount) AS daily_total,
+	                  COUNT(*) AS transaction_count
+	           FROM \`Transaction\``
+	const params = []
 
   if (start && end) {
     sql += ' WHERE transaction_time BETWEEN ? AND ?'

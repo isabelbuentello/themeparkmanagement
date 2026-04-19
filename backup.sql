@@ -927,13 +927,13 @@ LOCK TABLES `TierPerk` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `Transaction`
+-- Table structure for table `Transactions`
 --
 
-DROP TABLE IF EXISTS `Transaction`;
+DROP TABLE IF EXISTS `Transactions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `Transaction` (
+CREATE TABLE `Transactions` (
   `transaction_id` int NOT NULL AUTO_INCREMENT,
   `account_id` int DEFAULT NULL,
   `transaction_time` date NOT NULL,
@@ -950,12 +950,12 @@ CREATE TABLE `Transaction` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `Transaction`
+-- Dumping data for table `Transactions`
 --
 
-LOCK TABLES `Transaction` WRITE;
-/*!40000 ALTER TABLE `Transaction` DISABLE KEYS */;
-/*!40000 ALTER TABLE `Transaction` ENABLE KEYS */;
+LOCK TABLES `Transactions` WRITE;
+/*!40000 ALTER TABLE `Transactions` DISABLE KEYS */;
+/*!40000 ALTER TABLE `Transactions` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -973,7 +973,7 @@ CREATE TABLE `TransactionItem` (
   `unit_price` decimal(10,2) NOT NULL,
   PRIMARY KEY (`transaction_item_id`),
   KEY `transaction_id` (`transaction_id`),
-  CONSTRAINT `transactionitem_ibfk_1` FOREIGN KEY (`transaction_id`) REFERENCES `Transaction` (`transaction_id`),
+  CONSTRAINT `transactionitem_ibfk_1` FOREIGN KEY (`transaction_id`) REFERENCES `Transactions` (`transaction_id`),
   CONSTRAINT `transactionitem_chk_1` CHECK ((`quantity` >= 1)),
   CONSTRAINT `transactionitem_chk_2` CHECK ((`unit_price` > 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

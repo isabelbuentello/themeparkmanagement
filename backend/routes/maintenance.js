@@ -329,42 +329,63 @@ router.patch(
 			return res.status(400).json({ message: 'Invalid status_training_request' })
 		}
 
-		db.beginTransaction((txErr) => {
-			if (txErr) return res.status(500).json({ message: 'Server error' })
+		db.getConnection((connErr, connection) => {
+			if (connErr) return res.status(500).json({ message: 'Server error' })
 
-			db.query(
+			connection.beginTransaction((txErr) => {
+				if (txErr) {
+					connection.release()
+					return res.status(500).json({ message: 'Server error' })
+				}
+
+				connection.query(
 				`UPDATE TrainingApprovalRequest
 				 SET status_training_request = ?, reviewed_by_employee_id = ?, reviewed_time = NOW()
 				 WHERE training_request_id = ?`,
 				[status_training_request, reviewer_id, id],
 				(err, result) => {
 					if (err) {
-						return db.rollback(() => res.status(500).json({ message: 'Server error' }))
+						return connection.rollback(() => {
+							connection.release()
+							res.status(500).json({ message: 'Server error' })
+						})
 					}
 
 					if (result.affectedRows === 0) {
-						return db.rollback(() => res.status(404).json({ message: 'Training request not found' }))
+						return connection.rollback(() => {
+							connection.release()
+							res.status(404).json({ message: 'Training request not found' })
+						})
 					}
 
 					if (status_training_request !== 'approved') {
-						return db.commit((commitErr) => {
-							if (commitErr) return db.rollback(() => res.status(500).json({ message: 'Server error' }))
+						return connection.commit((commitErr) => {
+							if (commitErr) {
+								return connection.rollback(() => {
+									connection.release()
+									res.status(500).json({ message: 'Server error' })
+								})
+							}
+							connection.release()
 							res.json({ message: 'Training request reviewed' })
 						})
 					}
 
-					db.query(
+					connection.query(
 						`SELECT employee_id, ride_id, requested_level
 						 FROM TrainingApprovalRequest
 						 WHERE training_request_id = ?`,
 						[id],
 						(selErr, rows) => {
 							if (selErr || rows.length === 0) {
-								return db.rollback(() => res.status(500).json({ message: 'Server error' }))
+								return connection.rollback(() => {
+									connection.release()
+									res.status(500).json({ message: 'Server error' })
+								})
 							}
 
 							const row = rows[0]
-							db.query(
+							connection.query(
 								`INSERT INTO EmployeeRideTraining (employee_id, ride_id, trained_level, trained_date)
 								 VALUES (?, ?, ?, CURDATE())
 								 ON DUPLICATE KEY UPDATE
@@ -373,11 +394,20 @@ router.patch(
 								[row.employee_id, row.ride_id, row.requested_level],
 								(upErr) => {
 									if (upErr) {
-										return db.rollback(() => res.status(500).json({ message: 'Server error' }))
+										return connection.rollback(() => {
+											connection.release()
+											res.status(500).json({ message: 'Server error' })
+										})
 									}
 
-									db.commit((commitErr) => {
-										if (commitErr) return db.rollback(() => res.status(500).json({ message: 'Server error' }))
+									connection.commit((commitErr) => {
+										if (commitErr) {
+											return connection.rollback(() => {
+												connection.release()
+												res.status(500).json({ message: 'Server error' })
+											})
+										}
+										connection.release()
 										res.json({ message: 'Training request approved and training record updated' })
 									})
 								}
@@ -385,7 +415,8 @@ router.patch(
 						}
 					)
 				}
-			)
+				)
+			})
 		})
 	}
 )

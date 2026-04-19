@@ -549,7 +549,6 @@
 
 .purchase-card {
   display: grid;
-  align-content: start;
   grid-template-rows: auto auto auto auto 1fr auto;
   row-gap: 1rem;
   min-height: 100%;
@@ -572,6 +571,7 @@
 .purchase-card-featured .purchase-type,
 .purchase-card-featured .purchase-description,
 .purchase-card-featured .purchase-unit,
+.purchase-card-featured .purchase-feature-heading,
 .purchase-card-featured .purchase-feature-item span:last-child {
   color: rgba(255, 248, 240, 0.9);
 }
@@ -618,6 +618,23 @@
   background: rgba(255, 255, 255, 0.18);
 }
 
+.purchase-feature-panel {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-top: 0.15rem;
+}
+
+.purchase-feature-heading {
+  margin: 0;
+  color: #30364a;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .purchase-feature-list {
   display: grid;
   gap: 0.75rem;
@@ -632,21 +649,6 @@
   gap: 0.9rem;
   color: #697286;
   font-size: 1rem;
-}
-
-.purchase-feature-item-placeholder {
-  min-height: 1.5rem;
-}
-
-.purchase-feature-placeholder-line {
-  width: 58%;
-  height: 1px;
-  background: rgba(15, 28, 46, 0.12);
-  margin-left: 1.85rem;
-}
-
-.purchase-card-featured .purchase-feature-placeholder-line {
-  background: rgba(255, 255, 255, 0.28);
 }
 
 .purchase-check {
