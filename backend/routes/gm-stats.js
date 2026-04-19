@@ -72,48 +72,54 @@ router.patch('/parkday/:id', verifyToken, requireGM, (req, res) => {
 	const { id } = req.params
 	const { rain, park_closed, weather_notes } = req.body
 
-	// first get the park_date so we can recount attendance
-	db.query(
-		'SELECT park_date FROM ParkDay WHERE day_id = ?',
-		[id],
-		(err, rows) => {
-			if (err) return res.status(500).json({ message: 'Server error' })
-			if (rows.length === 0) return res.status(404).json({ message: 'Park day not found' })
+	db.query('SELECT park_date FROM ParkDay WHERE day_id = ?', [id], (err, rows) => {
+		if (err) return res.status(500).json({ message: 'Server error' })
+		if (rows.length === 0) return res.status(404).json({ message: 'Park day not found' })
 
-			const park_date = rows[0].park_date
+		const park_date = rows[0].park_date
+
+		db.query('SELECT COUNT(*) AS attendance FROM Visit WHERE visit_date = ?', [park_date], (err, countRows) => {
+			if (err) return res.status(500).json({ message: 'Server error' })
+
+			const total_attendance = countRows[0].attendance
 
 			db.query(
-				'SELECT COUNT(*) AS attendance FROM Visit WHERE visit_date = ?',
-				[park_date],
-				(err, countRows) => {
+				`UPDATE ParkDay
+				 SET rain = COALESCE(?, rain),
+				     park_closed = COALESCE(?, park_closed),
+				     weather_notes = COALESCE(?, weather_notes),
+				     total_attendance = ?
+				 WHERE day_id = ?`,
+				[
+					rain !== undefined ? rain : null,
+					park_closed !== undefined ? park_closed : null,
+					weather_notes !== undefined ? weather_notes : null,
+					total_attendance,
+					id
+				],
+				(err, result) => {
 					if (err) return res.status(500).json({ message: 'Server error' })
+					if (result.affectedRows === 0) return res.status(404).json({ message: 'Park day not found' })
 
-					const total_attendance = countRows[0].attendance
-
+					// query what the rain triggers just changed
 					db.query(
-						`UPDATE ParkDay
-						 SET rain = COALESCE(?, rain),
-						     park_closed = COALESCE(?, park_closed),
-						     weather_notes = COALESCE(?, weather_notes),
-						     total_attendance = ?
-						 WHERE day_id = ?`,
-						[
-							rain !== undefined ? rain : null,
-							park_closed !== undefined ? park_closed : null,
-							weather_notes !== undefined ? weather_notes : null,
-							total_attendance,
-							id
-						],
-						(err, result) => {
-							if (err) return res.status(500).json({ message: 'Server error' })
-							if (result.affectedRows === 0) return res.status(404).json({ message: 'Park day not found' })
-							res.json({ message: 'Park day updated', total_attendance })
+						`SELECT ride_name, status_ride FROM Ride WHERE affected_by_rain = TRUE`,
+						(err, rides) => {
+							if (err) return res.json({ message: 'Park day updated', total_attendance })
+							res.json({
+								message: 'Park day updated',
+								total_attendance,
+								trigger_update: rain !== undefined ? {
+									rain_status: rain,
+									affected_rides: rides.map(r => ({ ride_name: r.ride_name, status_ride: r.status_ride }))
+								} : null
+							})
 						}
 					)
 				}
 			)
-		}
-	)
+		})
+	})
 })
 
 // GET /parkday — list park days with optional date range
