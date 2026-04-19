@@ -209,4 +209,37 @@ router.get('/revenue/breakdown', verifyToken, requireGM, (req, res) => {
   })
 })
 
+router.get('/revenue/tickets', verifyToken, requireGM, (req, res) => {
+  const { start, end } = req.query
+  let sql = `
+    SELECT 
+      DATE(t.transaction_time) AS revenue_date,
+      ti.item_type,
+      SUM(t.total_amount) AS revenue,
+      COUNT(*) AS transaction_count
+    FROM Transactions t
+    JOIN TransactionItem ti ON t.transaction_id = ti.transaction_id
+    WHERE t.venue_id IS NULL
+  `
+  const params = []
+
+  if (start && end) {
+    sql += ' AND DATE(t.transaction_time) BETWEEN ? AND ?'
+    params.push(start, end)
+  } else if (start) {
+    sql += ' AND DATE(t.transaction_time) >= ?'
+    params.push(start)
+  } else if (end) {
+    sql += ' AND DATE(t.transaction_time) <= ?'
+    params.push(end)
+  }
+
+  sql += ' GROUP BY DATE(t.transaction_time), ti.item_type ORDER BY revenue_date DESC, ti.item_type'
+
+  db.query(sql, params, (err, results) => {
+    if (err) return res.status(500).json({ message: 'Server error' })
+    res.json(results)
+  })
+})
+
 export default router
