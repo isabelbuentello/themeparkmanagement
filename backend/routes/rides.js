@@ -251,41 +251,53 @@ router.post(
 	(req, res) => {
 		const { id } = req.params
 
-		db.beginTransaction((txErr) => {
-			if (txErr) return res.status(500).json({ message: 'Server error' })
+		db.getConnection((connErr, connection) => {
+			if (connErr) return res.status(500).json({ message: 'Server error' })
 
-			db.query(
+			connection.beginTransaction((txErr) => {
+				if (txErr) {
+					connection.release()
+					return res.status(500).json({ message: 'Server error' })
+				}
+
+				connection.query(
 				'INSERT INTO RideRainout (ride_id, rainout_time) VALUES (?, NOW())',
 				[id],
 				(insertErr) => {
 					if (insertErr) {
-						return db.rollback(() => {
+						return connection.rollback(() => {
+							connection.release()
 							res.status(500).json({ message: 'Error logging rainout' })
 						})
 					}
 
-					db.query(
+					connection.query(
 						"UPDATE Ride SET status_ride = 'closed_weather' WHERE ride_id = ?",
 						[id],
 						(updateErr, result) => {
 							if (updateErr) {
-								return db.rollback(() => {
+								return connection.rollback(() => {
+									connection.release()
 									res.status(500).json({ message: 'Error updating ride status' })
 								})
 							}
 
 							if (result.affectedRows === 0) {
-								return db.rollback(() => {
+								return connection.rollback(() => {
+									connection.release()
 									res.status(404).json({ message: 'Ride not found' })
 								})
 							}
 
-							db.commit((commitErr) => {
+							connection.commit((commitErr) => {
 								if (commitErr) {
-									return db.rollback(() => {
+									return connection.rollback(() => {
+										connection.release()
 										res.status(500).json({ message: 'Server error' })
 									})
 								}
+
+								connection.release()
 
 								res.json({
 									message: 'Rainout logged and ride closed for weather',
@@ -295,7 +307,8 @@ router.post(
 						}
 					)
 				}
-			)
+				)
+			})
 		})
 	}
 )

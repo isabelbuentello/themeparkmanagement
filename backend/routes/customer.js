@@ -52,9 +52,9 @@ const CUSTOMER_TICKET_PRODUCTS = [
   }
 ]
 
-function query(sql, params = []) {
+function query(sql, params = [], executor = db) {
   return new Promise((resolve, reject) => {
-    db.query(sql, params, (err, results) => {
+    executor.query(sql, params, (err, results) => {
       if (err) {
         reject(err)
         return
@@ -65,9 +65,36 @@ function query(sql, params = []) {
   })
 }
 
-function beginTransaction() {
+function getConnection() {
   return new Promise((resolve, reject) => {
-    db.beginTransaction((err) => {
+    db.getConnection((err, connection) => {
+      if (err) {
+        reject(err)
+        return
+      }
+
+      resolve(connection)
+    })
+  })
+}
+
+function beginTransaction(connection) {
+  return new Promise((resolve, reject) => {
+    connection.beginTransaction((err) => {
+      if (err) {
+        connection.release()
+        reject(err)
+        return
+      }
+
+      resolve()
+    })
+  })
+}
+
+function commit(connection) {
+  return new Promise((resolve, reject) => {
+    connection.commit((err) => {
       if (err) {
         reject(err)
         return
@@ -78,22 +105,9 @@ function beginTransaction() {
   })
 }
 
-function commit() {
-  return new Promise((resolve, reject) => {
-    db.commit((err) => {
-      if (err) {
-        reject(err)
-        return
-      }
-
-      resolve()
-    })
-  })
-}
-
-function rollback() {
+function rollback(connection) {
   return new Promise((resolve) => {
-    db.rollback(() => resolve())
+    connection.rollback(() => resolve())
   })
 }
 
@@ -169,6 +183,15 @@ function formatQueueEntry(row) {
     returnWindow: formatReturnWindow(row.reservation_time),
     joinedAt: new Date(row.reservation_time).toISOString()
   }
+}
+
+function toPriceKey(value) {
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) {
+    return null
+  }
+
+  return numericValue.toFixed(2)
 }
 
 async function getTicketTypePrices() {
@@ -398,7 +421,18 @@ router.get('/history', requireCustomer, async (req, res) => {
       return res.status(404).json({ message: 'Customer account not found' })
     }
 
-    const [transactionsResult, membershipsResult, reviewsResult, complaintsResult] = await Promise.allSettled([
+    const [
+      transactionsResult,
+      membershipsResult,
+      reviewsResult,
+      complaintsResult,
+      ticketHistoryResult,
+      passHistoryResult,
+      membershipHistoryResult,
+      ticketProductsResult,
+      passTypesResult,
+      membershipPriceResult
+    ] = await Promise.allSettled([
       query(
         `
           SELECT
@@ -448,6 +482,58 @@ router.get('/history', requireCustomer, async (req, res) => {
           ORDER BY created_date DESC, complaint_id DESC
         `,
         [customer.customer_id]
+      ),
+      query(
+        `
+          SELECT
+            tk.valid_date AS activity_date,
+            tt.ticket_name,
+            COUNT(*) AS quantity
+          FROM Ticket tk
+          JOIN TicketType tt ON tt.ticket_type_id = tk.ticket_type_id
+          WHERE tk.customer_id = ?
+          GROUP BY tk.valid_date, tt.ticket_name
+        `,
+        [customer.customer_id]
+      ),
+      query(
+        `
+          SELECT
+            p.purchase_date AS activity_date,
+            pt.pass_name,
+            SUM(p.quantity_purchased) AS quantity
+          FROM Pass p
+          JOIN PassType pt ON pt.pass_type_id = p.pass_type_id
+          WHERE p.customer_id = ?
+          GROUP BY p.purchase_date, pt.pass_name
+        `,
+        [customer.customer_id]
+      ),
+      query(
+        `
+          SELECT
+            m.start_date AS activity_date,
+            mt.tier_name,
+            COUNT(*) AS quantity
+          FROM Membership m
+          JOIN MembershipTier mt ON mt.tier_id = m.tier_id
+          WHERE m.account_id = ?
+          GROUP BY m.start_date, mt.tier_name
+        `,
+        [customer.account_id]
+      ),
+      getCustomerTicketProducts(),
+      query(
+        `
+          SELECT pass_type_id, pass_name
+          FROM PassType
+        `
+      ),
+      query(
+        `
+          SELECT tier_name, price
+          FROM MembershipTier
+        `
       )
     ])
 
@@ -455,6 +541,82 @@ router.get('/history', requireCustomer, async (req, res) => {
     const memberships = membershipsResult.status === 'fulfilled' ? membershipsResult.value : []
     const reviews = reviewsResult.status === 'fulfilled' ? reviewsResult.value : []
     const complaints = complaintsResult.status === 'fulfilled' ? complaintsResult.value : []
+    const ticketHistory = ticketHistoryResult.status === 'fulfilled' ? ticketHistoryResult.value : []
+    const passHistory = passHistoryResult.status === 'fulfilled' ? passHistoryResult.value : []
+    const membershipHistory = membershipHistoryResult.status === 'fulfilled' ? membershipHistoryResult.value : []
+    const ticketProducts = ticketProductsResult.status === 'fulfilled' ? ticketProductsResult.value : []
+    const passTypes = passTypesResult.status === 'fulfilled' ? passTypesResult.value : []
+    const membershipPrices = membershipPriceResult.status === 'fulfilled' ? membershipPriceResult.value : []
+
+    const passTypeNameById = new Map(
+      passTypes.map((row) => [Number(row.pass_type_id), row.pass_name])
+    )
+
+    const productNameByPrice = new Map()
+    ticketProducts.forEach((product) => {
+      const priceKey = toPriceKey(product.price)
+      if (!priceKey || productNameByPrice.has(priceKey)) {
+        return
+      }
+
+      const includedPasses = (product.passes || [])
+        .map((passConfig) => {
+          const passTypeName = passTypeNameById.get(Number(passConfig.pass_type_id)) || `pass type ${passConfig.pass_type_id}`
+          const quantity = Number(passConfig.quantity || 0)
+          return quantity > 1 ? `${quantity} ${passTypeName}` : passTypeName
+        })
+        .join(', ')
+
+      productNameByPrice.set(
+        priceKey,
+        includedPasses ? `${product.name} (includes ${includedPasses})` : product.name
+      )
+    })
+
+    const membershipNameByPrice = new Map()
+    membershipPrices.forEach((row) => {
+      const priceKey = toPriceKey(row.price)
+      if (!priceKey || membershipNameByPrice.has(priceKey)) {
+        return
+      }
+      membershipNameByPrice.set(priceKey, `${row.tier_name} membership`)
+    })
+
+    const fallbackItemsByDate = new Map()
+    const upsertFallbackItem = (dateText, item) => {
+      if (!dateText) return
+      if (!fallbackItemsByDate.has(dateText)) {
+        fallbackItemsByDate.set(dateText, [])
+      }
+      fallbackItemsByDate.get(dateText).push(item)
+    }
+
+    ticketHistory.forEach((row) => {
+      upsertFallbackItem(String(row.activity_date), {
+        type: 'ticket',
+        name: row.ticket_name,
+        quantity: Number(row.quantity || 0),
+        unitPrice: null
+      })
+    })
+
+    passHistory.forEach((row) => {
+      upsertFallbackItem(String(row.activity_date), {
+        type: 'pass',
+        name: row.pass_name,
+        quantity: Number(row.quantity || 0),
+        unitPrice: null
+      })
+    })
+
+    membershipHistory.forEach((row) => {
+      upsertFallbackItem(String(row.activity_date), {
+        type: 'membership',
+        name: row.tier_name,
+        quantity: Number(row.quantity || 0),
+        unitPrice: null
+      })
+    })
 
     const groupedTransactions = []
     const transactionsById = new Map()
@@ -473,16 +635,45 @@ router.get('/history', requireCustomer, async (req, res) => {
       }
 
       if (row.item_type) {
+        let itemName = null
+        const unitPriceKey = toPriceKey(row.unit_price)
+
+        if (row.item_type === 'ticket' && unitPriceKey) {
+          itemName = productNameByPrice.get(unitPriceKey) || null
+        }
+
+        if (row.item_type === 'other' && unitPriceKey) {
+          itemName = membershipNameByPrice.get(unitPriceKey) || null
+        }
+
         transactionsById.get(row.transaction_id).items.push({
           type: row.item_type,
+          name: itemName,
           quantity: row.quantity,
           unitPrice: Number(row.unit_price)
         })
       }
     })
 
+    groupedTransactions.forEach((transaction) => {
+      if (transaction.items.length && transaction.items.some((item) => item.name)) {
+        return
+      }
+
+      const dateKey = String(transaction.date).slice(0, 10)
+      const fallbackItems = fallbackItemsByDate.get(dateKey)
+      if (fallbackItems?.length) {
+        transaction.items = fallbackItems
+      }
+    })
+
+    const transactionsWithUserNumber = groupedTransactions.map((transaction, index) => ({
+      ...transaction,
+      userTransactionNumber: groupedTransactions.length - index
+    }))
+
     return res.json({
-      transactions: groupedTransactions,
+      transactions: transactionsWithUserNumber,
       memberships: memberships.map((row) => ({
         membershipId: row.membership_id,
         tierName: row.tier_name,
@@ -506,7 +697,13 @@ router.get('/history', requireCustomer, async (req, res) => {
         transactionsResult.status !== 'fulfilled' ? 'transactions' : null,
         membershipsResult.status !== 'fulfilled' ? 'memberships' : null,
         reviewsResult.status !== 'fulfilled' ? 'reviews' : null,
-        complaintsResult.status !== 'fulfilled' ? 'complaints' : null
+        complaintsResult.status !== 'fulfilled' ? 'complaints' : null,
+        ticketHistoryResult.status !== 'fulfilled' ? 'ticketHistory' : null,
+        passHistoryResult.status !== 'fulfilled' ? 'passHistory' : null,
+        membershipHistoryResult.status !== 'fulfilled' ? 'membershipHistory' : null,
+        ticketProductsResult.status !== 'fulfilled' ? 'ticketProducts' : null,
+        passTypesResult.status !== 'fulfilled' ? 'passTypes' : null,
+        membershipPriceResult.status !== 'fulfilled' ? 'membershipPrices' : null
       ].filter(Boolean)
     })
   } catch {
@@ -880,7 +1077,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
       0
     )
 
-    await beginTransaction()
+    const connection = await getConnection()
+    await beginTransaction(connection)
 
     try {
       const transactionResult = await query(
@@ -893,7 +1091,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
           )
           VALUES (?, CURDATE(), ?, ?)
         `,
-        [account_id, totalAmount, paymentMethod]
+        [account_id, totalAmount, paymentMethod],
+        connection
       )
 
       const ticketIds = []
@@ -915,7 +1114,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
               )
               VALUES (?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR), 'active', false, ?)
             `,
-            [account_id, item.product.tier_id, paymentMethod]
+            [account_id, item.product.tier_id, paymentMethod],
+            connection
           )
 
           membershipIds.push(membershipResult.insertId)
@@ -930,7 +1130,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
               )
               VALUES (?, 'other', ?, ?)
             `,
-            [transactionResult.insertId, 1, item.product.price]
+            [transactionResult.insertId, 1, item.product.price],
+            connection
           )
 
           continue
@@ -949,7 +1150,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
                   )
                   VALUES (?, ?, ?, 'valid')
                 `,
-                [ticketConfig.ticket_type_id, customer_id, visitDate]
+                [ticketConfig.ticket_type_id, customer_id, visitDate],
+                connection
               )
 
               ticketIds.push(ticketResult.insertId)
@@ -974,7 +1176,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
                 customer_id,
                 passConfig.quantity,
                 passConfig.quantity
-              ]
+              ],
+              connection
             )
 
             passIds.push(passResult.insertId)
@@ -991,11 +1194,13 @@ router.post('/checkout', requireCustomer, async (req, res) => {
             )
             VALUES (?, 'ticket', ?, ?)
           `,
-          [transactionResult.insertId, item.quantity, item.product.price]
+          [transactionResult.insertId, item.quantity, item.product.price],
+          connection
         )
       }
 
-      await commit()
+      await commit(connection)
+      connection.release()
 
       return res.status(201).json({
         ok: true,
@@ -1007,13 +1212,16 @@ router.post('/checkout', requireCustomer, async (req, res) => {
         total: totalAmount
       })
     } catch (txError) {
-      await rollback()
+      await rollback(connection)
+      connection.release()
+      console.error('Checkout transaction failed:', txError)
       if (txError?.code === 'ER_NO_REFERENCED_ROW_2') {
         return res.status(400).json({ message: 'Checkout references missing related data. Please contact support.' })
       }
       return res.status(500).json({ message: 'Unable to complete checkout' })
     }
-  } catch {
+  } catch (error) {
+    console.error('Checkout failed:', error)
     return res.status(500).json({ message: 'Server error' })
   }
 })

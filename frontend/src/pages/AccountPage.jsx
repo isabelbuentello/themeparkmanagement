@@ -21,6 +21,18 @@ const sections = [
   { id: 'complaints', label: 'Complaints' }
 ]
 
+const formatTransactionItemLabel = (item) => {
+  if (item.name) {
+    return item.name
+  }
+
+  if (item.type === 'ticket') return 'Ticket purchase'
+  if (item.type === 'pass') return 'Pass purchase'
+  if (item.type === 'other') return 'Membership purchase'
+  if (item.type === 'membership') return 'Membership purchase'
+  return 'Purchase item'
+}
+
 function AccountPage() {
   const navigate = useNavigate()
   const token = localStorage.getItem('token')
@@ -524,15 +536,28 @@ function AccountPage() {
             {history.transactions.map((transaction) => (
               <article key={transaction.transactionId} className="account-history-card">
                 <div>
-                  <strong className="account-history-title">Transaction #{transaction.transactionId}</strong>
+                  <strong className="account-history-title">Transaction #{transaction.userTransactionNumber || transaction.transactionId}</strong>
                   <p className="account-history-meta">{formatDate(transaction.date)} · {transaction.paymentMethod}</p>
-                  <p className="account-history-copy">
-                    {transaction.items.length
-                      ? transaction.items
-                          .map((item) => `${item.quantity} ${item.type} @ ${formatCurrency(item.unitPrice)}`)
-                          .join(', ')
-                      : 'No item details available'}
-                  </p>
+                  {transaction.items.length ? (
+                    <div className="account-history-copy">
+                      {transaction.items.map((item, index) => {
+                        const itemLabel = formatTransactionItemLabel(item)
+                        const quantity = Number(item.quantity || 0)
+                        const hasUnitPrice = Number.isFinite(item.unitPrice)
+                        const lineTotal = hasUnitPrice ? quantity * Number(item.unitPrice) : null
+
+                        return (
+                          <p key={`${transaction.transactionId}-${itemLabel}-${index}`} style={{ margin: '4px 0' }}>
+                            {quantity} x {itemLabel}
+                            {hasUnitPrice ? ` @ ${formatCurrency(item.unitPrice)} each` : ''}
+                            {lineTotal !== null ? ` (${formatCurrency(lineTotal)})` : ''}
+                          </p>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="account-history-copy">No item details available</p>
+                  )}
                 </div>
                 <span className="account-history-amount">{formatCurrency(transaction.total)}</span>
               </article>
