@@ -145,14 +145,14 @@ router.get('/parkday', verifyToken, requireGM, (req, res) => {
 
 // REVENUE 
 
-// GET /revenue — daily totals from Transaction table
+// GET /revenue - daily totals from Transactions table
 // query params: ?start=YYYY-MM-DD&end=YYYY-MM-DD
 router.get('/revenue', verifyToken, requireGM, (req, res) => {
 	const { start, end } = req.query
 	let sql = `SELECT transaction_time AS revenue_date,
 	                  SUM(total_amount) AS daily_total,
 	                  COUNT(*) AS transaction_count
-	           FROM \`Transaction\``
+		           FROM Transactions`
 	const params = []
 
 	if (start && end) {

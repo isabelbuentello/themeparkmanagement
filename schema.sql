@@ -398,7 +398,7 @@ CREATE TABLE Review (
   FOREIGN KEY (venue_id) REFERENCES Venue(venue_id)
 );
 
-CREATE TABLE `Transaction` (
+CREATE TABLE Transactions (
   transaction_id   INT                      AUTO_INCREMENT                   NOT NULL,
   account_id       INT                                                       NULL,
   transaction_time DATE                                                      NOT NULL,
@@ -419,7 +419,7 @@ CREATE TABLE TransactionItem (
   unit_price           DECIMAL(10,2)                                         NOT NULL CHECK (unit_price > 0),
 
   PRIMARY KEY (transaction_item_id),
-  FOREIGN KEY (transaction_id) REFERENCES `Transaction`(transaction_id)
+  FOREIGN KEY (transaction_id) REFERENCES Transactions(transaction_id)
 );
 
 CREATE TABLE QueueReservation (
@@ -468,7 +468,7 @@ CREATE TABLE RestaurantReservation (
 DELIMITER //
 
 CREATE TRIGGER trg_transaction_update_daily_revenue
-AFTER INSERT ON `Transaction`
+AFTER INSERT ON Transactions
 FOR EACH ROW
 BEGIN
     IF NEW.venue_id IS NOT NULL THEN
