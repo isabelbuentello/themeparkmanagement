@@ -106,3 +106,24 @@
 .gm-table tr:hover {
   background-color: #e9ecef;
 }
+
+.gm-toggle-btn {
+  padding: 8px 18px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.gm-toggle-btn.active {
+  background: #7c3aed;
+  color: white;
+  border-color: #7c3aed;
+}
+
+.gm-toggle-btn:hover:not(.active) {
+  background: #e8e8e8;
+}
