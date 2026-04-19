@@ -24,6 +24,18 @@ function requireGM(req, res, next) {
 	next()
 }
 
+function isPastDate(dateText) {
+	if (!dateText) return false
+
+	const selectedDate = new Date(`${dateText}T00:00:00`)
+	if (Number.isNaN(selectedDate.getTime())) return false
+
+	const today = new Date()
+	today.setHours(0, 0, 0, 0)
+
+	return selectedDate < today
+}
+
 // PARK DAY
 
 // POST /parkday — log a new park day
@@ -33,6 +45,10 @@ router.post('/parkday', verifyToken, requireGM, (req, res) => {
 
 	if (!park_date || rain === undefined || park_closed === undefined) {
 		return res.status(400).json({ message: 'park_date, rain, and park_closed are required' })
+	}
+
+	if (isPastDate(park_date)) {
+		return res.status(400).json({ message: 'park_date cannot be in the past' })
 	}
 
 	// count attendance from Visit entries for that date

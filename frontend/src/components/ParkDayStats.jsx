@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import '../styles/parkdaystats.css'
 
 function ParkDayStats({ token }) {
+  const todayDate = new Date().toISOString().split('T')[0]
   const [parkDays, setParkDays] = useState([])
   const [form, setForm] = useState({
-    park_date: new Date().toISOString().split('T')[0],
+    park_date: todayDate,
     rain: false,
     park_closed: false,
     weather_notes: ''
@@ -59,6 +60,7 @@ function ParkDayStats({ token }) {
           <input
             type="date"
             value={form.park_date}
+            min={todayDate}
             onChange={e => setForm({ ...form, park_date: e.target.value })}
           />
         </div>

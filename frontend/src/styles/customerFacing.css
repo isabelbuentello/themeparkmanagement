@@ -827,6 +827,13 @@
   font: inherit;
 }
 
+.form-field .card-number-input {
+  min-height: 4rem;
+  padding-inline: 1.25rem;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .quantity-control {
   width: 5rem;
 }

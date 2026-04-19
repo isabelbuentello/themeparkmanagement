@@ -53,6 +53,11 @@ function ManageEmployees({ token }) {
       return
     }
 
+    if (newEmployee.start_date && newEmployee.start_date < todayDate) {
+      alert('Start date cannot be in the past')
+      return
+    }
+
     try {
       const res = await fetch('/api/employees', {
         method: 'POST',
@@ -148,6 +153,7 @@ function ManageEmployees({ token }) {
                 <input
                   className="emp-input"
                   type="date"
+                  min={todayDate}
                   value={newEmployee.start_date}
                   onChange={e => setNewEmployee({ ...newEmployee, start_date: e.target.value })}
                   required

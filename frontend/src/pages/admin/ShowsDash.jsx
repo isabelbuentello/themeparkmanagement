@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react'
 
+const getLocalDateTimeInputValue = (date = new Date()) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
 function ShowsDash() {
   const [shows, setShows] = useState([])
   const [activeTab, setActiveTab] = useState('shows')
@@ -20,6 +30,7 @@ function ShowsDash() {
   })
 
   const token = localStorage.getItem('token')
+  const minShowStartTime = getLocalDateTimeInputValue()
 
   const fetchShows = async () => {
     try {
@@ -339,6 +350,7 @@ function ShowsDash() {
             <input
               type="datetime-local"
               value={timeForm.show_start_time}
+              min={minShowStartTime}
               onChange={(e) =>
                 setTimeForm((current) => ({
                   ...current,

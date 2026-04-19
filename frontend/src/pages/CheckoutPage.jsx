@@ -26,6 +26,13 @@ const formatCardExpiry = (value) => {
   return `${digits.slice(0, 2)}/${digits.slice(2)}`
 }
 
+const formatCardNumber = (value) => {
+  const digits = value.replace(/\D/g, '').slice(0, 16)
+  const groups = digits.match(/.{1,4}/g)
+
+  return groups ? groups.join(' ') : ''
+}
+
 const isCardExpiryValid = (value) => {
   const trimmedValue = value.trim()
 
@@ -119,7 +126,12 @@ function CheckoutPage() {
 
   const handleInputChange = (event) => {
     const { name, value } = event.target
-    const nextValue = name === 'cardExpiry' ? formatCardExpiry(value) : value
+    const nextValue =
+      name === 'cardExpiry'
+        ? formatCardExpiry(value)
+        : name === 'cardNumber'
+          ? formatCardNumber(value)
+          : value
 
     setFormState((currentState) => ({
       ...currentState,
@@ -161,8 +173,8 @@ function CheckoutPage() {
       const normalizedCardNumber = formState.cardNumber.replace(/\s+/g, '')
       if (!normalizedCardNumber) {
         nextErrors.cardNumber = 'Enter the card number.'
-      } else if (!/^\d{13,19}$/.test(normalizedCardNumber)) {
-        nextErrors.cardNumber = 'Enter a valid card number.'
+      } else if (!/^\d{16}$/.test(normalizedCardNumber)) {
+        nextErrors.cardNumber = 'Enter a 16-digit card number.'
       }
 
       if (!formState.cardExpiry.trim()) {
@@ -290,7 +302,6 @@ function CheckoutPage() {
               onChange={handleInputChange}
             >
               <option value="card">Card</option>
-              <option value="cash">Cash</option>
             </select>
           </label>
 
@@ -316,12 +327,13 @@ function CheckoutPage() {
                 <input
                   type="text"
                   name="cardNumber"
+                  className="card-number-input"
                   value={formState.cardNumber}
                   onChange={handleInputChange}
                   placeholder="4242 4242 4242 4242"
                   inputMode="numeric"
                   autoComplete="cc-number"
-                  maxLength="16"
+                  maxLength="19"
                 />
                 {fieldErrors.cardNumber ? (
                   <span className="field-error">{fieldErrors.cardNumber}</span>

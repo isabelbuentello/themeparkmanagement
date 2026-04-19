@@ -536,7 +536,7 @@ function AccountPage() {
             {history.transactions.map((transaction) => (
               <article key={transaction.transactionId} className="account-history-card">
                 <div>
-                  <strong className="account-history-title">Transaction #{transaction.userTransactionNumber || transaction.transactionId}</strong>
+                  <strong className="account-history-title">Transaction {transaction.userTransactionNumber || transaction.transactionId}</strong>
                   <p className="account-history-meta">{formatDate(transaction.date)} · {transaction.paymentMethod}</p>
                   {transaction.items.length ? (
                     <div className="account-history-copy">

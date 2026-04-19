@@ -31,6 +31,7 @@ function RestaurantDash() {
   const [loading, setLoading] = useState(false)
 
   const token = localStorage.getItem('token')
+  const todayDate = new Date().toISOString().split('T')[0]
 
   const fetchMenuItems = async () => {
     try {
@@ -463,7 +464,7 @@ function RestaurantDash() {
             <label>Customer ID</label>
             <input type="number" placeholder="Enter customer ID" value={resCustomerId} onChange={e => setResCustomerId(e.target.value)} />
             <label>Date</label>
-            <input type="date" value={resDate} onChange={e => setResDate(e.target.value)} />
+            <input type="date" value={resDate} min={todayDate} onChange={e => setResDate(e.target.value)} />
             <label>Time</label>
             <input type="time" value={resTime} onChange={e => setResTime(e.target.value)} />
             <label>Party Size</label>

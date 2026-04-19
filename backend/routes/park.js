@@ -36,12 +36,37 @@ function normalizeDateTimeInput(value) {
   return value
 }
 
+function isPastDate(dateText) {
+  if (!dateText) return false
+
+  const selectedDate = new Date(`${dateText}T00:00:00`)
+  if (Number.isNaN(selectedDate.getTime())) return false
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  return selectedDate < today
+}
+
+function isPastDateTime(dateTimeText) {
+  if (!dateTimeText) return false
+
+  const selectedDate = new Date(dateTimeText.replace(' ', 'T'))
+  if (Number.isNaN(selectedDate.getTime())) return false
+
+  return selectedDate < new Date()
+}
+
 // any employee can report an emergency
 router.post('/emergency', verifyToken, (req, res) => {
   const { date_of_emergency, event_lat, event_long, event_description } = req.body
 
   if (!date_of_emergency || !event_lat || !event_long || !event_description) {
     return res.status(400).json({ message: 'All fields are required' })
+  }
+
+  if (isPastDate(date_of_emergency)) {
+    return res.status(400).json({ message: 'Emergency date cannot be in the past' })
   }
 
   db.query(
@@ -282,6 +307,10 @@ router.post(
 
     if (!normalizedStartTime) {
       return res.status(400).json({ message: 'Show start time is required' })
+    }
+
+    if (isPastDateTime(normalizedStartTime)) {
+      return res.status(400).json({ message: 'Show start time cannot be in the past' })
     }
 
     db.query(
