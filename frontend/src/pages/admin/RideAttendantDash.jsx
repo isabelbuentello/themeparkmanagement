@@ -28,18 +28,37 @@ function RideAttendantDash() {
 
   const token = localStorage.getItem('token')
 
+  const buildUrlWithParams = (basePath, params) => {
+    const searchParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value && value !== 'all') {
+        searchParams.set(key, value)
+      }
+    })
+
+    const queryText = searchParams.toString()
+    return queryText ? `${basePath}?${queryText}` : basePath
+  }
+
   const loadDashboard = async () => {
     setRideError('')
     setQueueError('')
     try {
       const [ridesRes, queueRes, rainoutsRes] = await Promise.all([
-        fetch('/api/rides', {
+        fetch(
+          buildUrlWithParams('/api/rides', {
+            status: statusFilter,
+            rideType: rideTypeFilter,
+            sort: rideSort
+          }),
+          {
+          headers: { Authorization: 'Bearer ' + token }
+          }
+        ),
+        fetch(buildUrlWithParams('/api/rides/queue-overview', { rideId: queueRideFilter }), {
           headers: { Authorization: 'Bearer ' + token }
         }),
-        fetch('/api/rides/queue-overview', {
-          headers: { Authorization: 'Bearer ' + token }
-        }),
-        fetch('/api/rides/rainouts', {
+        fetch(buildUrlWithParams('/api/rides/rainouts', { rideId: rainoutRideFilter }), {
           headers: { Authorization: 'Bearer ' + token }
         })
       ])
@@ -81,10 +100,10 @@ function RideAttendantDash() {
 
   useEffect(() => {
     loadDashboard()
-  }, [])
+  }, [statusFilter, rideTypeFilter, rideSort, queueRideFilter, rainoutRideFilter])
 
   useEffect(() => {
-    if (!focusRideId && rides.length > 0) {
+    if (rides.length > 0 && (!focusRideId || !rides.some((ride) => String(ride.ride_id) === focusRideId))) {
       setFocusRideId(String(rides[0].ride_id))
     }
   }, [focusRideId, rides])
@@ -95,22 +114,6 @@ function RideAttendantDash() {
   }, {})
 
   const rideTypeOptions = [...new Set(rides.map((ride) => ride.ride_type).filter(Boolean))]
-
-  const filteredRides = [...rides]
-    .filter((ride) => statusFilter === 'all' || ride.status_ride === statusFilter)
-    .filter((ride) => rideTypeFilter === 'all' || ride.ride_type === rideTypeFilter)
-    .sort((a, b) => {
-      if (rideSort === 'alpha_asc') return a.ride_name.localeCompare(b.ride_name)
-      if (rideSort === 'alpha_desc') return b.ride_name.localeCompare(a.ride_name)
-      return 0
-    })
-
-  const filteredQueueOverview = queueOverview.filter(
-    (queue) => queueRideFilter === 'all' || String(queue.ride_id) === queueRideFilter
-  )
-  const filteredRainouts = rainouts.filter(
-    (rainout) => rainoutRideFilter === 'all' || String(rainout.ride_id) === rainoutRideFilter
-  )
 
   const queueByRideId = queueOverview.reduce((map, queue) => {
     map[queue.ride_id] = queue
@@ -633,7 +636,7 @@ function RideAttendantDash() {
           </tr>
         </thead>
         <tbody>
-          {filteredRides.map((ride) => (
+          {rides.map((ride) => (
             <tr key={ride.ride_id}>
               <td>{ride.ride_name}</td>
               <td>{ride.status_ride}</td>
@@ -694,7 +697,7 @@ function RideAttendantDash() {
           </tr>
         </thead>
         <tbody>
-          {filteredQueueOverview.map((queue) => (
+          {queueOverview.map((queue) => (
             <tr key={queue.ride_id}>
               <td>{queue.ride_name}</td>
               <td>{queue.total_reservations ?? 0}</td>
@@ -756,7 +759,7 @@ function RideAttendantDash() {
           </tr>
         </thead>
         <tbody>
-          {filteredRainouts.map((rainout) => (
+          {rainouts.map((rainout) => (
             <tr key={rainout.rainout_id}>
               <td>{rainout.ride_name}</td>
               <td>{new Date(rainout.rainout_time).toLocaleString()}</td>

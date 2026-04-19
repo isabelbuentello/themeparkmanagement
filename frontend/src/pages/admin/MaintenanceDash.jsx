@@ -52,6 +52,18 @@ function MaintenanceDash() {
     Authorization: 'Bearer ' + token
   }
 
+  const buildUrlWithParams = (basePath, params) => {
+    const searchParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value && value !== 'all') {
+        searchParams.set(key, value)
+      }
+    })
+
+    const queryText = searchParams.toString()
+    return queryText ? `${basePath}?${queryText}` : basePath
+  }
+
   const handleResponse = async (res) => {
     const data = await res.json()
     if (!res.ok) {
@@ -104,39 +116,6 @@ function MaintenanceDash() {
     }
   })
 
-  const filteredRequests = requests.filter((request) => {
-    const matchesStatus = requestStatusFilter === 'all' || request.status_request === requestStatusFilter
-    const matchesPriority = requestPriorityFilter === 'all' || request.priority === requestPriorityFilter
-    const isAssigned = Boolean(request.assigned_to_employee_id)
-    const matchesAssignment =
-      requestAssignmentFilter === 'all' ||
-      (requestAssignmentFilter === 'assigned' && isAssigned) ||
-      (requestAssignmentFilter === 'unassigned' && !isAssigned)
-
-    return matchesStatus && matchesPriority && matchesAssignment
-  })
-
-  const filteredLogs = logs.filter((log) => logStatusFilter === 'all' || log.status_maintenance === logStatusFilter)
-
-  const filteredRainouts = rainouts.filter(
-    (rainout) => rainoutRideFilter === 'all' || String(rainout.ride_id) === rainoutRideFilter
-  )
-
-  const filteredRideOverview = [...overview]
-    .filter((ride) => rideOverviewTypeFilter === 'all' || ride.ride_type === rideOverviewTypeFilter)
-    .filter((ride) => rideOverviewStatusFilter === 'all' || ride.status_ride === rideOverviewStatusFilter)
-    .sort((leftRide, rightRide) => {
-      if (rideOverviewSort === 'asc') {
-        return leftRide.ride_name.localeCompare(rightRide.ride_name)
-      }
-
-      if (rideOverviewSort === 'desc') {
-        return rightRide.ride_name.localeCompare(leftRide.ride_name)
-      }
-
-      return 0
-    })
-
   const statusBadgeStyle = (status) => {
     if (status === 'broken') {
       return {
@@ -183,22 +162,34 @@ function MaintenanceDash() {
     setPageError('')
     try {
       const [overviewRes, brokenRes, requestsRes, logsRes, trainingRes, rainoutsRes, ridesRes, employeesRes] = await Promise.all([
-        fetch('/api/maintenance/overview', {
+        fetch(buildUrlWithParams('/api/maintenance/overview', {
+          rideType: rideOverviewTypeFilter,
+          status: rideOverviewStatusFilter,
+          sort: rideOverviewSort
+        }), {
           headers: authHeaders
         }),
         fetch('/api/maintenance/broken', {
           headers: authHeaders
         }),
-        fetch('/api/maintenance/requests', {
+        fetch(buildUrlWithParams('/api/maintenance/requests', {
+          status: requestStatusFilter,
+          priority: requestPriorityFilter,
+          assignment: requestAssignmentFilter
+        }), {
           headers: authHeaders
         }),
-        fetch('/api/maintenance/logs', {
+        fetch(buildUrlWithParams('/api/maintenance/logs', {
+          status: logStatusFilter
+        }), {
           headers: authHeaders
         }),
         fetch('/api/maintenance/training-requests', {
           headers: authHeaders
         }),
-        fetch('/api/rides/rainouts', {
+        fetch(buildUrlWithParams('/api/rides/rainouts', {
+          rideId: rainoutRideFilter
+        }), {
           headers: authHeaders
         }),
         fetch('/api/rides/all', {
@@ -242,7 +233,16 @@ function MaintenanceDash() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [
+    requestStatusFilter,
+    requestAssignmentFilter,
+    requestPriorityFilter,
+    logStatusFilter,
+    rainoutRideFilter,
+    rideOverviewTypeFilter,
+    rideOverviewStatusFilter,
+    rideOverviewSort
+  ])
 
   const updateRequest = async (requestId, status_request, assigned_to_employee_id) => {
     setPageError('')
@@ -478,7 +478,7 @@ function MaintenanceDash() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))'
         }}
       >
-        {filteredRideOverview.map((ride) => (
+        {overview.map((ride) => (
           <article
             key={ride.ride_id}
             style={{
@@ -555,7 +555,7 @@ function MaintenanceDash() {
           </tr>
         </thead>
         <tbody>
-          {filteredRainouts.map((rainout) => (
+          {rainouts.map((rainout) => (
             <tr key={rainout.rainout_id}>
               <td>{rainout.ride_name}</td>
               <td>{new Date(rainout.rainout_time).toLocaleString()}</td>
@@ -604,7 +604,7 @@ function MaintenanceDash() {
           </tr>
         </thead>
         <tbody>
-          {filteredRequests.map((request) => (
+          {requests.map((request) => (
             <tr key={request.request_id}>
               <td>{request.request_id}</td>
               <td>{request.ride_name}</td>
@@ -752,7 +752,7 @@ function MaintenanceDash() {
           </tr>
         </thead>
         <tbody>
-          {filteredLogs.map((log) => (
+          {logs.map((log) => (
             <tr key={log.log_id}>
               <td>{log.log_id}</td>
               <td>{log.ride_name}</td>
