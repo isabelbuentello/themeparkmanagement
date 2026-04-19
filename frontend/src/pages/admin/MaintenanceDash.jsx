@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/gm-dash.css'
-import Toast from '../components/Toast'
+import Toast from '../../components/Toast'
 
 function MaintenanceDash() {
   const navigate = useNavigate()
