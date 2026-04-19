@@ -7,9 +7,16 @@ function RevenueStats({ token }) {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('')
-  const [selectedVenue, setSelectedVenue] = useState('')
+  const [selectedVenues, setSelectedVenues] = useState([])
+  const [selectedTypes, setSelectedTypes] = useState([])
   const [venues, setVenues] = useState([])
   const [view, setView] = useState('daily')
+
+  const itemTypes = [
+    { value: 'ticket', label: 'Tickets' },
+    { value: 'pass', label: 'Passes' },
+    { value: 'other', label: 'Memberships' }
+  ]
 
   // generate last 12 months for the dropdown
   const getMonthOptions = () => {
@@ -38,11 +45,28 @@ function RevenueStats({ token }) {
     }
   }
 
+  const toggleVenue = (venueId) => {
+    setSelectedVenues(prev =>
+      prev.includes(venueId)
+        ? prev.filter(id => id !== venueId)
+        : [...prev, venueId]
+    )
+  }
+
+  const toggleType = (type) => {
+    setSelectedTypes(prev =>
+      prev.includes(type)
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    )
+  }
+
   const buildParams = () => {
     const params = []
     if (startDate) params.push(`start=${startDate}`)
     if (endDate) params.push(`end=${endDate}`)
-    if (selectedVenue) params.push(`venue=${selectedVenue}`)
+    if (selectedVenues.length > 0) params.push(`venue=${selectedVenues.join(',')}`)
+    if (selectedTypes.length > 0) params.push(`types=${selectedTypes.join(',')}`)
     return params.length ? '?' + params.join('&') : ''
   }
 
@@ -99,8 +123,8 @@ function RevenueStats({ token }) {
     setStartDate('')
     setEndDate('')
     setSelectedMonth('')
-    setSelectedVenue('')
-    // fetch with no filters after state clears
+    setSelectedVenues([])
+    setSelectedTypes([])
     setTimeout(() => {
       fetchRevenue()
       fetchBreakdown()
@@ -114,6 +138,9 @@ function RevenueStats({ token }) {
     if (type === 'other') return 'Memberships/Parking'
     return type
   }
+
+  const fmtDollar = (val) =>
+    Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   const computeSummary = () => {
     if (revenue.length === 0 && breakdown.length === 0) return null
@@ -138,7 +165,7 @@ function RevenueStats({ token }) {
     return { totalRevenue, totalTransactions, topVenue, bottomVenue, bestDay, avgDaily }
   }
 
-  const hasActiveFilters = startDate || endDate || selectedVenue
+  const hasActiveFilters = startDate || endDate || selectedVenues.length > 0 || selectedTypes.length > 0
 
   return (
     <div style={{ marginBottom: '3rem' }}>
@@ -146,21 +173,17 @@ function RevenueStats({ token }) {
 
       {/* ---- FILTERS ---- */}
       <div className="gm-form-card">
-        <div className="rev-filter-grid">
+        {/* Date row */}
+        <div className="rev-filter-row">
           <div className="rev-filter-field">
             <label className="rev-filter-label">Month</label>
-            <select
-              className="rev-select"
-              value={selectedMonth}
-              onChange={handleMonthChange}
-            >
+            <select className="rev-select" value={selectedMonth} onChange={handleMonthChange}>
               <option value="">All Time</option>
               {getMonthOptions().map(m => (
                 <option key={m.value} value={m.value}>{m.label}</option>
               ))}
             </select>
           </div>
-
           <div className="rev-filter-field">
             <label className="rev-filter-label">Start Date</label>
             <input
@@ -170,7 +193,6 @@ function RevenueStats({ token }) {
               onChange={e => { setStartDate(e.target.value); setSelectedMonth('') }}
             />
           </div>
-
           <div className="rev-filter-field">
             <label className="rev-filter-label">End Date</label>
             <input
@@ -180,29 +202,50 @@ function RevenueStats({ token }) {
               onChange={e => { setEndDate(e.target.value); setSelectedMonth('') }}
             />
           </div>
-
-          <div className="rev-filter-field">
-            <label className="rev-filter-label">Venue</label>
-            <select
-              className="rev-select"
-              value={selectedVenue}
-              onChange={e => setSelectedVenue(e.target.value)}
-            >
-              <option value="">All Venues</option>
-              {venues.map(v => (
-                <option key={v.venue_id} value={v.venue_id}>{v.venue_name}</option>
-              ))}
-            </select>
-          </div>
-
           <div className="rev-filter-actions">
-            <button className="gm-submit-btn" onClick={handleFilter}>Filter</button>
+            <button className="gm-submit-btn" onClick={handleFilter}>Apply</button>
             {hasActiveFilters && (
-              <button className="rev-clear-btn" onClick={handleClearFilters}>Clear</button>
+              <button className="rev-clear-btn" onClick={handleClearFilters}>Clear All</button>
             )}
           </div>
         </div>
 
+        {/* Venue toggles */}
+        <div className="rev-toggle-section">
+          <label className="rev-filter-label">Venues</label>
+          <div className="rev-chip-group">
+            {venues.map(v => (
+              <button
+                key={v.venue_id}
+                className={`rev-chip ${selectedVenues.includes(v.venue_id) ? 'active' : ''}`}
+                onClick={() => toggleVenue(v.venue_id)}
+              >
+                {v.venue_name}
+              </button>
+            ))}
+            {venues.length === 0 && (
+              <span className="rev-chip-empty">Loading venues...</span>
+            )}
+          </div>
+        </div>
+
+        {/* Item type toggles */}
+        <div className="rev-toggle-section">
+          <label className="rev-filter-label">Transaction Type</label>
+          <div className="rev-chip-group">
+            {itemTypes.map(t => (
+              <button
+                key={t.value}
+                className={`rev-chip ${selectedTypes.includes(t.value) ? 'active' : ''}`}
+                onClick={() => toggleType(t.value)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* View tabs */}
         <div className="rev-view-tabs">
           <button
             className={`gm-toggle-btn ${view === 'daily' ? 'active' : ''}`}
@@ -230,7 +273,7 @@ function RevenueStats({ token }) {
           <div className="rev-summary-grid">
             <div className="rev-summary-card">
               <span className="rev-summary-label">Total Revenue</span>
-              <span className="rev-summary-value">${summary.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="rev-summary-value rev-summary-green">${fmtDollar(summary.totalRevenue)}</span>
             </div>
             <div className="rev-summary-card">
               <span className="rev-summary-label">Transactions</span>
@@ -238,27 +281,27 @@ function RevenueStats({ token }) {
             </div>
             <div className="rev-summary-card">
               <span className="rev-summary-label">Avg Daily Revenue</span>
-              <span className="rev-summary-value">${summary.avgDaily.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="rev-summary-value">${fmtDollar(summary.avgDaily)}</span>
             </div>
             {summary.bestDay && (
               <div className="rev-summary-card">
                 <span className="rev-summary-label">Best Day</span>
                 <span className="rev-summary-value">{new Date(summary.bestDay.revenue_date).toLocaleDateString()}</span>
-                <span className="rev-summary-sub">${Number(summary.bestDay.daily_total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="rev-summary-sub">${fmtDollar(summary.bestDay.daily_total)}</span>
               </div>
             )}
             {summary.topVenue && (
               <div className="rev-summary-card rev-summary-highlight">
                 <span className="rev-summary-label">Top Venue</span>
                 <span className="rev-summary-value">{summary.topVenue[0]}</span>
-                <span className="rev-summary-sub">${summary.topVenue[1].toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="rev-summary-sub">${fmtDollar(summary.topVenue[1])}</span>
               </div>
             )}
             {summary.bottomVenue && (
               <div className="rev-summary-card">
                 <span className="rev-summary-label">Lowest Venue</span>
                 <span className="rev-summary-value">{summary.bottomVenue[0]}</span>
-                <span className="rev-summary-sub">${summary.bottomVenue[1].toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="rev-summary-sub">${fmtDollar(summary.bottomVenue[1])}</span>
               </div>
             )}
           </div>
@@ -276,7 +319,7 @@ function RevenueStats({ token }) {
               {revenue.map((r, i) => (
                 <tr key={i}>
                   <td>{new Date(r.revenue_date).toLocaleDateString()}</td>
-                  <td>${Number(r.daily_total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td>${fmtDollar(r.daily_total)}</td>
                   <td>{r.transaction_count}</td>
                 </tr>
               ))}
@@ -300,7 +343,7 @@ function RevenueStats({ token }) {
                   <td>{new Date(r.date_of_revenue).toLocaleDateString()}</td>
                   <td>{r.venue_name}</td>
                   <td>{r.venue_type}</td>
-                  <td>${Number(r.revenue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td>${fmtDollar(r.revenue)}</td>
                 </tr>
               ))}
               {breakdown.length === 0 && (
@@ -322,7 +365,7 @@ function RevenueStats({ token }) {
                 <tr key={i}>
                   <td>{new Date(r.revenue_date).toLocaleDateString()}</td>
                   <td>{formatType(r.item_type)}</td>
-                  <td>${Number(r.revenue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td>${fmtDollar(r.revenue)}</td>
                   <td>{r.transaction_count}</td>
                 </tr>
               ))}

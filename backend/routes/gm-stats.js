@@ -24,8 +24,14 @@ function requireGM(req, res, next) {
 	next()
 }
 
+// helper: parse comma-separated venue param into array of IDs
+function parseVenueIds(venueParam) {
+	if (!venueParam) return []
+	return venueParam.split(',').map(id => Number(id.trim())).filter(id => !isNaN(id))
+}
+
 // ─── VENUES ───
-// GET /venues — list all venues for dropdown filters
+
 router.get('/venues', verifyToken, requireGM, (req, res) => {
 	db.query(
 		'SELECT venue_id, venue_name, venue_type FROM Venue ORDER BY venue_name',
@@ -38,7 +44,6 @@ router.get('/venues', verifyToken, requireGM, (req, res) => {
 
 // ─── PARK DAY ───
 
-// POST /parkday — log a new park day
 router.post('/parkday', verifyToken, requireGM, (req, res) => {
 	const { park_date, rain, park_closed, weather_notes } = req.body
 
@@ -76,7 +81,6 @@ router.post('/parkday', verifyToken, requireGM, (req, res) => {
 	)
 })
 
-// PATCH /parkday/:id — update rain, park_closed, weather_notes
 router.patch('/parkday/:id', verifyToken, requireGM, (req, res) => {
 	const { id } = req.params
 	const { rain, park_closed, weather_notes } = req.body
@@ -130,7 +134,6 @@ router.patch('/parkday/:id', verifyToken, requireGM, (req, res) => {
 	})
 })
 
-// GET /parkday — list park days with optional date range
 router.get('/parkday', verifyToken, requireGM, (req, res) => {
 	const { start, end } = req.query
 	let sql = `SELECT day_id, park_date, rain, park_closed, weather_notes, total_attendance
@@ -158,9 +161,12 @@ router.get('/parkday', verifyToken, requireGM, (req, res) => {
 
 // ─── REVENUE ───
 
-// GET /revenue — daily totals (optionally filtered by venue)
+// GET /revenue — daily totals
+// query params: start, end, venue (comma-separated venue IDs)
 router.get('/revenue', verifyToken, requireGM, (req, res) => {
 	const { start, end, venue } = req.query
+	const venueIds = parseVenueIds(venue)
+
 	let sql = `SELECT DATE(transaction_time) AS revenue_date,
 	                  SUM(total_amount) AS daily_total,
 	                  COUNT(*) AS transaction_count
@@ -179,9 +185,9 @@ router.get('/revenue', verifyToken, requireGM, (req, res) => {
 		params.push(end)
 	}
 
-	if (venue) {
-		conditions.push('venue_id = ?')
-		params.push(venue)
+	if (venueIds.length > 0) {
+		conditions.push(`venue_id IN (${venueIds.map(() => '?').join(',')})`)
+		params.push(...venueIds)
 	}
 
 	if (conditions.length > 0) {
@@ -196,9 +202,12 @@ router.get('/revenue', verifyToken, requireGM, (req, res) => {
 	})
 })
 
-// GET /revenue/breakdown — by venue (optionally filtered to a single venue)
+// GET /revenue/breakdown — by venue
+// query params: start, end, venue (comma-separated venue IDs)
 router.get('/revenue/breakdown', verifyToken, requireGM, (req, res) => {
 	const { start, end, venue } = req.query
+	const venueIds = parseVenueIds(venue)
+
 	let sql = `
 		SELECT 
 			DATE(t.transaction_time) AS date_of_revenue,
@@ -222,9 +231,9 @@ router.get('/revenue/breakdown', verifyToken, requireGM, (req, res) => {
 		params.push(end)
 	}
 
-	if (venue) {
-		conditions.push('v.venue_id = ?')
-		params.push(venue)
+	if (venueIds.length > 0) {
+		conditions.push(`v.venue_id IN (${venueIds.map(() => '?').join(',')})`)
+		params.push(...venueIds)
 	}
 
 	if (conditions.length > 0) {
@@ -239,9 +248,11 @@ router.get('/revenue/breakdown', verifyToken, requireGM, (req, res) => {
 	})
 })
 
-// GET /revenue/tickets — ticket/pass revenue (no venue filter since these have venue_id = NULL)
+// GET /revenue/tickets — ticket/pass/membership revenue
+// query params: start, end, types (comma-separated: ticket,pass,other)
 router.get('/revenue/tickets', verifyToken, requireGM, (req, res) => {
-	const { start, end } = req.query
+	const { start, end, types } = req.query
+
 	let sql = `
 		SELECT 
 			DATE(t.transaction_time) AS revenue_date,
@@ -263,6 +274,14 @@ router.get('/revenue/tickets', verifyToken, requireGM, (req, res) => {
 	} else if (end) {
 		sql += ' AND DATE(t.transaction_time) <= ?'
 		params.push(end)
+	}
+
+	if (types) {
+		const typeList = types.split(',').map(t => t.trim()).filter(Boolean)
+		if (typeList.length > 0) {
+			sql += ` AND ti.item_type IN (${typeList.map(() => '?').join(',')})`
+			params.push(...typeList)
+		}
 	}
 
 	sql += ' GROUP BY DATE(t.transaction_time), ti.item_type ORDER BY revenue_date DESC, ti.item_type'
