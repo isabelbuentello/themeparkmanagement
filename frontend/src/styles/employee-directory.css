@@ -25,6 +25,16 @@
   font-size: 0.9rem;
 }
 
+.dir-action-message {
+  color: #1f7a1f;
+  margin: 0 0 1rem;
+}
+
+.dir-action-error {
+  color: #b02a37;
+  margin: 0 0 1rem;
+}
+
 .dir-filters {
   display: flex;
   gap: 1rem;
@@ -203,4 +213,29 @@
   color: #555;
   width: 120px;
   flex-shrink: 0;
+}
+
+.dir-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.dir-btn-save {
+  background-color: #343a40;
+  color: #fff;
+}
+
+.dir-btn-save:hover {
+  background-color: #23272b;
+}
+
+.dir-btn-delete {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.dir-btn-delete:hover {
+  background-color: #c82333;
 }

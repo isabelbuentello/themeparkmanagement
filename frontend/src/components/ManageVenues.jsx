@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import ConfirmActionModal from './ConfirmActionModal'
 import '../styles/manage-venues.css'
 
 function ManageVenues({ token }) {
@@ -6,6 +7,8 @@ function ManageVenues({ token }) {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [selectedVenue, setSelectedVenue] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [filters, setFilters] = useState({ search: '', type: '' })
 
   const [newVenue, setNewVenue] = useState({
@@ -78,22 +81,26 @@ function ManageVenues({ token }) {
     }
   }
 
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(`Delete venue "${name}"? This may fail if it has associated data.`)) return
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setIsDeleting(true)
     try {
-      const res = await fetch(`/api/venues/${id}`, {
+      const res = await fetch(`/api/venues/${deleteTarget.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (res.ok) {
-        setVenues(venues.filter(v => v.venue_id !== id))
+        setVenues(venues.filter((v) => v.venue_id !== deleteTarget.id))
         setSelectedVenue(null)
+        setDeleteTarget(null)
       } else {
         const err = await res.json()
         alert(err.error || 'Failed to delete venue')
       }
     } catch (err) {
       alert('Error deleting venue')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -342,7 +349,7 @@ function ManageVenues({ token }) {
                       className="venue-btn venue-btn-delete"
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleDelete(venue.venue_id, venue.venue_name)
+                        setDeleteTarget({ id: venue.venue_id, name: venue.venue_name })
                       }}
                     >
                       Delete
@@ -361,6 +368,19 @@ function ManageVenues({ token }) {
           onClose={() => setSelectedVenue(null)}
         />
       )}
+
+      <ConfirmActionModal
+        open={!!deleteTarget}
+        title="Delete Venue"
+        message={deleteTarget ? `Are you sure you want to delete venue "${deleteTarget.name}"?` : ''}
+        confirmLabel="Confirm"
+        cancelLabel="Cancel"
+        isProcessing={isDeleting}
+        onCancel={() => {
+          if (!isDeleting) setDeleteTarget(null)
+        }}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

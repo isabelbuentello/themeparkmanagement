@@ -154,19 +154,45 @@ router.patch(
 		}
 
 		db.query(
-			`UPDATE MaintenanceRequest
-			 SET status_request = COALESCE(?, status_request),
-			     assigned_to_employee_id = COALESCE(?, assigned_to_employee_id)
+			`SELECT status_request
+			        , assigned_to_employee_id
+			 FROM MaintenanceRequest
 			 WHERE request_id = ?`,
-			[status_request || null, assigned_to_employee_id || null, id],
-			(err, result) => {
-				if (err) {
-					const fkMessage = getForeignKeyErrorMessage(err)
-					if (fkMessage) return res.status(400).json({ message: fkMessage })
-					return res.status(500).json({ message: 'Server error' })
+			[id],
+			(selErr, rows) => {
+				if (selErr) return res.status(500).json({ message: 'Server error' })
+				if (rows.length === 0) return res.status(404).json({ message: 'Request not found' })
+				if (rows[0].status_request === 'resolved') {
+					return res.status(400).json({ message: 'Resolved requests cannot be modified' })
 				}
-				if (result.affectedRows === 0) return res.status(404).json({ message: 'Request not found' })
-				res.json({ message: 'Request updated' })
+
+				const current = rows[0]
+				const nextAssignedEmployeeId =
+					assigned_to_employee_id !== undefined && assigned_to_employee_id !== null
+						? assigned_to_employee_id
+						: current.assigned_to_employee_id
+
+				let nextStatusRequest = status_request || current.status_request
+				if (nextAssignedEmployeeId && nextStatusRequest === 'new') {
+					nextStatusRequest = 'assigned'
+				}
+
+				db.query(
+					`UPDATE MaintenanceRequest
+					 SET status_request = ?,
+					     assigned_to_employee_id = ?
+					 WHERE request_id = ?`,
+					[nextStatusRequest, nextAssignedEmployeeId || null, id],
+					(err, result) => {
+						if (err) {
+							const fkMessage = getForeignKeyErrorMessage(err)
+							if (fkMessage) return res.status(400).json({ message: fkMessage })
+							return res.status(500).json({ message: 'Server error' })
+						}
+						if (result.affectedRows === 0) return res.status(404).json({ message: 'Request not found' })
+						res.json({ message: 'Request updated' })
+					}
+				)
 			}
 		)
 	}

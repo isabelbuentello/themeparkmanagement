@@ -159,7 +159,7 @@ router.get(
 	requireRole('ride_attendant_manager', 'maintenance', 'general_manager'),
 	(req, res) => {
 		db.query(
-			`SELECT ride_id, ride_name, status_ride, affected_by_rain
+			`SELECT ride_id, ride_name, ride_type, status_ride, affected_by_rain
 			 FROM Ride
 			 ORDER BY ride_name`,
 			(err, results) => {

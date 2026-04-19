@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import ConfirmActionModal from './ConfirmActionModal'
 import '../styles/employee-directory.css'
 
 function EmployeeDirectory({ token, isManager = false }) {
@@ -6,6 +7,8 @@ function EmployeeDirectory({ token, isManager = false }) {
   const [departments, setDepartments] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedEmployee, setSelectedEmployee] = useState(null)
+  const [actionMessage, setActionMessage] = useState('')
+  const [actionError, setActionError] = useState('')
 
   const [filters, setFilters] = useState({
     search: '',
@@ -61,6 +64,24 @@ function EmployeeDirectory({ token, isManager = false }) {
     setFilters({ search: '', department: '', role: '' })
   }
 
+  const handleEmployeeUpdated = (updatedEmployee) => {
+    setEmployees((prev) =>
+      prev.map((emp) =>
+        emp.employee_id === updatedEmployee.employee_id ? updatedEmployee : emp
+      )
+    )
+    setSelectedEmployee(updatedEmployee)
+    setActionError('')
+    setActionMessage('Employee details updated')
+  }
+
+  const handleEmployeeDeleted = (employeeId) => {
+    setEmployees((prev) => prev.filter((emp) => emp.employee_id !== employeeId))
+    setSelectedEmployee(null)
+    setActionError('')
+    setActionMessage('Employee deleted')
+  }
+
   if (loading) return <div className="dir-panel">Loading employees...</div>
 
   return (
@@ -69,6 +90,9 @@ function EmployeeDirectory({ token, isManager = false }) {
         <h3>{isManager ? 'Employee Management' : 'Employee Directory'}</h3>
         <span className="dir-count">{filteredEmployees.length} employees</span>
       </div>
+
+      {actionError && <p className="dir-action-error">{actionError}</p>}
+      {actionMessage && <p className="dir-action-message">{actionMessage}</p>}
 
       <div className="dir-filters">
         <div className="dir-filter-group">
@@ -166,6 +190,15 @@ function EmployeeDirectory({ token, isManager = false }) {
         <EmployeeDetailModal
           employee={selectedEmployee}
           isManager={isManager}
+          token={token}
+          departments={departments}
+          roles={roles}
+          onEmployeeUpdated={handleEmployeeUpdated}
+          onEmployeeDeleted={handleEmployeeDeleted}
+          onError={(message) => {
+            setActionMessage('')
+            setActionError(message)
+          }}
           onClose={() => setSelectedEmployee(null)}
         />
       )}
@@ -173,7 +206,110 @@ function EmployeeDirectory({ token, isManager = false }) {
   )
 }
 
-function EmployeeDetailModal({ employee, isManager, onClose }) {
+function EmployeeDetailModal({
+  employee,
+  isManager,
+  token,
+  departments,
+  roles,
+  onEmployeeUpdated,
+  onEmployeeDeleted,
+  onError,
+  onClose
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [formData, setFormData] = useState({
+    full_name: employee.full_name,
+    role: employee.role,
+    pay_rate: employee.pay_rate,
+    department_id: String(employee.department_id),
+    employee_phone: employee.employee_phone,
+    employee_email: employee.employee_email,
+    employee_address: employee.employee_address
+  })
+
+  useEffect(() => {
+    setIsEditing(false)
+    setFormData({
+      full_name: employee.full_name,
+      role: employee.role,
+      pay_rate: employee.pay_rate,
+      department_id: String(employee.department_id),
+      employee_phone: employee.employee_phone,
+      employee_email: employee.employee_email,
+      employee_address: employee.employee_address
+    })
+  }, [employee])
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      const payload = {
+        ...formData,
+        pay_rate: Number(formData.pay_rate),
+        department_id: Number(formData.department_id)
+      }
+
+      const res = await fetch('/api/employees/' + employee.employee_id, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        onError(data.error || 'Failed to update employee')
+        return
+      }
+
+      const selectedDepartment = departments.find(
+        (department) => department.department_id === Number(formData.department_id)
+      )
+
+      onEmployeeUpdated({
+        ...employee,
+        ...payload,
+        department_name: selectedDepartment?.department_name || employee.department_name
+      })
+      setIsEditing(false)
+    } catch {
+      onError('Error updating employee')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      const res = await fetch('/api/employees/' + employee.employee_id, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        onError(data.error || 'Failed to delete employee')
+        return
+      }
+
+      onEmployeeDeleted(employee.employee_id)
+    } catch {
+      onError('Error deleting employee')
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+
   return (
     <div className="dir-modal-overlay" onClick={onClose}>
       <div className="dir-modal" onClick={e => e.stopPropagation()}>
@@ -189,26 +325,77 @@ function EmployeeDetailModal({ employee, isManager, onClose }) {
           </div>
           <div className="dir-detail-row">
             <span className="dir-detail-label">Department:</span>
-            <span>{employee.department_name || '—'}</span>
+            {isManager && isEditing ? (
+              <select
+                className="dir-select"
+                value={formData.department_id}
+                onChange={(e) => setFormData((prev) => ({ ...prev, department_id: e.target.value }))}
+              >
+                {departments.map((department) => (
+                  <option key={department.department_id} value={department.department_id}>
+                    {department.department_name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span>{employee.department_name || '—'}</span>
+            )}
           </div>
           <div className="dir-detail-row">
             <span className="dir-detail-label">Role:</span>
-            <span>{employee.role.replace(/_/g, ' ')}</span>
+            {isManager && isEditing ? (
+              <select
+                className="dir-select"
+                value={formData.role}
+                onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
+              >
+                {roles.map((role) => (
+                  <option key={role} value={role}>{role.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
+            ) : (
+              <span>{employee.role.replace(/_/g, ' ')}</span>
+            )}
           </div>
 
           {isManager && (
             <>
               <div className="dir-detail-row">
                 <span className="dir-detail-label">Email:</span>
-                <span>{employee.employee_email}</span>
+                {isEditing ? (
+                  <input
+                    className="dir-input"
+                    type="email"
+                    value={formData.employee_email}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, employee_email: e.target.value }))}
+                  />
+                ) : (
+                  <span>{employee.employee_email}</span>
+                )}
               </div>
               <div className="dir-detail-row">
                 <span className="dir-detail-label">Phone:</span>
-                <span>{employee.employee_phone}</span>
+                {isEditing ? (
+                  <input
+                    className="dir-input"
+                    value={formData.employee_phone}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, employee_phone: e.target.value }))}
+                  />
+                ) : (
+                  <span>{employee.employee_phone}</span>
+                )}
               </div>
               <div className="dir-detail-row">
                 <span className="dir-detail-label">Address:</span>
-                <span>{employee.employee_address}</span>
+                {isEditing ? (
+                  <input
+                    className="dir-input"
+                    value={formData.employee_address}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, employee_address: e.target.value }))}
+                  />
+                ) : (
+                  <span>{employee.employee_address}</span>
+                )}
               </div>
               <div className="dir-detail-row">
                 <span className="dir-detail-label">Gender:</span>
@@ -220,7 +407,18 @@ function EmployeeDetailModal({ employee, isManager, onClose }) {
               </div>
               <div className="dir-detail-row">
                 <span className="dir-detail-label">Pay Rate:</span>
-                <span>${parseFloat(employee.pay_rate).toFixed(2)}/hr</span>
+                {isEditing ? (
+                  <input
+                    className="dir-input"
+                    type="number"
+                    min="7.51"
+                    step="0.01"
+                    value={formData.pay_rate}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, pay_rate: e.target.value }))}
+                  />
+                ) : (
+                  <span>${parseFloat(employee.pay_rate).toFixed(2)}/hr</span>
+                )}
               </div>
               <div className="dir-detail-row">
                 <span className="dir-detail-label">Start Date:</span>
@@ -238,7 +436,61 @@ function EmployeeDetailModal({ employee, isManager, onClose }) {
               </div>
             </>
           )}
+
+          {isManager && (
+            <div className="dir-modal-actions">
+              {isEditing ? (
+                <>
+                  <button
+                    className="dir-btn dir-btn-clear"
+                    onClick={() => {
+                      setIsEditing(false)
+                      setFormData({
+                        full_name: employee.full_name,
+                        role: employee.role,
+                        pay_rate: employee.pay_rate,
+                        department_id: String(employee.department_id),
+                        employee_phone: employee.employee_phone,
+                        employee_email: employee.employee_email,
+                        employee_address: employee.employee_address
+                      })
+                    }}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </button>
+                  <button className="dir-btn dir-btn-save" onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </>
+              ) : (
+                <button className="dir-btn dir-btn-save" onClick={() => setIsEditing(true)}>
+                  Edit Employee
+                </button>
+              )}
+              <button
+                className="dir-btn dir-btn-delete"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={isSaving || isDeleting}
+              >
+                Delete Employee
+              </button>
+            </div>
+          )}
         </div>
+
+        <ConfirmActionModal
+          open={showDeleteConfirm}
+          title="Delete Employee"
+          message={`Are you sure you want to delete employee "${employee.full_name}"?`}
+          confirmLabel="Confirm"
+          cancelLabel="Cancel"
+          isProcessing={isDeleting}
+          onCancel={() => {
+            if (!isDeleting) setShowDeleteConfirm(false)
+          }}
+          onConfirm={handleDelete}
+        />
       </div>
     </div>
   )

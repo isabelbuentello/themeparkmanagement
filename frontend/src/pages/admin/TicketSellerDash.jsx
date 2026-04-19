@@ -26,6 +26,7 @@ function TicketSellerDash() {
   const [loading, setLoading] = useState(false)
 
   const token = localStorage.getItem('token')
+  const todayDate = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
     const fetchTypes = async () => {
@@ -189,7 +190,7 @@ function TicketSellerDash() {
           </select>
 
           <label>Valid Date</label>
-          <input type="date" value={validDate} onChange={e => setValidDate(e.target.value)} />
+          <input type="date" min={todayDate} value={validDate} onChange={e => setValidDate(e.target.value)} />
 
           <label>Payment Method</label>
           <select value={ticketPayment} onChange={e => setTicketPayment(e.target.value)}>
