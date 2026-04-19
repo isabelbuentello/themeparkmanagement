@@ -4,7 +4,6 @@ Logins:
 
 general manager: mjohnson password123
 customer: isabelb password or make your own
-ride manager: swilliams password123
 maintenance: jrodriguez password123
 restaurant manager: echen password123
 shop manager: dbrown password123
