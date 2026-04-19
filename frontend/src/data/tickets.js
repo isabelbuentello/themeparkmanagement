@@ -3,7 +3,7 @@ export const ticketProducts = [
     id: 'single-day',
     name: 'Single-Day Admission',
     type: 'Day Ticket',
-    price: 89,
+    price: 79.99,
     tag: 'Best for first-time guests',
     description:
       'Full-day park entry with access to standard attractions and entertainment.',
@@ -13,7 +13,7 @@ export const ticketProducts = [
     id: 'weekend-flex',
     name: 'Weekend Flex Pass',
     type: 'Multi-Use Pass',
-    price: 149,
+    price: 159.98,
     tag: 'Most popular',
     description:
       'Two visits over any weekend in the current season with bonus snack credit.',
@@ -23,7 +23,7 @@ export const ticketProducts = [
     id: 'thrill-seeker-bundle',
     name: 'Thrill Seeker Bundle',
     type: 'Bundle',
-    price: 199,
+    price: 79.99,
     tag: 'Great for groups',
     description:
       'Admission plus express access windows and a photo package for your visit.',
@@ -33,7 +33,7 @@ export const ticketProducts = [
     id: 'family-four-pack',
     name: 'Family Four Pack',
     type: 'Family Bundle',
-    price: 299,
+    price: 319.96,
     tag: 'Built for planning ahead',
     description:
       'Four admissions in one checkout with shared digital tickets and parking.',
