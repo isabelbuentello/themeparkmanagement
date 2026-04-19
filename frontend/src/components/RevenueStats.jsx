@@ -7,15 +7,16 @@ function RevenueStats({ token }) {
   const [endDate, setEndDate] = useState('')
   const [view, setView] = useState('daily')
 
+  const buildParams = () => {
+    const params = []
+    if (startDate) params.push(`start=${startDate}`)
+    if (endDate) params.push(`end=${endDate}`)
+    return params.length ? '?' + params.join('&') : ''
+  }
+
   const fetchRevenue = async () => {
     try {
-      let url = '/api/gm/revenue'
-      const params = []
-      if (startDate) params.push(`start=${startDate}`)
-      if (endDate) params.push(`end=${endDate}`)
-      if (params.length) url += '?' + params.join('&')
-
-      const res = await fetch(url, {
+      const res = await fetch(`/api/gm/revenue${buildParams()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (res.ok) setRevenue(await res.json())
@@ -24,13 +25,7 @@ function RevenueStats({ token }) {
 
   const fetchBreakdown = async () => {
     try {
-      let url = '/api/gm/revenue/breakdown'
-      const params = []
-      if (startDate) params.push(`start=${startDate}`)
-      if (endDate) params.push(`end=${endDate}`)
-      if (params.length) url += '?' + params.join('&')
-
-      const res = await fetch(url, {
+      const res = await fetch(`/api/gm/revenue/breakdown${buildParams()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (res.ok) setBreakdown(await res.json())
