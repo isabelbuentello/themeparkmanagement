@@ -1,198 +1,49 @@
 import { useState, useEffect } from 'react'
 
 const styles = {
-  page: {
-    padding: '32px 24px',
-    maxWidth: '800px',
-    margin: '0 auto',
-    fontFamily: 'var(--body-font)',
-    color: 'var(--ink)'
-  },
-  header: {
-    fontSize: '2rem',
-    fontFamily: 'var(--heading-font)',
-    color: 'var(--ink)',
-    marginBottom: '8px',
-    fontWeight: 700
-  },
-  subtitle: {
-    color: 'var(--muted)',
-    marginBottom: '24px',
-    fontSize: '0.95rem'
-  },
+  page: { padding: '32px 24px', maxWidth: '800px', margin: '0 auto', fontFamily: 'var(--body-font)', color: 'var(--ink)' },
+  header: { fontSize: '2rem', fontFamily: 'var(--heading-font)', color: 'var(--ink)', marginBottom: '8px', fontWeight: 700 },
+  subtitle: { color: 'var(--muted)', marginBottom: '24px', fontSize: '0.95rem' },
   alert: (type) => ({
-    padding: '12px 16px',
-    borderRadius: '10px',
-    marginBottom: '16px',
-    fontSize: '0.9rem',
-    fontWeight: 500,
+    padding: '12px 16px', borderRadius: '10px', marginBottom: '16px', fontSize: '0.9rem', fontWeight: 500,
     background: type === 'success' ? 'rgba(34, 197, 94, 0.12)' : type === 'warning' ? 'rgba(234, 179, 8, 0.12)' : 'rgba(239, 68, 68, 0.12)',
     color: type === 'success' ? '#166534' : type === 'warning' ? '#854d0e' : '#b91c1c',
     border: `1px solid ${type === 'success' ? 'rgba(34, 197, 94, 0.2)' : type === 'warning' ? 'rgba(234, 179, 8, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
   }),
-  tabs: {
-    display: 'flex',
-    gap: '8px',
-    marginBottom: '28px',
-    borderBottom: '2px solid var(--border)',
-    paddingBottom: '0'
-  },
+  tabs: { display: 'flex', gap: '8px', marginBottom: '28px', borderBottom: '2px solid var(--border)', paddingBottom: '0' },
   tab: (active) => ({
-    padding: '10px 20px',
-    cursor: 'pointer',
-    background: 'none',
-    border: 'none',
-    borderBottom: active ? '2px solid var(--accent)' : '2px solid transparent',
-    marginBottom: '-2px',
-    color: active ? 'var(--accent)' : 'var(--muted)',
-    fontWeight: active ? 700 : 500,
-    fontSize: '0.95rem',
-    fontFamily: 'var(--body-font)',
-    transition: 'all 0.2s'
+    padding: '10px 20px', cursor: 'pointer', background: 'none', border: 'none',
+    borderBottom: active ? '2px solid var(--accent)' : '2px solid transparent', marginBottom: '-2px',
+    color: active ? 'var(--accent)' : 'var(--muted)', fontWeight: active ? 700 : 500, fontSize: '0.95rem',
+    fontFamily: 'var(--body-font)', transition: 'all 0.2s'
   }),
-  card: {
-    background: 'var(--panel)',
-    borderRadius: '16px',
-    padding: '24px',
-    marginBottom: '24px',
-    boxShadow: 'var(--shadow-soft)',
-    border: '1px solid var(--border)'
-  },
-  sectionTitle: {
-    fontSize: '1.1rem',
-    fontWeight: 700,
-    color: 'var(--ink)',
-    marginBottom: '16px',
-    marginTop: 0
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    marginBottom: '8px'
-  },
-  th: {
-    padding: '10px 12px',
-    textAlign: 'left',
-    background: 'var(--ocean)',
-    color: 'white',
-    fontSize: '0.82rem',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em'
-  },
-  td: {
-    padding: '10px 12px',
-    borderBottom: '1px solid var(--border)',
-    fontSize: '0.92rem',
-    color: 'var(--ink)'
-  },
-  formGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-    marginBottom: '14px'
-  },
-  label: {
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    color: 'var(--muted)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em'
-  },
-  input: {
-    padding: '10px 12px',
-    borderRadius: '8px',
-    border: '1px solid var(--border)',
-    background: 'var(--cream)',
-    color: 'var(--ink)',
-    fontSize: '0.95rem',
-    outline: 'none',
-    width: '100%'
-  },
-  select: {
-    padding: '10px 12px',
-    borderRadius: '8px',
-    border: '1px solid var(--border)',
-    background: 'var(--cream)',
-    color: 'var(--ink)',
-    fontSize: '0.95rem',
-    outline: 'none',
-    width: '100%'
-  },
-  btnPrimary: {
-    padding: '11px 24px',
-    borderRadius: '8px',
-    border: 'none',
-    background: 'var(--accent)',
-    color: 'white',
-    fontWeight: 700,
-    fontSize: '0.95rem',
-    cursor: 'pointer',
-    width: '100%',
-    marginTop: '4px'
-  },
-  btnSecondary: {
-    padding: '8px 16px',
-    borderRadius: '8px',
-    border: '1px solid var(--border)',
-    background: 'var(--cream)',
-    color: 'var(--ink)',
-    fontWeight: 600,
-    fontSize: '0.85rem',
-    cursor: 'pointer'
-  },
-  btnOcean: {
-    padding: '8px 16px',
-    borderRadius: '8px',
-    border: 'none',
-    background: 'var(--ocean)',
-    color: 'white',
-    fontWeight: 600,
-    fontSize: '0.85rem',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap'
-  },
-  btnDanger: {
-    padding: '8px 16px',
-    borderRadius: '8px',
-    border: 'none',
-    background: 'rgba(239, 68, 68, 0.12)',
-    color: '#b91c1c',
-    fontWeight: 600,
-    fontSize: '0.85rem',
-    cursor: 'pointer'
-  },
-  btnSuccess: {
-    padding: '8px 16px',
-    borderRadius: '8px',
-    border: 'none',
-    background: 'rgba(34, 197, 94, 0.12)',
-    color: '#166534',
-    fontWeight: 600,
-    fontSize: '0.85rem',
-    cursor: 'pointer'
-  },
+  card: { background: 'var(--panel)', borderRadius: '16px', padding: '24px', marginBottom: '24px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--border)' },
+  sectionTitle: { fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '16px', marginTop: 0 },
+  table: { width: '100%', borderCollapse: 'collapse', marginBottom: '8px' },
+  th: { padding: '10px 12px', textAlign: 'left', background: 'var(--ocean)', color: 'white', fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  td: { padding: '10px 12px', borderBottom: '1px solid var(--border)', fontSize: '0.92rem', color: 'var(--ink)' },
+  formGroup: { display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' },
+  label: { fontSize: '0.85rem', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  input: { padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--cream)', color: 'var(--ink)', fontSize: '0.95rem', outline: 'none', width: '100%' },
+  select: { padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--cream)', color: 'var(--ink)', fontSize: '0.95rem', outline: 'none', width: '100%' },
+  btnPrimary: { padding: '11px 24px', borderRadius: '8px', border: 'none', background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', width: '100%', marginTop: '4px' },
+  btnSecondary: { padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--cream)', color: 'var(--ink)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' },
+  btnOcean: { padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'var(--ocean)', color: 'white', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' },
+  btnDanger: { padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'rgba(239, 68, 68, 0.12)', color: '#b91c1c', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' },
+  btnSuccess: { padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'rgba(34, 197, 94, 0.12)', color: '#166534', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' },
   badge: (status) => ({
-    display: 'inline-block',
-    padding: '3px 10px',
-    borderRadius: '999px',
-    fontSize: '0.78rem',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-    background: status === 'confirmed' ? 'rgba(34, 197, 94, 0.12)' :
-                status === 'cancelled' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(234, 179, 8, 0.12)',
-    color: status === 'confirmed' ? '#166534' :
-           status === 'cancelled' ? '#b91c1c' : '#854d0e'
+    display: 'inline-block', padding: '3px 10px', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+    background: status === 'confirmed' ? 'rgba(34, 197, 94, 0.12)' : status === 'cancelled' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(234, 179, 8, 0.12)',
+    color: status === 'confirmed' ? '#166534' : status === 'cancelled' ? '#b91c1c' : '#854d0e'
   })
 }
 
 function RestaurantDash() {
   const [menuItems, setMenuItems] = useState([])
+  const [restaurants, setRestaurants] = useState([])
   const [reservations, setReservations] = useState([])
   const [activeTab, setActiveTab] = useState('sell')
 
-  const [venueId, setVenueId] = useState('')
   const [menuItemId, setMenuItemId] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [paymentMethod, setPaymentMethod] = useState('card')
@@ -205,7 +56,9 @@ function RestaurantDash() {
   const [newItemVenueId, setNewItemVenueId] = useState('')
 
   const [resVenueId, setResVenueId] = useState('')
-  const [resCustomerId, setResCustomerId] = useState('')
+  const [resCustomerEmail, setResCustomerEmail] = useState('')
+  const [resCustomerInfo, setResCustomerInfo] = useState(null)
+  const [resCustomerEmailError, setResCustomerEmailError] = useState('')
   const [resDate, setResDate] = useState('')
   const [resTime, setResTime] = useState('')
   const [resPartySize, setResPartySize] = useState(1)
@@ -229,6 +82,18 @@ function RestaurantDash() {
     }
   }
 
+  const fetchRestaurants = async () => {
+    try {
+      const res = await fetch('/api/transactions/restaurants', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (res.ok) setRestaurants(data)
+    } catch {
+      setError('Failed to load restaurants')
+    }
+  }
+
   const fetchReservations = async () => {
     try {
       const res = await fetch('/api/transactions/restaurants/reservations', {
@@ -243,6 +108,7 @@ function RestaurantDash() {
 
   useEffect(() => {
     fetchMenuItems()
+    fetchRestaurants()
     fetchReservations()
   }, [])
 
@@ -255,27 +121,42 @@ function RestaurantDash() {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
-      if (res.ok) {
-        setCustomerInfo(data)
-      } else {
-        setEmailError('Customer not found — will sell as guest')
-      }
+      if (res.ok) { setCustomerInfo(data) } else { setEmailError('Customer not found — will sell as guest') }
     } catch {
       setEmailError('Could not look up customer')
+    }
+  }
+
+  const handleResCustomerEmailLookup = async () => {
+    setResCustomerEmailError('')
+    setResCustomerInfo(null)
+    if (!resCustomerEmail) return
+    try {
+      const res = await fetch(`/api/transactions/customer-lookup?email=${encodeURIComponent(resCustomerEmail)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (res.ok) { setResCustomerInfo(data) } else { setResCustomerEmailError('Customer not found') }
+    } catch {
+      setResCustomerEmailError('Could not look up customer')
     }
   }
 
   const handleSell = async () => {
     setMessage('')
     setError('')
-    if (!venueId || !menuItemId || !quantity) { setError('Please fill in all fields'); return }
+    if (!menuItemId || !quantity) { setError('Please fill in all fields'); return }
+
+    const selectedItem = menuItems.find(i => i.menu_item_id === parseInt(menuItemId))
+    const venueId = selectedItem?.restaurant_venue_id
+
     setLoading(true)
     try {
       const res = await fetch('/api/transactions/restaurants/sell', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          venue_id: parseInt(venueId),
+          venue_id: venueId,
           menu_item_id: parseInt(menuItemId),
           quantity: parseInt(quantity),
           payment_method_transaction: paymentMethod,
@@ -348,7 +229,10 @@ function RestaurantDash() {
   const handleAddReservation = async () => {
     setMessage('')
     setError('')
-    if (!resVenueId || !resCustomerId || !resDate || !resTime || !resPartySize) { setError('Please fill in all fields'); return }
+    if (!resVenueId || !resCustomerInfo || !resDate || !resTime || !resPartySize) {
+      setError('Please fill in all fields and look up a customer')
+      return
+    }
     setLoading(true)
     try {
       const res = await fetch('/api/transactions/restaurants/reservations', {
@@ -356,7 +240,7 @@ function RestaurantDash() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           restaurant_venue_id: parseInt(resVenueId),
-          customer_id: parseInt(resCustomerId),
+          customer_id: resCustomerInfo.customer_id,
           reservation_date: resDate,
           reservation_time: resTime,
           party_size: parseInt(resPartySize)
@@ -366,7 +250,8 @@ function RestaurantDash() {
       if (!res.ok) { setError(data.message); return }
       setMessage('Reservation created successfully!')
       setResVenueId('')
-      setResCustomerId('')
+      setResCustomerEmail('')
+      setResCustomerInfo(null)
       setResDate('')
       setResTime('')
       setResPartySize(1)
@@ -396,6 +281,11 @@ function RestaurantDash() {
     }
   }
 
+  const getVenueName = (venueId) => {
+    const r = restaurants.find(r => r.venue_id === venueId)
+    return r ? r.venue_name : `Venue ${venueId}`
+  }
+
   return (
     <div style={styles.page}>
       <h1 style={styles.header}>Restaurant Manager</h1>
@@ -405,15 +295,9 @@ function RestaurantDash() {
       {error && <div style={styles.alert('error')}>⚠️ {error}</div>}
 
       <div style={styles.tabs}>
-        <button style={styles.tab(activeTab === 'sell')} onClick={() => { setActiveTab('sell'); setMessage(''); setError('') }}>
-          Ring Up Order
-        </button>
-        <button style={styles.tab(activeTab === 'menu')} onClick={() => { setActiveTab('menu'); setMessage(''); setError('') }}>
-          Manage Menu
-        </button>
-        <button style={styles.tab(activeTab === 'reservations')} onClick={() => { setActiveTab('reservations'); setMessage(''); setError('') }}>
-          Reservations
-        </button>
+        <button style={styles.tab(activeTab === 'sell')} onClick={() => { setActiveTab('sell'); setMessage(''); setError('') }}>Ring Up Order</button>
+        <button style={styles.tab(activeTab === 'menu')} onClick={() => { setActiveTab('menu'); setMessage(''); setError('') }}>Manage Menu</button>
+        <button style={styles.tab(activeTab === 'reservations')} onClick={() => { setActiveTab('reservations'); setMessage(''); setError('') }}>Reservations</button>
       </div>
 
       {activeTab === 'sell' && (
@@ -428,7 +312,7 @@ function RestaurantDash() {
                   <tr>
                     <th style={{ ...styles.th, borderRadius: '8px 0 0 0' }}>Item</th>
                     <th style={styles.th}>Price</th>
-                    <th style={{ ...styles.th, borderRadius: '0 8px 0 0' }}>Venue ID</th>
+                    <th style={{ ...styles.th, borderRadius: '0 8px 0 0' }}>Restaurant</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -436,7 +320,7 @@ function RestaurantDash() {
                     <tr key={item.menu_item_id} style={{ background: idx % 2 === 0 ? 'transparent' : 'rgba(15,28,46,0.02)' }}>
                       <td style={styles.td}>{item.item_name}</td>
                       <td style={styles.td}>${item.price}</td>
-                      <td style={styles.td}>{item.restaurant_venue_id}</td>
+                      <td style={styles.td}>{getVenueName(item.restaurant_venue_id)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -446,29 +330,21 @@ function RestaurantDash() {
 
           <div style={styles.card}>
             <h2 style={styles.sectionTitle}>Ring Up Order</h2>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Venue ID</label>
-              <input style={styles.input} type="number" placeholder="Enter venue ID" value={venueId} onChange={e => setVenueId(e.target.value)} />
-            </div>
-
             <div style={styles.formGroup}>
               <label style={styles.label}>Menu Item</label>
               <select style={styles.select} value={menuItemId} onChange={e => setMenuItemId(e.target.value)}>
                 <option value="">Select a menu item</option>
                 {menuItems.filter(i => i.is_available).map(item => (
                   <option key={item.menu_item_id} value={item.menu_item_id}>
-                    {item.item_name} — ${item.price}
+                    {item.item_name} — ${item.price} ({getVenueName(item.restaurant_venue_id)})
                   </option>
                 ))}
               </select>
             </div>
-
             <div style={styles.formGroup}>
               <label style={styles.label}>Quantity</label>
               <input style={styles.input} type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
             </div>
-
             <div style={styles.formGroup}>
               <label style={styles.label}>Payment Method</label>
               <select style={styles.select} value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
@@ -476,23 +352,15 @@ function RestaurantDash() {
                 <option value="cash">Cash</option>
               </select>
             </div>
-
             <div style={styles.formGroup}>
               <label style={styles.label}>Customer Email (optional)</label>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  style={{ ...styles.input, flex: 1 }}
-                  type="email"
-                  placeholder="Enter customer email"
-                  value={email}
-                  onChange={e => { setEmail(e.target.value); setCustomerInfo(null); setEmailError('') }}
-                />
+                <input style={{ ...styles.input, flex: 1 }} type="email" placeholder="Enter customer email" value={email} onChange={e => { setEmail(e.target.value); setCustomerInfo(null); setEmailError('') }} />
                 <button style={styles.btnOcean} type="button" onClick={handleEmailLookup}>Look Up</button>
               </div>
               {customerInfo && <p style={{ color: '#166534', margin: '4px 0 0', fontSize: '0.88rem' }}>✅ Found: {customerInfo.first_name} {customerInfo.last_name}</p>}
               {emailError && <p style={{ color: '#854d0e', margin: '4px 0 0', fontSize: '0.88rem' }}>{emailError}</p>}
             </div>
-
             <button style={styles.btnPrimary} onClick={handleSell} disabled={loading}>
               {loading ? 'Processing...' : 'Complete Sale'}
             </button>
@@ -512,6 +380,7 @@ function RestaurantDash() {
                   <tr>
                     <th style={{ ...styles.th, borderRadius: '8px 0 0 0' }}>Item</th>
                     <th style={styles.th}>Price</th>
+                    <th style={styles.th}>Restaurant</th>
                     <th style={styles.th}>Status</th>
                     <th style={{ ...styles.th, borderRadius: '0 8px 0 0' }}>Action</th>
                   </tr>
@@ -521,24 +390,14 @@ function RestaurantDash() {
                     <tr key={item.menu_item_id} style={{ background: idx % 2 === 0 ? 'transparent' : 'rgba(15,28,46,0.02)' }}>
                       <td style={styles.td}>{item.item_name}</td>
                       <td style={styles.td}>${item.price}</td>
+                      <td style={styles.td}>{getVenueName(item.restaurant_venue_id)}</td>
                       <td style={styles.td}>
-                        <span style={{
-                          display: 'inline-block',
-                          padding: '3px 10px',
-                          borderRadius: '999px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          background: item.is_available ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                          color: item.is_available ? '#166534' : '#b91c1c'
-                        }}>
+                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700, background: item.is_available ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)', color: item.is_available ? '#166534' : '#b91c1c' }}>
                           {item.is_available ? 'Available' : 'Unavailable'}
                         </span>
                       </td>
                       <td style={styles.td}>
-                        <button
-                          style={item.is_available ? styles.btnDanger : styles.btnSuccess}
-                          onClick={() => handleToggleAvailability(item)}
-                        >
+                        <button style={item.is_available ? styles.btnDanger : styles.btnSuccess} onClick={() => handleToggleAvailability(item)}>
                           {item.is_available ? 'Mark Unavailable' : 'Mark Available'}
                         </button>
                       </td>
@@ -552,8 +411,13 @@ function RestaurantDash() {
           <div style={styles.card}>
             <h2 style={styles.sectionTitle}>Add Menu Item</h2>
             <div style={styles.formGroup}>
-              <label style={styles.label}>Venue ID</label>
-              <input style={styles.input} type="number" placeholder="Enter venue ID" value={newItemVenueId} onChange={e => setNewItemVenueId(e.target.value)} />
+              <label style={styles.label}>Restaurant</label>
+              <select style={styles.select} value={newItemVenueId} onChange={e => setNewItemVenueId(e.target.value)}>
+                <option value="">Select a restaurant</option>
+                {restaurants.map(r => (
+                  <option key={r.venue_id} value={r.venue_id}>{r.venue_name}</option>
+                ))}
+              </select>
             </div>
             <div style={styles.formGroup}>
               <label style={styles.label}>Item Name</label>
@@ -614,12 +478,22 @@ function RestaurantDash() {
           <div style={styles.card}>
             <h2 style={styles.sectionTitle}>Add Reservation</h2>
             <div style={styles.formGroup}>
-              <label style={styles.label}>Venue ID</label>
-              <input style={styles.input} type="number" placeholder="Enter venue ID" value={resVenueId} onChange={e => setResVenueId(e.target.value)} />
+              <label style={styles.label}>Restaurant</label>
+              <select style={styles.select} value={resVenueId} onChange={e => setResVenueId(e.target.value)}>
+                <option value="">Select a restaurant</option>
+                {restaurants.map(r => (
+                  <option key={r.venue_id} value={r.venue_id}>{r.venue_name}</option>
+                ))}
+              </select>
             </div>
             <div style={styles.formGroup}>
-              <label style={styles.label}>Customer ID</label>
-              <input style={styles.input} type="number" placeholder="Enter customer ID" value={resCustomerId} onChange={e => setResCustomerId(e.target.value)} />
+              <label style={styles.label}>Customer Email</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input style={{ ...styles.input, flex: 1 }} type="email" placeholder="Enter customer email" value={resCustomerEmail} onChange={e => { setResCustomerEmail(e.target.value); setResCustomerInfo(null); setResCustomerEmailError('') }} />
+                <button style={styles.btnOcean} type="button" onClick={handleResCustomerEmailLookup}>Look Up</button>
+              </div>
+              {resCustomerInfo && <p style={{ color: '#166534', margin: '4px 0 0', fontSize: '0.88rem' }}>✅ Found: {resCustomerInfo.first_name} {resCustomerInfo.last_name}</p>}
+              {resCustomerEmailError && <p style={{ color: '#b91c1c', margin: '4px 0 0', fontSize: '0.88rem' }}>{resCustomerEmailError}</p>}
             </div>
             <div style={styles.formGroup}>
               <label style={styles.label}>Date</label>

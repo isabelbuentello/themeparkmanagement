@@ -26,13 +26,10 @@ function requireRole(...roles) {
 
 function isPastDate(dateText) {
   if (!dateText) return false
-
   const selectedDate = new Date(`${dateText}T00:00:00`)
   if (Number.isNaN(selectedDate.getTime())) return false
-
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-
   return selectedDate < today
 }
 
@@ -40,17 +37,8 @@ function isPastDate(dateText) {
 // PRICES
 // ─────────────────────────────────────────
 
-const TICKET_PRICES = {
-  1: 25.00,
-  2: 10.00
-}
-
-const PASS_PRICES = {
-  1: 15.00,
-  2: 20.00,
-  3: 10.00,
-  4: 150.00
-}
+const TICKET_PRICES = { 1: 25.00, 2: 10.00 }
+const PASS_PRICES = { 1: 15.00, 2: 20.00, 3: 10.00, 4: 150.00 }
 
 // ─────────────────────────────────────────
 // CUSTOMER LOOKUP
@@ -363,6 +351,18 @@ router.post('/shops/sell', verifyToken, requireRole('shop_manager', 'general_man
 // ─────────────────────────────────────────
 // RESTAURANT FOOD SALES
 // ─────────────────────────────────────────
+
+// GET all restaurants by name
+router.get('/restaurants', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
+  db.query(
+    `SELECT v.venue_id, v.venue_name 
+     FROM Venue v JOIN Restaurant r ON v.venue_id = r.venue_id`,
+    (err, results) => {
+      if (err) return res.status(500).json({ message: 'Server error' })
+      res.json(results)
+    }
+  )
+})
 
 router.get('/restaurants/menu', verifyToken, requireRole('restaurant_manager', 'general_manager'), (req, res) => {
   db.query(
