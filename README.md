@@ -1,14 +1,94 @@
-Team 6 Project
+# Team 6 — Theme Park Management System
 
-Logins:
+## Links
+- **Hosted App:** https://themeparkmanagement-production.up.railway.app/
+- **GitHub:** https://github.com/isabelbuentello/themeparkmanagement
 
-general manager: mjohnson password123
-customer: isabelb password or make your own
-maintenance: jrodriguez password123
-restaurant manager: echen password123
-shop manager: dbrown password123
+---
 
-triggers:
-trg_maintenance_update_ride_status: When a maintenance log is created, automatically updates the ride's status (broken → broken, in-progress → maintenance, fixed → open)
+## Team Members
+| GitHub Username | Name |
+|----------------|------|
+| isabelbuentello | Isabel Buentello |
+| akshitajulius | Akshita Julius |
+| AlexC2811 | Alexander Cantarero |
+| lcsmnts | Lucas Montes |
 
-trg_parkday_rain_insertWhen a new park day is created with rain=true, automatically closes all weather-affected rides
+---
+
+## Login Credentials
+
+| Role | Username | Password |
+|------|----------|----------|
+| General Manager | mjohnson | password123 |
+| Maintenance | jrodriguez | password123 |
+| Restaurant Manager | echen | password123 |
+| Shop Manager | dbrown | password123 |
+| Ticket Seller | awilson | password123 |
+| Show Manager | jmartinez | password123 |
+| Customer | isabelb | password |
+
+Customers can also register their own account through the signup page.
+
+---
+
+## Tech Stack
+- **Frontend:** React (Vite)
+- **Backend:** Node.js / Express
+- **Database:** MySQL (hosted on Railway)
+- **Deployment:** Railway
+
+---
+
+## Setup Instructions
+
+### Prerequisites
+- Node.js v18+
+- MySQL
+- Git
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/isabelbuentello/themeparkmanagement.git
+cd themeparkmanagement
+```
+
+2. Install backend dependencies:
+```bash
+cd backend
+npm install
+```
+
+3. Install frontend dependencies:
+```bash
+cd ../frontend
+npm install
+```
+
+4. Create a `.env` file in the root directory:
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=yourpassword
+DB_NAME=themeparkmanagement
+JWT_SECRET=yoursecretkey
+
+5. Set up the database:
+```bash
+mysql -u root -p themeparkmanagement < schema.sql
+```
+
+6. Start the backend:
+```bash
+cd backend
+node index.js
+```
+
+7. Start the frontend:
+```bash
+cd frontend
+npm run dev
+```
+
+8. Visit `http://localhost:5173` in your browser.
