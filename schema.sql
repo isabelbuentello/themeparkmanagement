@@ -223,6 +223,8 @@ CREATE TABLE MaintenanceRequest (
   priority                   ENUM('low', 'medium', 'high')                              NOT NULL DEFAULT 'medium',
   status_request             ENUM('new', 'assigned', 'in_progress', 'resolved')         NOT NULL DEFAULT 'new',
   assigned_to_employee_id    INT                                                         NULL,
+  cost_to_repair             DECIMAL(10,2)                                               NULL,
+  cost_recorded_time         DATETIME                                                    NULL,
   created_time               DATETIME                                                    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_time               DATETIME                                                    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (request_id),
@@ -497,22 +499,12 @@ DELIMITER ;
 DELIMITER //
 
 CREATE TRIGGER trg_maintenance_update_ride_status
-AFTER INSERT ON MaintenanceLog
+AFTER INSERT ON MaintenanceRequest
 FOR EACH ROW
 BEGIN
-    IF NEW.status_maintenance = 'broken' THEN
-        UPDATE Ride
-        SET status_ride = 'broken'
-        WHERE ride_id = NEW.ride_id;
-    ELSEIF NEW.status_maintenance = 'in-progress' THEN
-        UPDATE Ride
-        SET status_ride = 'maintenance'
-        WHERE ride_id = NEW.ride_id;
-    ELSEIF NEW.status_maintenance = 'fixed' THEN
-        UPDATE Ride
-        SET status_ride = 'open'
-        WHERE ride_id = NEW.ride_id;
-    END IF;
+  UPDATE Ride
+  SET status_ride = 'broken'
+  WHERE ride_id = NEW.ride_id;
 END //
 
 DELIMITER ;

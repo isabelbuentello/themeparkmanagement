@@ -238,7 +238,7 @@ router.patch(
 	(req, res) => {
 		const { id } = req.params
 		const { status_ride } = req.body
-		const allowedStatuses = ['open', 'broken', 'maintenance', 'closed_weather']
+		const allowedStatuses = ['open', 'broken', 'maintenance']
 
 		if (!allowedStatuses.includes(status_ride)) {
 			return res.status(400).json({ message: 'Invalid status_ride' })
@@ -280,9 +280,34 @@ router.post(
 				}
 
 				connection.query(
-				'INSERT INTO RideRainout (ride_id, rainout_time) VALUES (?, NOW())',
+				'SELECT affected_by_rain FROM Ride WHERE ride_id = ? LIMIT 1',
 				[id],
-				(insertErr) => {
+				(selErr, rows) => {
+					if (selErr) {
+						return connection.rollback(() => {
+							connection.release()
+							res.status(500).json({ message: 'Server error' })
+						})
+					}
+
+					if (rows.length === 0) {
+						return connection.rollback(() => {
+							connection.release()
+							res.status(404).json({ message: 'Ride not found' })
+						})
+					}
+
+					if (!rows[0].affected_by_rain) {
+						return connection.rollback(() => {
+							connection.release()
+							res.status(400).json({ message: 'Only weather-affected rides can be closed for weather' })
+						})
+					}
+
+					connection.query(
+					'INSERT INTO RideRainout (ride_id, rainout_time) VALUES (?, NOW())',
+					[id],
+					(insertErr) => {
 					if (insertErr) {
 						return connection.rollback(() => {
 							connection.release()
@@ -290,40 +315,22 @@ router.post(
 						})
 					}
 
-					connection.query(
-						"UPDATE Ride SET status_ride = 'closed_weather' WHERE ride_id = ?",
-						[id],
-						(updateErr, result) => {
-							if (updateErr) {
-								return connection.rollback(() => {
-									connection.release()
-									res.status(500).json({ message: 'Error updating ride status' })
-								})
-							}
-
-							if (result.affectedRows === 0) {
-								return connection.rollback(() => {
-									connection.release()
-									res.status(404).json({ message: 'Ride not found' })
-								})
-							}
-
-							connection.commit((commitErr) => {
-								if (commitErr) {
-									return connection.rollback(() => {
-										connection.release()
-										res.status(500).json({ message: 'Server error' })
-									})
-								}
-
+					connection.commit((commitErr) => {
+						if (commitErr) {
+							return connection.rollback(() => {
 								connection.release()
-
-								res.json({
-									message: 'Rainout logged and ride closed for weather',
-									ride_id: Number(id)
-								})
+								res.status(500).json({ message: 'Server error' })
 							})
 						}
+
+						connection.release()
+
+						res.json({
+							message: 'Rainout logged',
+							ride_id: Number(id)
+						})
+					})
+					}
 					)
 				}
 				)

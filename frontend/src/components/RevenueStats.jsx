@@ -96,18 +96,20 @@ function RevenueStats({ token }) {
         <div className="gm-table-wrapper">
           <table className="gm-table">
             <thead>
-              <tr><th>Date</th><th>Total Revenue</th><th>Transactions</th></tr>
+              <tr><th>Date</th><th>Gross Revenue</th><th>Repair Costs</th><th>Net Revenue</th><th>Transactions</th></tr>
             </thead>
             <tbody>
               {revenue.map((r, i) => (
                 <tr key={i}>
                   <td>{new Date(r.revenue_date).toLocaleDateString()}</td>
+                  <td>${Number(r.gross_revenue || 0).toFixed(2)}</td>
+                  <td>-${Number(r.repair_cost || 0).toFixed(2)}</td>
                   <td>${Number(r.daily_total).toFixed(2)}</td>
                   <td>{r.transaction_count}</td>
                 </tr>
               ))}
               {revenue.length === 0 && (
-                <tr><td colSpan="3" style={{ textAlign: 'center', color: '#999' }}>No revenue data</td></tr>
+                <tr><td colSpan="5" style={{ textAlign: 'center', color: '#999' }}>No revenue data</td></tr>
               )}
             </tbody>
           </table>
