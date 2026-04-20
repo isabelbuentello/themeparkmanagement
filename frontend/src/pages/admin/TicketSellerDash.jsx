@@ -234,7 +234,9 @@ function TicketSellerDash() {
             <select style={styles.select} value={passTypeId} onChange={e => setPassTypeId(e.target.value)}>
               <option value="">Select a pass type</option>
               {passTypes.map(p => (
-                <option key={p.pass_type_id} value={p.pass_type_id}>{p.pass_name}</option>
+                <option key={p.pass_type_id} value={p.pass_type_id}>
+                  {p.pass_name} — ${Number(p.price).toFixed(2)}
+                </option>
               ))}
             </select>
           </div>
