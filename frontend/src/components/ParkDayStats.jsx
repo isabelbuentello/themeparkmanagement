@@ -3,9 +3,10 @@ import '../styles/parkdaystats.css'
 import Toast from './Toast'
 
 function ParkDayStats({ token }) {
+  const todayDate = new Date().toISOString().split('T')[0]
   const [parkDays, setParkDays] = useState([])
   const [form, setForm] = useState({
-    park_date: new Date().toISOString().split('T')[0],
+    park_date: todayDate,
     rain: false,
     park_closed: false,
     weather_notes: ''
@@ -55,7 +56,12 @@ function ParkDayStats({ token }) {
       <div className="gm-form-card">
         <div className="gm-form-row">
           <label>Date</label>
-          <input type="date" value={form.park_date} onChange={e => setForm({ ...form, park_date: e.target.value })} />
+          <input
+            type="date"
+            value={form.park_date}
+            min={todayDate}
+            onChange={e => setForm({ ...form, park_date: e.target.value })}
+          />
         </div>
         <div className="gm-form-row">
           <label className="gm-checkbox-label">

@@ -122,6 +122,18 @@ function getTokenPayload(req) {
   }
 }
 
+function isPastDate(dateText) {
+  if (!dateText) return false
+
+  const selectedDate = new Date(`${dateText}T00:00:00`)
+  if (Number.isNaN(selectedDate.getTime())) return false
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  return selectedDate < today
+}
+
 function requireCustomer(req, res, next) {
   const payload = getTokenPayload(req)
 
@@ -946,8 +958,12 @@ router.post('/checkout', requireCustomer, async (req, res) => {
     return res.status(400).json({ message: 'Visit date is required' })
   }
 
-  if (!['card', 'cash'].includes(paymentMethod)) {
+  if (paymentMethod !== 'card') {
     return res.status(400).json({ message: 'Invalid payment method' })
+  }
+
+  if (visitDate && isPastDate(visitDate)) {
+    return res.status(400).json({ message: 'Visit date cannot be in the past' })
   }
 
   if (paymentMethod === 'card') {
@@ -966,8 +982,8 @@ router.post('/checkout', requireCustomer, async (req, res) => {
       return res.status(400).json({ message: 'Cardholder name is required for card payments' })
     }
 
-    if (!/^\d{13,19}$/.test(normalizedCardNumber)) {
-      return res.status(400).json({ message: 'Card number is invalid' })
+    if (!/^\d{16}$/.test(normalizedCardNumber)) {
+      return res.status(400).json({ message: 'Card number must be 16 digits' })
     }
 
     if (!/^\d{2}\/\d{2}$/.test(trimmedCardExpiry)) {

@@ -15,6 +15,18 @@ function isFutureDate(dateStr) {
   return inputDate > today;
 }
 
+function isPastDate(dateStr) {
+  if (!dateStr) return false;
+  const inputDate = new Date(dateStr);
+  if (Number.isNaN(inputDate.getTime())) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  inputDate.setHours(0, 0, 0, 0);
+
+  return inputDate < today;
+}
+
 // GET all employees
 router.get('/', (req, res) => {
   db.query(
@@ -57,6 +69,10 @@ router.post('/', (req, res) => {
 
   if (isFutureDate(employee_birthdate)) {
     return res.status(400).json({ error: 'Birthdate cannot be in the future' });
+  }
+
+  if (isPastDate(start_date)) {
+    return res.status(400).json({ error: 'Start date cannot be in the past' });
   }
 
   db.query(

@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import '../styles/shared-forms.css'
 
 function Emergency({ onClose }) {
+  const todayDate = new Date().toISOString().split('T')[0]
   const [venues, setVenues] = useState([])
   const [rides, setRides] = useState([])
   const [locationType, setLocationType] = useState('manual')
 
   const [form, setForm] = useState({
-    date_of_emergency: new Date().toISOString().split('T')[0],
+    date_of_emergency: todayDate,
     event_lat: '',
     event_long: '',
     event_description: ''
@@ -104,7 +105,7 @@ function Emergency({ onClose }) {
       }
 
       setSuccess('Emergency reported successfully')
-      setForm({ date_of_emergency: new Date().toISOString().split('T')[0], event_lat: '', event_long: '', event_description: '' })
+      setForm({ date_of_emergency: todayDate, event_lat: '', event_long: '', event_description: '' })
       setLocationType('manual')
     } catch (err) {
       setError('Something went wrong')
@@ -119,7 +120,7 @@ function Emergency({ onClose }) {
       
       <div className="form-group">
         <label>Date of Emergency</label>
-        <input className="form-control" name="date_of_emergency" type="date" value={form.date_of_emergency} onChange={handleChange} />
+        <input className="form-control" name="date_of_emergency" type="date" value={form.date_of_emergency} min={todayDate} onChange={handleChange} />
       </div>
 
       <div className="form-group">

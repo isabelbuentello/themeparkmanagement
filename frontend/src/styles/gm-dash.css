@@ -71,6 +71,152 @@
   margin-bottom: 1rem;
 }
 
+.gm-form-card {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.gm-form-row select {
+  flex: 1;
+  min-width: 170px;
+  padding: 10px 14px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background: white;
+  color: #343a40;
+  font: inherit;
+}
+
+.gm-report-panel {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.gm-report-panel h4 {
+  margin: 0 0 0.85rem;
+  color: #495057;
+}
+
+.gm-report-panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.gm-report-panel-header h4 {
+  margin: 0;
+}
+
+.gm-report-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1rem;
+}
+
+.gm-report-card {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 96px;
+  align-content: center;
+  padding: 1rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background: white;
+}
+
+.gm-report-card span,
+.gm-report-card small {
+  color: #495057;
+}
+
+.gm-report-card strong {
+  color: #343a40;
+  font-size: 1.3rem;
+}
+
+.gm-report-controls {
+  margin-bottom: 0;
+}
+
+.gm-report-view-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.gm-report-action-btn {
+  width: 150px;
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+.gm-report-error {
+  color: #b42318;
+  border-color: #f3b6b0;
+  background: #fff5f5;
+}
+
+.gm-group-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.gm-group-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.gm-group-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 0.75rem;
+}
+
+.gm-group-card h5 {
+  margin: 0;
+  color: #343a40;
+  font-size: 1rem;
+}
+
+.gm-group-card-header span,
+.gm-group-card p,
+.gm-group-card li span {
+  color: #6c757d;
+}
+
+.gm-group-card p {
+  margin: 0;
+}
+
+.gm-group-card ul {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gm-group-card li {
+  display: grid;
+  gap: 0.2rem;
+}
+
 /* Table Styling */
 .gm-table-wrapper {
   overflow-x: auto;
@@ -105,6 +251,10 @@
 
 .gm-table tr:hover {
   background-color: #e9ecef;
+}
+
+.gm-compact-table {
+  min-width: 360px;
 }
 
 .gm-toggle-btn {
