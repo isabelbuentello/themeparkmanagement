@@ -124,7 +124,6 @@ function GMDash() {
         <button className={`gm-tool-btn ${activePanel === 'addRide' ? 'active' : ''}`} onClick={() => togglePanel('addRide')}>Add New Ride</button>
         <button className={`gm-tool-btn ${activePanel === 'emergencies' ? 'active' : ''}`} onClick={() => togglePanel('emergencies', fetchEmergencies)}>View Emergencies</button>
         <button className={`gm-tool-btn ${activePanel === 'config' ? 'active' : ''}`} onClick={() => togglePanel('config')}>Park Configuration</button>
-        <button className={`gm-tool-btn ${activePanel === 'rainouts' ? 'active' : ''}`} onClick={() => togglePanel('rainouts', fetchRainouts)}>Rainout Tracking</button>
         <button className={`gm-tool-btn ${activePanel === 'parkDay' ? 'active' : ''}`} onClick={() => togglePanel('parkDay')}>Park Day Stats</button>
         <button className={`gm-tool-btn ${activePanel === 'revenue' ? 'active' : ''}`} onClick={() => togglePanel('revenue')}>Revenue</button>
         <button className={`gm-tool-btn ${activePanel === 'loyalty' ? 'active' : ''}`} onClick={() => togglePanel('loyalty')}>Customer Loyalty</button>

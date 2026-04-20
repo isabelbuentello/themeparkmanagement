@@ -90,7 +90,7 @@ function ParkDayStats({ token }) {
           <tbody>
             {parkDays.map(day => (
               <tr key={day.day_id}>
-                <td>{new Date(day.park_date).toLocaleDateString()}</td>
+              new Date(day.park_date + 'T00:00:00').toLocaleDateString()
                 <td>{day.total_attendance}</td>
                 <td>
                   <span className={`gm-badge ${day.rain ? 'gm-badge-warn' : 'gm-badge-ok'}`}>
