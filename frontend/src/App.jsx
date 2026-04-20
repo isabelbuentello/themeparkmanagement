@@ -9,6 +9,7 @@ import FeedbackPage from './pages/FeedbackPage'
 import HomePage from './pages/HomePage'
 import MembershipPage from './pages/Membership'
 import MembershipSummaryPage from './pages/MembershipSummaryPage'
+import RidesPage from './pages/RidesPage'
 import QueuePage from './pages/QueuePage'
 import QueueSummaryPage from './pages/QueueSummaryPage'
 import TicketsPage from './pages/TicketsPage'
@@ -34,6 +35,7 @@ function App() {
               path="/memberships/summary"
               element={<MembershipSummaryPage />}
             />
+            <Route path="/rides" element={<RidesPage />} />
             <Route path="/queue" element={<QueuePage />} />
             <Route path="/queue/summary" element={<QueueSummaryPage />} />
             <Route

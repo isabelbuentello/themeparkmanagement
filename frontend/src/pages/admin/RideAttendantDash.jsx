@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/gm-dash.css'
 
-const STATUS_OPTIONS = ['open', 'broken', 'maintenance', 'closed_weather']
+const STATUS_OPTIONS = ['open', 'broken', 'maintenance']
 
 function RideAttendantDash() {
   const navigate = useNavigate()
