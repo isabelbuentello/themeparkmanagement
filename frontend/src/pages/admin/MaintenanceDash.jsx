@@ -8,7 +8,6 @@ function MaintenanceDash() {
   const [overview, setOverview] = useState([])
   const [broken, setBroken] = useState([])
   const [requests, setRequests] = useState([])
-  const [rainouts, setRainouts] = useState([])
   const [ridesOptions, setRidesOptions] = useState([])
   const [employeeOptions, setEmployeeOptions] = useState([])
   const [pageError, setPageError] = useState('')
@@ -18,7 +17,6 @@ function MaintenanceDash() {
   const [requestAssignmentFilter, setRequestAssignmentFilter] = useState('all')
   const [requestPriorityFilter, setRequestPriorityFilter] = useState('all')
   const [requestRideTypeFilter, setRequestRideTypeFilter] = useState('all')
-  const [rainoutRideFilter, setRainoutRideFilter] = useState('all')
   const [requestDrafts, setRequestDrafts] = useState({})
   const [rideOverviewTypeFilter, setRideOverviewTypeFilter] = useState('all')
   const [rideOverviewStatusFilter, setRideOverviewStatusFilter] = useState('all')
@@ -75,22 +73,13 @@ function MaintenanceDash() {
     return map
   }, {})
 
-  const latestRainoutByRide = rainouts.reduce((map, rainout) => {
-    const current = map[rainout.ride_id]
-    if (!current || new Date(rainout.rainout_time) > new Date(current.rainout_time)) {
-      map[rainout.ride_id] = rainout
-    }
-    return map
-  }, {})
-
   const maintenanceSummary = ridesOptions.map((ride) => {
     const rideRequests = requests.filter((request) => request.ride_id === ride.ride_id)
     return {
       ride_id: ride.ride_id,
       ride_name: ride.ride_name,
       open_requests: rideRequests.filter((request) => request.status_request !== 'resolved').length,
-      assigned_requests: rideRequests.filter((request) => request.assigned_to_employee_id).length,
-      latest_rainout: latestRainoutByRide[ride.ride_id]?.rainout_time || null
+      assigned_requests: rideRequests.filter((request) => request.assigned_to_employee_id).length
     }
   })
 
@@ -127,7 +116,7 @@ function MaintenanceDash() {
   const loadData = async () => {
     setPageError('')
     try {
-      const [overviewRes, brokenRes, requestsRes, rainoutsRes, ridesRes, employeesRes] = await Promise.all([
+      const [overviewRes, brokenRes, requestsRes, ridesRes, employeesRes] = await Promise.all([
         fetch(buildUrlWithParams('/api/maintenance/overview', {
           rideType: rideOverviewTypeFilter,
           status: rideOverviewStatusFilter,
@@ -140,9 +129,6 @@ function MaintenanceDash() {
           assignment: requestAssignmentFilter,
           rideType: requestRideTypeFilter
         }), { headers: authHeaders }),
-        fetch(buildUrlWithParams('/api/rides/rainouts', {
-          rideId: rainoutRideFilter
-        }), { headers: authHeaders }),
         fetch('/api/rides/all', { headers: authHeaders }),
         fetch('/api/employees', { headers: authHeaders })
       ])
@@ -150,14 +136,12 @@ function MaintenanceDash() {
       const overviewData = await handleResponse(overviewRes)
       const brokenData = await handleResponse(brokenRes)
       const requestsData = await handleResponse(requestsRes)
-      const rainoutsData = await handleResponse(rainoutsRes)
       const ridesData = await handleResponse(ridesRes)
       const employeesData = await handleResponse(employeesRes)
 
       setOverview(overviewData)
       setBroken(brokenData)
       setRequests(requestsData)
-      setRainouts(rainoutsData)
       setRidesOptions(ridesData)
       setEmployeeOptions(employeesData)
       setRideStatusDrafts(
@@ -214,7 +198,6 @@ function MaintenanceDash() {
     requestAssignmentFilter,
     requestPriorityFilter,
     requestRideTypeFilter,
-    rainoutRideFilter,
     rideOverviewTypeFilter,
     rideOverviewStatusFilter,
     rideOverviewSort
@@ -334,7 +317,6 @@ function MaintenanceDash() {
               <th>Ride</th>
               <th>Open Requests</th>
               <th>Assigned Requests</th>
-              <th>Latest Rainout</th>
             </tr>
           </thead>
           <tbody>
@@ -343,7 +325,6 @@ function MaintenanceDash() {
                 <td>{row.ride_name}</td>
                 <td>{row.open_requests}</td>
                 <td>{row.assigned_requests}</td>
-                <td>{row.latest_rainout ? new Date(row.latest_rainout).toLocaleString() : 'None'}</td>
               </tr>
             ))}
           </tbody>
@@ -400,36 +381,6 @@ function MaintenanceDash() {
                 </tr>
               )
             })}
-          </tbody>
-        </table>
-      </div>
-
-      <h2 className="gm-section-title">Rainout History</h2>
-      <div style={{ marginBottom: 10 }}>
-        <select value={rainoutRideFilter} onChange={(e) => setRainoutRideFilter(e.target.value)}>
-          <option value="all">All rides</option>
-          {ridesOptions.map((ride) => (
-            <option key={ride.ride_id} value={ride.ride_id}>{ride.ride_name}</option>
-          ))}
-        </select>
-      </div>
-      <div className="gm-table-wrapper">
-        <table className="gm-table">
-          <thead>
-            <tr>
-              <th>Ride</th>
-              <th>Rainout Time</th>
-              <th>Status After Rainout</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rainouts.map((rainout) => (
-              <tr key={rainout.rainout_id}>
-                <td>{rainout.ride_name}</td>
-                <td>{new Date(rainout.rainout_time).toLocaleString()}</td>
-                <td>{formatStatusLabel(rainout.status_ride)}</td>
-              </tr>
-            ))}
           </tbody>
         </table>
       </div>
