@@ -6,7 +6,8 @@ function RevenueStats({ token }) {
   const [tickets, setTickets] = useState([])
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [selectedMonth, setSelectedMonth] = useState('')
+  const [selectedYear, setSelectedYear] = useState('')
+  const [selectedMonthNum, setSelectedMonthNum] = useState('')
   const [selectedVenues, setSelectedVenues] = useState([])
   const [selectedTypes, setSelectedTypes] = useState([])
   const [venues, setVenues] = useState([])
@@ -18,31 +19,67 @@ function RevenueStats({ token }) {
     { value: 'other', label: 'Memberships' }
   ]
 
-  // generate last 12 months for the dropdown
-  const getMonthOptions = () => {
-    const options = []
-    const now = new Date()
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      const label = d.toLocaleString('default', { month: 'long', year: 'numeric' })
-      options.push({ value, label })
+  const months = [
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' }
+  ]
+
+  // generate year options from 2020 to current year
+  const getYearOptions = () => {
+    const currentYear = new Date().getFullYear()
+    const years = []
+    for (let y = currentYear; y >= 2020; y--) {
+      years.push(y.toString())
     }
-    return options
+    return years
   }
 
-  const handleMonthChange = (e) => {
-    const val = e.target.value
-    setSelectedMonth(val)
-    if (val) {
-      const [year, month] = val.split('-')
+  // when year or month changes, compute the date range
+  const updateDateRange = (year, month) => {
+    if (!year) {
+      // all time
+      setStartDate('')
+      setEndDate('')
+      return
+    }
+
+    if (month) {
+      // specific month in a year
       setStartDate(`${year}-${month}-01`)
       const lastDay = new Date(Number(year), Number(month), 0).getDate()
       setEndDate(`${year}-${month}-${lastDay}`)
     } else {
-      setStartDate('')
-      setEndDate('')
+      // entire year
+      setStartDate(`${year}-01-01`)
+      setEndDate(`${year}-12-31`)
     }
+  }
+
+  const handleYearChange = (e) => {
+    const year = e.target.value
+    setSelectedYear(year)
+    if (!year) {
+      setSelectedMonthNum('')
+      updateDateRange('', '')
+    } else {
+      updateDateRange(year, selectedMonthNum)
+    }
+  }
+
+  const handleMonthChange = (e) => {
+    const month = e.target.value
+    setSelectedMonthNum(month)
+    updateDateRange(selectedYear, month)
   }
 
   const toggleVenue = (venueId) => {
@@ -122,7 +159,8 @@ function RevenueStats({ token }) {
   const handleClearFilters = () => {
     setStartDate('')
     setEndDate('')
-    setSelectedMonth('')
+    setSelectedYear('')
+    setSelectedMonthNum('')
     setSelectedVenues([])
     setSelectedTypes([])
     setTimeout(() => {
@@ -167,47 +205,92 @@ function RevenueStats({ token }) {
 
   const hasActiveFilters = startDate || endDate || selectedVenues.length > 0 || selectedTypes.length > 0
 
+  // build the active filter label for display
+  const getDateLabel = () => {
+    if (!selectedYear) return 'All Time'
+    if (selectedMonthNum) {
+      const monthName = months.find(m => m.value === selectedMonthNum)?.label
+      return `${monthName} ${selectedYear}`
+    }
+    return selectedYear
+  }
+
   return (
     <div style={{ marginBottom: '3rem' }}>
       <h3 className="gm-section-title">Revenue</h3>
 
       {/* ---- FILTERS ---- */}
       <div className="gm-form-card">
-        {/* Date row */}
-        <div className="rev-filter-row">
-          <div className="rev-filter-field">
-            <label className="rev-filter-label">Month</label>
-            <select className="rev-select" value={selectedMonth} onChange={handleMonthChange}>
-              <option value="">All Time</option>
-              {getMonthOptions().map(m => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
+        {/* Date period row */}
+        <div className="rev-period-row">
+          <div className="rev-period-group">
+            <div className="rev-filter-field">
+              <label className="rev-filter-label">Year</label>
+              <select className="rev-select" value={selectedYear} onChange={handleYearChange}>
+                <option value="">All Time</option>
+                {getYearOptions().map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <div className="rev-filter-field">
+              <label className="rev-filter-label">Month</label>
+              <select
+                className="rev-select"
+                value={selectedMonthNum}
+                onChange={handleMonthChange}
+                disabled={!selectedYear}
+              >
+                <option value="">{selectedYear ? 'Full Year' : '—'}</option>
+                {months.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="rev-filter-field">
-            <label className="rev-filter-label">Start Date</label>
-            <input
-              className="rev-input"
-              type="date"
-              value={startDate}
-              onChange={e => { setStartDate(e.target.value); setSelectedMonth('') }}
-            />
+
+          <div className="rev-period-divider" />
+
+          <div className="rev-period-group">
+            <div className="rev-filter-field">
+              <label className="rev-filter-label">Custom Start</label>
+              <input
+                className="rev-input"
+                type="date"
+                value={startDate}
+                onChange={e => {
+                  setStartDate(e.target.value)
+                  setSelectedYear('')
+                  setSelectedMonthNum('')
+                }}
+              />
+            </div>
+            <div className="rev-filter-field">
+              <label className="rev-filter-label">Custom End</label>
+              <input
+                className="rev-input"
+                type="date"
+                value={endDate}
+                onChange={e => {
+                  setEndDate(e.target.value)
+                  setSelectedYear('')
+                  setSelectedMonthNum('')
+                }}
+              />
+            </div>
           </div>
-          <div className="rev-filter-field">
-            <label className="rev-filter-label">End Date</label>
-            <input
-              className="rev-input"
-              type="date"
-              value={endDate}
-              onChange={e => { setEndDate(e.target.value); setSelectedMonth('') }}
-            />
-          </div>
+
           <div className="rev-filter-actions">
             <button className="gm-submit-btn" onClick={handleFilter}>Apply</button>
             {hasActiveFilters && (
-              <button className="rev-clear-btn" onClick={handleClearFilters}>Clear All</button>
+              <button className="rev-clear-btn" onClick={handleClearFilters}>Clear</button>
             )}
           </div>
+        </div>
+
+        {/* Active period badge */}
+        <div className="rev-active-period">
+          Showing: <strong>{getDateLabel()}</strong>
         </div>
 
         {/* Venue toggles */}
