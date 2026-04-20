@@ -15,8 +15,6 @@ function ManageVenues({ token }) {
     venue_type: 'shop',
     venue_name: '',
     hours: '',
-    venue_lat: '',
-    venue_long: '',
     space_for_items_sqft: '',
     requires_booking: false,
     price_range: 1,
@@ -62,8 +60,6 @@ function ManageVenues({ token }) {
           venue_type: 'shop',
           venue_name: '',
           hours: '',
-          venue_lat: '',
-          venue_long: '',
           space_for_items_sqft: '',
           requires_booking: false,
           price_range: 1,
@@ -164,32 +160,6 @@ function ManageVenues({ token }) {
                   value={newVenue.hours}
                   onChange={e => setNewVenue({ ...newVenue, hours: e.target.value })}
                   placeholder="e.g. 9AM-9PM"
-                  required
-                />
-              </div>
-
-              <div className="venue-form-group">
-                <label className="venue-label">Latitude *</label>
-                <input
-                  className="venue-input"
-                  type="number"
-                  step="0.000001"
-                  value={newVenue.venue_lat}
-                  onChange={e => setNewVenue({ ...newVenue, venue_lat: e.target.value })}
-                  placeholder="e.g. 29.760427"
-                  required
-                />
-              </div>
-
-              <div className="venue-form-group">
-                <label className="venue-label">Longitude *</label>
-                <input
-                  className="venue-input"
-                  type="number"
-                  step="0.000001"
-                  value={newVenue.venue_long}
-                  onChange={e => setNewVenue({ ...newVenue, venue_long: e.target.value })}
-                  placeholder="e.g. -95.369804"
                   required
                 />
               </div>
@@ -323,14 +293,13 @@ function ManageVenues({ token }) {
               <th>Name</th>
               <th>Type</th>
               <th>Hours</th>
-              <th>Location</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredVenues.length === 0 ? (
               <tr>
-                <td colSpan="6" className="venue-empty">No venues found.</td>
+                <td colSpan="5" className="venue-empty">No venues found.</td>
               </tr>
             ) : (
               filteredVenues.map(venue => (
@@ -343,7 +312,6 @@ function ManageVenues({ token }) {
                     </span>
                   </td>
                   <td>{venue.hours}</td>
-                  <td>{venue.venue_lat}, {venue.venue_long}</td>
                   <td>
                     <button
                       className="venue-btn venue-btn-delete"
@@ -408,14 +376,6 @@ function VenueDetailModal({ venue, onClose }) {
           <div className="venue-detail-row">
             <span className="venue-detail-label">Hours:</span>
             <span>{venue.hours}</span>
-          </div>
-          <div className="venue-detail-row">
-            <span className="venue-detail-label">Latitude:</span>
-            <span>{venue.venue_lat}</span>
-          </div>
-          <div className="venue-detail-row">
-            <span className="venue-detail-label">Longitude:</span>
-            <span>{venue.venue_long}</span>
           </div>
 
           {venue.venue_type === 'shop' && (
