@@ -4,9 +4,7 @@ import { DEPARTMENT_ROUTES } from '../constants/roles'
 import Emergency from '../components/Emergency'
 import MaintenanceRequest from '../components/MaintenanceRequest'
 import EmployeeDirectory from '../components/EmployeeDirectory'
-import ParkMap from '../components/ParkMap'
 import '../styles/employee-dash.css'
-
 
 function EmployeeDash() {
   const navigate = useNavigate()
@@ -15,7 +13,6 @@ function EmployeeDash() {
   const [showEmergency, setShowEmergency] = useState(false)
   const [showMaintenance, setShowMaintenance] = useState(false)
   const [showDirectory, setShowDirectory] = useState(false)
-  const [showMap, setShowMap] = useState(false)
 
   const handleLogout = () => {
     localStorage.clear()
@@ -23,32 +20,19 @@ function EmployeeDash() {
   }
 
   const formatRole = (role) => {
-  if (!role) return ''
-  return role
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ')
-}
+    if (!role) return ''
+    return role
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+  }
 
   return (
     <div className="emp-dash-container">
       <h1 className="emp-header">Employee Dashboard</h1>
       <p className="emp-welcome">Welcome! You are logged in as: <strong>{formatRole(role)}</strong></p>
-
       <h2 className="emp-section-title">Shared Tools</h2>
       <div className="emp-tools-grid">
-        <button 
-            className="emp-btn" 
-            onClick={() => { 
-                setShowMap(!showMap)
-                setShowMaintenance(false)
-                setShowEmergency(false)
-                setShowDirectory(false)
-            }}
-            >
-            View Park Map
-        </button>
-
         <button className="emp-btn" onClick={() => { setShowMaintenance(!showMaintenance); setShowEmergency(false); setShowDirectory(false) }}>
           Submit Maintenance Request
         </button>
@@ -60,7 +44,6 @@ function EmployeeDash() {
         </button>
       </div>
 
-        {showMap && <ParkMap token={token} />}
       {showMaintenance && (
         <div className="emp-form-wrapper">
           <MaintenanceRequest onClose={() => setShowMaintenance(false)} />
@@ -79,7 +62,6 @@ function EmployeeDash() {
       <button className="emp-btn-primary" onClick={() => navigate(DEPARTMENT_ROUTES[role])}>
         Go to My Dashboard
       </button>
-
       <div style={{ textAlign: 'right' }}>
         <button className="emp-btn-danger" onClick={handleLogout}>
           Logout
