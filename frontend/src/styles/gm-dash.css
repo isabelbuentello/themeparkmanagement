@@ -127,3 +127,362 @@
 .gm-toggle-btn:hover:not(.active) {
   background: #e8e8e8;
 }
+
+/* ═══════════════════════════════════════
+   Revenue Report Styles
+   ═══════════════════════════════════════ */
+
+/* ─── Period / Date Row ─── */
+.rev-period-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.rev-period-group {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.rev-period-divider {
+  width: 1px;
+  background: #dee2e6;
+  align-self: stretch;
+  margin: 0 0.25rem;
+}
+
+.rev-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 150px;
+}
+
+.rev-filter-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ─── Custom Select Wrapper ─── */
+.rev-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.rev-select-wrapper .rev-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 36px;
+}
+
+.rev-select-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: #6c757d;
+  pointer-events: none;
+}
+
+/* ─── Select & Input Base Styles ─── */
+.rev-select,
+.rev-input {
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #343a40;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.rev-select:hover,
+.rev-input:hover {
+  border-color: #adb5bd;
+}
+
+.rev-select:focus,
+.rev-input:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.rev-select:disabled {
+  background: #f3f4f6;
+  color: #adb5bd;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+}
+
+.rev-select:disabled + .rev-select-arrow {
+  color: #d1d5db;
+}
+
+/* ─── Buttons — Same Size ─── */
+.rev-filter-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  padding-bottom: 1px;
+}
+
+.rev-apply-btn,
+.rev-clear-btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  line-height: 1.4;
+  white-space: nowrap;
+  min-width: 100px;
+  text-align: center;
+}
+
+.rev-apply-btn {
+  background-color: #343a40;
+  color: #fff;
+  border: 1px solid #343a40;
+}
+
+.rev-apply-btn:hover {
+  background-color: #23272b;
+  border-color: #23272b;
+}
+
+.rev-apply-btn.rev-btn-applied {
+  background-color: #2d8a39;
+  border-color: #2d8a39;
+}
+
+.rev-clear-btn {
+  background: #fff;
+  color: #495057;
+  border: 1px solid #d1d5db;
+}
+
+.rev-clear-btn:hover {
+  background: #f1f1f1;
+  border-color: #adb5bd;
+}
+
+/* ─── Status Bar ─── */
+.rev-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.rev-active-period {
+  font-size: 0.85rem;
+  color: #6c757d;
+  padding: 5px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #eef0f2;
+  transition: all 0.3s;
+}
+
+.rev-active-period strong {
+  color: #343a40;
+}
+
+.rev-active-period.rev-applied {
+  border-color: #2d8a39;
+  background: #f0fdf4;
+}
+
+.rev-filter-count {
+  font-size: 0.8rem;
+  color: #7c3aed;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: #f5f0ff;
+  border-radius: 12px;
+}
+
+.rev-applied-badge {
+  font-size: 0.8rem;
+  color: #2d8a39;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  animation: rev-fade-in 0.3s ease;
+}
+
+@keyframes rev-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Toggle Chip Sections ─── */
+.rev-toggle-section {
+  margin-bottom: 1.25rem;
+}
+
+.rev-toggle-section .rev-filter-label {
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.rev-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rev-chip {
+  padding: 7px 16px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 20px;
+  background: #fff;
+  color: #495057;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  font-family: inherit;
+}
+
+.rev-chip:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+  background: #f5f0ff;
+}
+
+.rev-chip.active {
+  background: #7c3aed;
+  color: #fff;
+  border-color: #7c3aed;
+}
+
+.rev-chip-empty {
+  font-size: 0.85rem;
+  color: #999;
+  font-style: italic;
+}
+
+/* ─── View Tabs ─── */
+.rev-view-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding-top: 0.25rem;
+}
+
+/* ─── Summary Cards ─── */
+.rev-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.rev-summary-card {
+  background: #fff;
+  border: 1px solid #eef0f2;
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s;
+}
+
+.rev-summary-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.rev-summary-card.rev-summary-highlight {
+  border-left: 4px solid #7c3aed;
+}
+
+.rev-summary-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6c757d;
+}
+
+.rev-summary-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #343a40;
+  line-height: 1.2;
+}
+
+.rev-summary-value.rev-summary-green {
+  color: #2d8a39;
+}
+
+.rev-summary-sub {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* ─── Empty table row ─── */
+.rev-empty-row {
+  text-align: center;
+  color: #999;
+  padding: 2rem 1rem;
+  font-style: italic;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .rev-period-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rev-period-group {
+    flex-direction: column;
+  }
+
+  .rev-period-divider {
+    width: 100%;
+    height: 1px;
+    margin: 0.25rem 0;
+  }
+
+  .rev-filter-field {
+    min-width: 100%;
+  }
+
+  .rev-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .rev-filter-actions {
+    width: 100%;
+  }
+
+  .rev-apply-btn,
+  .rev-clear-btn {
+    flex: 1;
+  }
+}
