@@ -254,7 +254,7 @@ function MaintenanceDash() {
   }
 
   return (
-    <div className="gm-dash-container">
+    <div className="gm-dash-container maintenance-dash">
       <div className="gm-header-bar">
         <h1>Maintenance Dashboard</h1>
         <button className="gm-btn-back" onClick={() => navigate('/account/employee')}>Back to Employee Dashboard</button>
