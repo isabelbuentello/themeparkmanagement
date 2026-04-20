@@ -105,9 +105,15 @@ router.post('/maintenance-request', verifyToken, (req, res) => {
   }
 
   db.query(
-    `INSERT INTO MaintenanceRequest (ride_id, submitted_by_employee_id, issue_description, priority)
+    `INSERT INTO MaintenanceRequest
+     (ride_id, submitted_by_employee_id, issue_description, priority)
      VALUES (?, ?, ?, ?)`,
-    [ride_id, submitted_by_employee_id, issue_description, priority || 'medium'],
+    [
+      ride_id,
+      submitted_by_employee_id,
+      issue_description,
+      priority || 'medium'
+    ],
     (err) => {
       if (err) return res.status(500).json({ message: 'Error submitting request' })
       res.json({ message: 'Maintenance request submitted successfully' })
@@ -124,7 +130,7 @@ router.get('/maintenance-request', verifyToken, (req, res) => {
   db.query(
     `SELECT mr.request_id, mr.ride_id, r.ride_name, mr.submitted_by_employee_id,
             mr.issue_description, mr.priority, mr.status_request,
-            mr.assigned_to_employee_id, mr.created_time
+            mr.assigned_to_employee_id, mr.cost_to_repair, mr.created_time
      FROM MaintenanceRequest mr
      JOIN Ride r ON mr.ride_id = r.ride_id
      ORDER BY mr.created_time DESC`,

@@ -4,42 +4,44 @@ import '../../styles/gm-dash.css'
 
 function MaintenanceDash() {
   const navigate = useNavigate()
+  const STATUS_OPTIONS = ['open', 'broken', 'maintenance']
   const [overview, setOverview] = useState([])
   const [broken, setBroken] = useState([])
   const [requests, setRequests] = useState([])
   const [logs, setLogs] = useState([])
-  const [trainingRequests, setTrainingRequests] = useState([])
   const [rainouts, setRainouts] = useState([])
   const [ridesOptions, setRidesOptions] = useState([])
   const [employeeOptions, setEmployeeOptions] = useState([])
   const [pageError, setPageError] = useState('')
   const [requestError, setRequestError] = useState('')
   const [requestMessage, setRequestMessage] = useState('')
-  const [logError, setLogError] = useState('')
-  const [logMessage, setLogMessage] = useState('')
-  const [trainingError, setTrainingError] = useState('')
-  const [trainingMessage, setTrainingMessage] = useState('')
   const [requestStatusFilter, setRequestStatusFilter] = useState('all')
   const [requestAssignmentFilter, setRequestAssignmentFilter] = useState('all')
   const [requestPriorityFilter, setRequestPriorityFilter] = useState('all')
-  const [logStatusFilter, setLogStatusFilter] = useState('all')
   const [rainoutRideFilter, setRainoutRideFilter] = useState('all')
   const [requestDrafts, setRequestDrafts] = useState({})
   const [rideOverviewTypeFilter, setRideOverviewTypeFilter] = useState('all')
   const [rideOverviewStatusFilter, setRideOverviewStatusFilter] = useState('all')
   const [rideOverviewSort, setRideOverviewSort] = useState('none')
-
-  const [newLog, setNewLog] = useState({
-    ride_id: '',
-    issue_description: '',
-    status_maintenance: 'broken'
+  const [reportStart, setReportStart] = useState('')
+  const [reportEnd, setReportEnd] = useState('')
+  const [reportMonth, setReportMonth] = useState('all')
+  const [reportYear, setReportYear] = useState('all')
+  const [reportRideFilter, setReportRideFilter] = useState('all')
+  const [reportPriorityFilter, setReportPriorityFilter] = useState('all')
+  const [reportData, setReportData] = useState({
+    summary: null,
+    mostMaintenancedRide: null,
+    frequencyByRide: [],
+    frequencyByDay: [],
+    records: []
   })
-
-  const [newTrainingRequest, setNewTrainingRequest] = useState({
-    employee_id: '',
-    ride_id: '',
-    requested_level: 'basic'
-  })
+  const [reportLoading, setReportLoading] = useState(false)
+  const [reportError, setReportError] = useState('')
+  const [rideStatusDrafts, setRideStatusDrafts] = useState({})
+  const [rideStatusError, setRideStatusError] = useState('')
+  const [rideStatusMessage, setRideStatusMessage] = useState('')
+  const [savingRideId, setSavingRideId] = useState(null)
 
   const token = localStorage.getItem('token')
 
@@ -50,6 +52,18 @@ function MaintenanceDash() {
   const jsonHeaders = {
     'Content-Type': 'application/json',
     Authorization: 'Bearer ' + token
+  }
+
+  const buildUrlWithParams = (basePath, params) => {
+    const searchParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value && value !== 'all') {
+        searchParams.set(key, value)
+      }
+    })
+
+    const queryText = searchParams.toString()
+    return queryText ? `${basePath}?${queryText}` : basePath
   }
 
   const handleResponse = async (res) => {
@@ -76,6 +90,38 @@ function MaintenanceDash() {
     if (!Number.isInteger(parsed) || parsed <= 0) return null
     return parsed
   }
+
+  const parseNonNegativeDecimal = (value) => {
+    if (value === '' || value === null || value === undefined) return undefined
+
+    const parsed = Number(value)
+    if (!Number.isFinite(parsed) || parsed < 0) return null
+    return parsed
+  }
+
+  const formatMinutes = (minutes) => {
+    const parsedMinutes = Number(minutes)
+    if (!Number.isFinite(parsedMinutes) || parsedMinutes < 0) {
+      return 'Not resolved'
+    }
+
+    const roundedMinutes = Math.round(parsedMinutes)
+    const days = Math.floor(roundedMinutes / (24 * 60))
+    const hours = Math.floor((roundedMinutes % (24 * 60)) / 60)
+    const remainingMinutes = roundedMinutes % 60
+
+    if (days > 0) {
+      return `${days}d ${hours}h ${remainingMinutes}m`
+    }
+
+    if (hours > 0) {
+      return `${hours}h ${remainingMinutes}m`
+    }
+
+    return `${remainingMinutes}m`
+  }
+
+  const formatStatusLabel = (value) => String(value || '').replaceAll('_', ' ')
 
   const employeeNameById = employeeOptions.reduce((map, employee) => {
     map[employee.employee_id] = employee.full_name
@@ -104,40 +150,14 @@ function MaintenanceDash() {
     }
   })
 
-  const filteredRequests = requests.filter((request) => {
-    const matchesStatus = requestStatusFilter === 'all' || request.status_request === requestStatusFilter
-    const matchesPriority = requestPriorityFilter === 'all' || request.priority === requestPriorityFilter
-    const isAssigned = Boolean(request.assigned_to_employee_id)
-    const matchesAssignment =
-      requestAssignmentFilter === 'all' ||
-      (requestAssignmentFilter === 'assigned' && isAssigned) ||
-      (requestAssignmentFilter === 'unassigned' && !isAssigned)
-
-    return matchesStatus && matchesPriority && matchesAssignment
-  })
-
-  const filteredLogs = logs.filter((log) => logStatusFilter === 'all' || log.status_maintenance === logStatusFilter)
-
-  const filteredRainouts = rainouts.filter(
-    (rainout) => rainoutRideFilter === 'all' || String(rainout.ride_id) === rainoutRideFilter
-  )
-
-  const filteredRideOverview = [...overview]
-    .filter((ride) => rideOverviewTypeFilter === 'all' || ride.ride_type === rideOverviewTypeFilter)
-    .filter((ride) => rideOverviewStatusFilter === 'all' || ride.status_ride === rideOverviewStatusFilter)
-    .sort((leftRide, rightRide) => {
-      if (rideOverviewSort === 'asc') {
-        return leftRide.ride_name.localeCompare(rightRide.ride_name)
-      }
-
-      if (rideOverviewSort === 'desc') {
-        return rightRide.ride_name.localeCompare(leftRide.ride_name)
-      }
-
-      return 0
-    })
-
   const statusBadgeStyle = (status) => {
+    if (status === 'open') {
+      return {
+        background: 'rgba(22, 163, 74, 0.16)',
+        color: '#166534'
+      }
+    }
+
     if (status === 'broken') {
       return {
         background: 'rgba(220, 38, 38, 0.14)',
@@ -182,23 +202,30 @@ function MaintenanceDash() {
   const loadData = async () => {
     setPageError('')
     try {
-      const [overviewRes, brokenRes, requestsRes, logsRes, trainingRes, rainoutsRes, ridesRes, employeesRes] = await Promise.all([
-        fetch('/api/maintenance/overview', {
+      const [overviewRes, brokenRes, requestsRes, logsRes, rainoutsRes, ridesRes, employeesRes] = await Promise.all([
+        fetch(buildUrlWithParams('/api/maintenance/overview', {
+          rideType: rideOverviewTypeFilter,
+          status: rideOverviewStatusFilter,
+          sort: rideOverviewSort
+        }), {
           headers: authHeaders
         }),
         fetch('/api/maintenance/broken', {
           headers: authHeaders
         }),
-        fetch('/api/maintenance/requests', {
+        fetch(buildUrlWithParams('/api/maintenance/requests', {
+          status: requestStatusFilter,
+          priority: requestPriorityFilter,
+          assignment: requestAssignmentFilter
+        }), {
           headers: authHeaders
         }),
         fetch('/api/maintenance/logs', {
           headers: authHeaders
         }),
-        fetch('/api/maintenance/training-requests', {
-          headers: authHeaders
-        }),
-        fetch('/api/rides/rainouts', {
+        fetch(buildUrlWithParams('/api/rides/rainouts', {
+          rideId: rainoutRideFilter
+        }), {
           headers: authHeaders
         }),
         fetch('/api/rides/all', {
@@ -213,7 +240,6 @@ function MaintenanceDash() {
       const brokenData = await handleResponse(brokenRes)
       const requestsData = await handleResponse(requestsRes)
       const logsData = await handleResponse(logsRes)
-      const trainingData = await handleResponse(trainingRes)
       const rainoutsData = await handleResponse(rainoutsRes)
       const ridesData = await handleResponse(ridesRes)
       const employeesData = await handleResponse(employeesRes)
@@ -222,15 +248,21 @@ function MaintenanceDash() {
       setBroken(brokenData)
       setRequests(requestsData)
       setLogs(logsData)
-      setTrainingRequests(trainingData)
       setRainouts(rainoutsData)
       setRidesOptions(ridesData)
       setEmployeeOptions(employeesData)
+      setRideStatusDrafts(
+        ridesData.reduce((drafts, ride) => {
+          drafts[ride.ride_id] = ride.status_ride
+          return drafts
+        }, {})
+      )
       setRequestDrafts(
         requestsData.reduce((drafts, request) => {
           drafts[request.request_id] = {
             status_request: request.status_request,
-            assigned_to_employee_id: request.assigned_to_employee_id || ''
+            assigned_to_employee_id: request.assigned_to_employee_id || '',
+            cost_to_repair: request.cost_to_repair ?? ''
           }
           return drafts
         }, {})
@@ -240,11 +272,84 @@ function MaintenanceDash() {
     }
   }
 
+  const saveRideStatus = async (rideId) => {
+    const nextStatus = rideStatusDrafts[rideId]
+    const ride = ridesOptions.find((item) => item.ride_id === rideId)
+    if (!ride || !nextStatus || nextStatus === ride.status_ride) {
+      return
+    }
+
+    setRideStatusError('')
+    setRideStatusMessage('')
+    setSavingRideId(rideId)
+
+    try {
+      await handleResponse(
+        await fetch('/api/rides/' + rideId + '/status', {
+          method: 'PATCH',
+          headers: jsonHeaders,
+          body: JSON.stringify({ status_ride: nextStatus })
+        })
+      )
+
+      setRideStatusMessage(`Updated ${ride.ride_name} to ${formatStatusLabel(nextStatus)}`)
+      loadData()
+    } catch (err) {
+      setRideStatusError(err.message || 'Failed to update ride status')
+    } finally {
+      setSavingRideId(null)
+    }
+  }
+
+  const loadReport = async () => {
+    setReportLoading(true)
+    setReportError('')
+
+    try {
+      const response = await fetch(
+        buildUrlWithParams('/api/maintenance/report', {
+          start: reportStart,
+          end: reportEnd,
+          month: reportMonth,
+          year: reportYear,
+          rideId: reportRideFilter,
+          priority: reportPriorityFilter
+        }),
+        { headers: authHeaders }
+      )
+
+      const data = await handleResponse(response)
+      setReportData({
+        summary: data.summary || null,
+        mostMaintenancedRide: data.mostMaintenancedRide || null,
+        frequencyByRide: data.frequencyByRide || [],
+        frequencyByDay: data.frequencyByDay || [],
+        records: data.records || []
+      })
+    } catch (err) {
+      setReportError(err.message || 'Failed to load maintenance report')
+    } finally {
+      setReportLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadData()
+  }, [
+    requestStatusFilter,
+    requestAssignmentFilter,
+    requestPriorityFilter,
+    rainoutRideFilter,
+    rideOverviewTypeFilter,
+    rideOverviewStatusFilter,
+    rideOverviewSort
+  ])
+
+  useEffect(() => {
+    loadReport()
   }, [])
 
-  const updateRequest = async (requestId, status_request, assigned_to_employee_id) => {
+  const updateRequest = async (requestId, status_request, assigned_to_employee_id, cost_to_repair) => {
     setPageError('')
     setRequestError('')
     setRequestMessage('')
@@ -258,6 +363,12 @@ function MaintenanceDash() {
       }
     }
 
+    const parsedCostToRepair = parseNonNegativeDecimal(cost_to_repair)
+    if (parsedCostToRepair === null) {
+      setRequestError('Invalid repair cost')
+      return
+    }
+
     try {
       let nextStatusRequest = status_request
       if (assignedEmployeeId && (!nextStatusRequest || nextStatusRequest === 'new')) {
@@ -267,6 +378,9 @@ function MaintenanceDash() {
       const payload = { status_request: nextStatusRequest }
       if (assignedEmployeeId) {
         payload.assigned_to_employee_id = assignedEmployeeId
+      }
+      if (parsedCostToRepair !== undefined) {
+        payload.cost_to_repair = parsedCostToRepair
       }
 
       await handleResponse(
@@ -281,120 +395,6 @@ function MaintenanceDash() {
       loadData()
     } catch (err) {
       setRequestError(mapInvalidIdError(err, 'Failed to update request'))
-    }
-  }
-
-  const createLog = async () => {
-    setPageError('')
-    setLogError('')
-    setLogMessage('')
-
-    const rideId = parsePositiveInt(newLog.ride_id)
-    if (!rideId) {
-      setLogError('Invalid ride ID')
-      return
-    }
-
-    if (!newLog.issue_description.trim()) {
-      setLogError('Issue description is required')
-      return
-    }
-
-    try {
-      await handleResponse(
-        await fetch('/api/maintenance/logs', {
-          method: 'POST',
-          headers: jsonHeaders,
-          body: JSON.stringify({
-            ride_id: rideId,
-            issue_description: newLog.issue_description,
-            status_maintenance: newLog.status_maintenance
-          })
-        })
-      )
-
-      setLogMessage('Maintenance log created')
-      setNewLog({ ride_id: '', issue_description: '', status_maintenance: 'broken' })
-      loadData()
-    } catch (err) {
-      setLogError(mapInvalidIdError(err, 'Failed to create log'))
-    }
-  }
-
-  const updateLogStatus = async (logId, status_maintenance) => {
-    setPageError('')
-    setLogError('')
-    setLogMessage('')
-    try {
-      await handleResponse(
-        await fetch('/api/maintenance/logs/' + logId + '/status', {
-          method: 'PATCH',
-          headers: jsonHeaders,
-          body: JSON.stringify({ status_maintenance })
-        })
-      )
-
-      setLogMessage('Log updated')
-      loadData()
-    } catch (err) {
-      setLogError(err.message || 'Failed to update log')
-    }
-  }
-
-  const createTrainingRequest = async () => {
-    setPageError('')
-    setTrainingError('')
-    setTrainingMessage('')
-
-    const employeeId = parsePositiveInt(newTrainingRequest.employee_id)
-    const rideId = parsePositiveInt(newTrainingRequest.ride_id)
-    if (!rideId) {
-      setTrainingError('Invalid ride ID')
-      return
-    }
-    if (!employeeId){
-      setTrainingError('Invalid employee ID')
-      return
-    }
-
-    try {
-      await handleResponse(
-        await fetch('/api/maintenance/training-requests', {
-          method: 'POST',
-          headers: jsonHeaders,
-          body: JSON.stringify({
-            employee_id: employeeId,
-            ride_id: rideId,
-            requested_level: newTrainingRequest.requested_level
-          })
-        })
-      )
-
-      setTrainingMessage('Training request submitted')
-      setNewTrainingRequest({ employee_id: '', ride_id: '', requested_level: 'basic' })
-      loadData()
-    } catch (err) {
-      setTrainingError(mapInvalidIdError(err, 'Failed to submit training request'))
-    }
-  }
-
-  const reviewTrainingRequest = async (training_request_id, status_training_request) => {
-    setPageError('')
-    setTrainingError('')
-    setTrainingMessage('')
-    try {
-      await handleResponse(
-        await fetch('/api/maintenance/training-requests/' + training_request_id + '/review', {
-          method: 'PATCH',
-          headers: jsonHeaders,
-          body: JSON.stringify({ status_training_request })
-        })
-      )
-
-      setTrainingMessage('Training request reviewed')
-      loadData()
-    } catch (err) {
-      setTrainingError(err.message || 'Failed to review training request')
     }
   }
 
@@ -462,7 +462,7 @@ function MaintenanceDash() {
           <option value="open">open</option>
           <option value="broken">broken</option>
           <option value="maintenance">maintenance</option>
-          <option value="closed_weather">closed_weather</option>
+          <option value="closed_weather">closed weather</option>
         </select>
         <select value={rideOverviewSort} onChange={(e) => setRideOverviewSort(e.target.value)}>
           <option value="none">Default order</option>
@@ -478,7 +478,7 @@ function MaintenanceDash() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))'
         }}
       >
-        {filteredRideOverview.map((ride) => (
+        {overview.map((ride) => (
           <article
             key={ride.ride_id}
             style={{
@@ -534,6 +534,62 @@ function MaintenanceDash() {
       </table>
       </div>
 
+      <h2 className="gm-section-title">Ride Status Management</h2>
+      {rideStatusError && <p style={{ color: 'red' }}>{rideStatusError}</p>}
+      {rideStatusMessage && <p style={{ color: 'green' }}>{rideStatusMessage}</p>}
+      <div className="gm-table-wrapper">
+      <table className="gm-table">
+        <thead>
+          <tr>
+            <th>Ride</th>
+            <th>Current Status</th>
+            <th>Set Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ridesOptions.map((ride) => {
+            const nextStatus = rideStatusDrafts[ride.ride_id] || ride.status_ride
+            const availableStatuses = STATUS_OPTIONS.filter(
+              (status) => status !== 'closed_weather' || Boolean(ride.affected_by_rain)
+            )
+
+            return (
+              <tr key={ride.ride_id}>
+                <td>{ride.ride_name}</td>
+                <td>{formatStatusLabel(ride.status_ride)}</td>
+                <td>
+                  <select
+                    value={nextStatus}
+                    onChange={(e) =>
+                      setRideStatusDrafts((currentDrafts) => ({
+                        ...currentDrafts,
+                        [ride.ride_id]: e.target.value
+                      }))
+                    }
+                  >
+                    {availableStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {formatStatusLabel(status)}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td>
+                  <button
+                    disabled={savingRideId === ride.ride_id || nextStatus === ride.status_ride}
+                    onClick={() => saveRideStatus(ride.ride_id)}
+                  >
+                    {savingRideId === ride.ride_id ? 'Saving...' : 'Save'}
+                  </button>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      </div>
+
       <h2 className="gm-section-title">Rainout History</h2>
       <div style={{ marginBottom: 10 }}>
         <select value={rainoutRideFilter} onChange={(e) => setRainoutRideFilter(e.target.value)}>
@@ -555,11 +611,11 @@ function MaintenanceDash() {
           </tr>
         </thead>
         <tbody>
-          {filteredRainouts.map((rainout) => (
+          {rainouts.map((rainout) => (
             <tr key={rainout.rainout_id}>
               <td>{rainout.ride_name}</td>
               <td>{new Date(rainout.rainout_time).toLocaleString()}</td>
-              <td>{rainout.status_ride}</td>
+              <td>{formatStatusLabel(rainout.status_ride)}</td>
             </tr>
           ))}
         </tbody>
@@ -572,7 +628,7 @@ function MaintenanceDash() {
           <option value="all">All statuses</option>
           <option value="new">new</option>
           <option value="assigned">assigned</option>
-          <option value="in_progress">in_progress</option>
+          <option value="in_progress">in progress</option>
           <option value="resolved">resolved</option>
         </select>
         <select value={requestPriorityFilter} onChange={(e) => setRequestPriorityFilter(e.target.value)}>
@@ -598,18 +654,38 @@ function MaintenanceDash() {
             <th>Ride</th>
             <th>Issue</th>
             <th>Priority</th>
+            <th>Repair Cost</th>
             <th>Status</th>
             <th>Assign To Employee ID</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          {filteredRequests.map((request) => (
+          {requests.map((request) => (
             <tr key={request.request_id}>
               <td>{request.request_id}</td>
               <td>{request.ride_name}</td>
               <td>{request.issue_description}</td>
               <td>{request.priority}</td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={requestDrafts[request.request_id]?.cost_to_repair ?? request.cost_to_repair ?? ''}
+                  onChange={(e) => {
+                    const nextCost = e.target.value
+                    setRequestDrafts((currentDrafts) => ({
+                      ...currentDrafts,
+                      [request.request_id]: {
+                        ...currentDrafts[request.request_id],
+                        cost_to_repair: nextCost
+                      }
+                    }))
+                  }}
+                  style={{ width: 120 }}
+                />
+              </td>
               <td>
                 {request.status_request === 'resolved' ? (
                   <span>resolved</span>
@@ -624,14 +700,15 @@ function MaintenanceDash() {
                           ...currentDrafts[request.request_id],
                           status_request: nextStatus,
                           assigned_to_employee_id:
-                            currentDrafts[request.request_id]?.assigned_to_employee_id || request.assigned_to_employee_id || ''
+                            currentDrafts[request.request_id]?.assigned_to_employee_id || request.assigned_to_employee_id || '',
+                          cost_to_repair: currentDrafts[request.request_id]?.cost_to_repair ?? request.cost_to_repair ?? ''
                         }
                       }))
                     }}
                   >
                     <option value="new">new</option>
                     <option value="assigned">assigned</option>
-                    <option value="in_progress">in_progress</option>
+                    <option value="in_progress">in progress</option>
                     <option value="resolved">resolved</option>
                   </select>
                 )}
@@ -654,7 +731,8 @@ function MaintenanceDash() {
                           [request.request_id]: {
                             ...currentDrafts[request.request_id],
                             assigned_to_employee_id: nextAssigned,
-                            status_request: nextAssigned ? 'assigned' : (currentDrafts[request.request_id]?.status_request || request.status_request)
+                            status_request: nextAssigned ? 'assigned' : (currentDrafts[request.request_id]?.status_request || request.status_request),
+                            cost_to_repair: currentDrafts[request.request_id]?.cost_to_repair ?? request.cost_to_repair ?? ''
                           }
                         }))
                       }}
@@ -676,19 +754,18 @@ function MaintenanceDash() {
                 )}
               </td>
               <td>
-                {request.status_request === 'resolved' ? null : (
-                  <button
-                    onClick={() =>
-                      updateRequest(
-                        request.request_id,
-                        requestDrafts[request.request_id]?.status_request || request.status_request,
-                        requestDrafts[request.request_id]?.assigned_to_employee_id ?? request.assigned_to_employee_id
-                      )
-                    }
-                  >
-                    Save
-                  </button>
-                )}
+                <button
+                  onClick={() =>
+                    updateRequest(
+                      request.request_id,
+                      requestDrafts[request.request_id]?.status_request || request.status_request,
+                      requestDrafts[request.request_id]?.assigned_to_employee_id ?? request.assigned_to_employee_id,
+                      requestDrafts[request.request_id]?.cost_to_repair ?? request.cost_to_repair ?? ''
+                    )
+                  }
+                >
+                  Save
+                </button>
               </td>
             </tr>
           ))}
@@ -696,165 +773,197 @@ function MaintenanceDash() {
       </table>
       </div>
 
-      <h2 className="gm-section-title">Maintenance Logs</h2>
-      <div style={{ marginBottom: 10 }}>
-        <select value={logStatusFilter} onChange={(e) => setLogStatusFilter(e.target.value)}>
-          <option value="all">All log statuses</option>
-          <option value="broken">broken</option>
-          <option value="in-progress">in-progress</option>
-          <option value="fixed">fixed</option>
+      <h2 className="gm-section-title">Maintenance Report</h2>
+      <div style={{ marginBottom: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <label>Start</label>
+        <input type="date" value={reportStart} onChange={(e) => setReportStart(e.target.value)} />
+        <label>End</label>
+        <input type="date" value={reportEnd} onChange={(e) => setReportEnd(e.target.value)} />
+        <select value={reportMonth} onChange={(e) => setReportMonth(e.target.value)}>
+          <option value="all">All months</option>
+          <option value="1">January</option>
+          <option value="2">February</option>
+          <option value="3">March</option>
+          <option value="4">April</option>
+          <option value="5">May</option>
+          <option value="6">June</option>
+          <option value="7">July</option>
+          <option value="8">August</option>
+          <option value="9">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
         </select>
-      </div>
-      <div style={{ marginBottom: 10 }}>
-        <select
-          value={newLog.ride_id}
-          onChange={(e) => setNewLog((prev) => ({ ...prev, ride_id: e.target.value }))}
-        >
-          <option value="">Select Ride</option>
+        <select value={reportYear} onChange={(e) => setReportYear(e.target.value)}>
+          <option value="all">All years</option>
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+          <option value="2026">2026</option>
+          <option value="2027">2027</option>
+        </select>
+        <select value={reportRideFilter} onChange={(e) => setReportRideFilter(e.target.value)}>
+          <option value="all">All rides</option>
           {ridesOptions.map((ride) => (
             <option key={ride.ride_id} value={ride.ride_id}>
               {ride.ride_name}
             </option>
           ))}
         </select>
-        <input
-          placeholder="Issue Description"
-          value={newLog.issue_description}
-          onChange={(e) => setNewLog((prev) => ({ ...prev, issue_description: e.target.value }))}
-          style={{ marginLeft: 8 }}
-        />
-        <select
-          value={newLog.status_maintenance}
-          onChange={(e) => setNewLog((prev) => ({ ...prev, status_maintenance: e.target.value }))}
-          style={{ marginLeft: 8 }}
-        >
-          <option value="broken">broken</option>
-          <option value="in-progress">in-progress</option>
-          <option value="fixed">fixed</option>
+        <select value={reportPriorityFilter} onChange={(e) => setReportPriorityFilter(e.target.value)}>
+          <option value="all">All priorities</option>
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
         </select>
-        <button onClick={createLog} style={{ marginLeft: 8 }}>
-          Create Log
+        <button onClick={loadReport} disabled={reportLoading}>
+          {reportLoading ? 'Applying...' : 'Apply Filters'}
         </button>
       </div>
 
-      {logError && <p style={{ color: 'red' }}>{logError}</p>}
-      {logMessage && <p style={{ color: 'green' }}>{logMessage}</p>}
+      {reportError && <p style={{ color: 'red' }}>{reportError}</p>}
+      {reportLoading && <p>Loading maintenance report...</p>}
 
-      <div className="gm-table-wrapper">
-      <table className="gm-table">
-        <thead>
-          <tr>
-            <th>Log ID</th>
-            <th>Ride</th>
-            <th>Issue</th>
-            <th>Status</th>
-            <th>Set Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredLogs.map((log) => (
-            <tr key={log.log_id}>
-              <td>{log.log_id}</td>
-              <td>{log.ride_name}</td>
-              <td>{log.issue_description}</td>
-              <td>{log.status_maintenance}</td>
-              <td>
-                <button onClick={() => updateLogStatus(log.log_id, 'broken')}>broken</button>
-                <button onClick={() => updateLogStatus(log.log_id, 'in-progress')} style={{ marginLeft: 6 }}>
-                  in-progress
-                </button>
-                <button onClick={() => updateLogStatus(log.log_id, 'fixed')} style={{ marginLeft: 6 }}>
-                  fixed
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      </div>
+      {!reportLoading && reportData.summary && (
+        <>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 10,
+              marginBottom: 16
+            }}
+          >
+            <article style={{ padding: 12, borderRadius: 10, background: 'rgba(241, 245, 249, 0.9)' }}>
+              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Most Maintenanced Ride</div>
+              <div style={{ marginTop: 4, fontWeight: 800, color: '#0f172a' }}>
+                {reportData.mostMaintenancedRide?.ride_name || 'No data'}
+              </div>
+              <div style={{ marginTop: 3, color: '#475569' }}>
+                {reportData.mostMaintenancedRide ? `${reportData.mostMaintenancedRide.maintenance_count} requests` : ''}
+              </div>
+            </article>
 
-      <h2 className="gm-section-title">Training Approval Requests</h2>
-      <div style={{ marginBottom: 10 }}>
-        <select
-          value={newTrainingRequest.employee_id}
-          onChange={(e) => setNewTrainingRequest((prev) => ({ ...prev, employee_id: e.target.value }))}
-        >
-          <option value="">Select Employee</option>
-          {employeeOptions.map((employee) => (
-            <option key={employee.employee_id} value={employee.employee_id}>
-              {employee.full_name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={newTrainingRequest.ride_id}
-          onChange={(e) => setNewTrainingRequest((prev) => ({ ...prev, ride_id: e.target.value }))}
-          style={{ marginLeft: 8 }}
-        >
-          <option value="">Select Ride</option>
-          {ridesOptions.map((ride) => (
-            <option key={ride.ride_id} value={ride.ride_id}>
-              {ride.ride_name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={newTrainingRequest.requested_level}
-          onChange={(e) => setNewTrainingRequest((prev) => ({ ...prev, requested_level: e.target.value }))}
-          style={{ marginLeft: 8 }}
-        >
-          <option value="basic">basic</option>
-          <option value="intermediate">intermediate</option>
-          <option value="advanced">advanced</option>
-        </select>
-        <button onClick={createTrainingRequest} style={{ marginLeft: 8 }}>
-          Submit Training Request
-        </button>
-      </div>
+            <article style={{ padding: 12, borderRadius: 10, background: 'rgba(241, 245, 249, 0.9)' }}>
+              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Total Maintenance Requests</div>
+              <div style={{ marginTop: 4, fontWeight: 800, color: '#0f172a' }}>
+                {reportData.summary.total_maintenance || 0}
+              </div>
+            </article>
 
-      {trainingError && <p style={{ color: 'red' }}>{trainingError}</p>}
-      {trainingMessage && <p style={{ color: 'green' }}>{trainingMessage}</p>}
+            <article style={{ padding: 12, borderRadius: 10, background: 'rgba(241, 245, 249, 0.9)' }}>
+              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Average Resolution Time</div>
+              <div style={{ marginTop: 4, fontWeight: 800, color: '#0f172a' }}>
+                {formatMinutes(reportData.summary.avg_resolution_minutes)}
+              </div>
+            </article>
 
-      <div className="gm-table-wrapper">
-      <table className="gm-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Employee</th>
-            <th>Ride</th>
-            <th>Level</th>
-            <th>Status</th>
-            <th>Review</th>
-          </tr>
-        </thead>
-        <tbody>
-          {trainingRequests.map((request) => (
-            <tr key={request.training_request_id}>
-              <td>{request.training_request_id}</td>
-              <td>{request.full_name}</td>
-              <td>{request.ride_name}</td>
-              <td>{request.requested_level}</td>
-              <td>{request.status_training_request}</td>
-              <td>
-                <button
-                  onClick={() => reviewTrainingRequest(request.training_request_id, 'approved')}
-                  disabled={request.status_training_request !== 'pending'}
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => reviewTrainingRequest(request.training_request_id, 'rejected')}
-                  disabled={request.status_training_request !== 'pending'}
-                  style={{ marginLeft: 6 }}
-                >
-                  Reject
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      </div>
+            <article style={{ padding: 12, borderRadius: 10, background: 'rgba(241, 245, 249, 0.9)' }}>
+              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Total Spent</div>
+              <div style={{ marginTop: 4, fontWeight: 800, color: '#0f172a' }}>
+                ${Number(reportData.summary.total_spent || 0).toFixed(2)}
+              </div>
+            </article>
+          </div>
+
+          <h3 className="gm-section-title">Maintenance Frequency By Ride</h3>
+          <div className="gm-table-wrapper">
+          <table className="gm-table">
+            <thead>
+              <tr>
+                <th>Ride</th>
+                <th>How Often</th>
+                <th>Total Spent</th>
+                <th>Avg Resolution</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportData.frequencyByRide.map((row) => (
+                <tr key={row.ride_id}>
+                  <td>{row.ride_name}</td>
+                  <td>{row.maintenance_count}</td>
+                  <td>${Number(row.total_spent || 0).toFixed(2)}</td>
+                  <td>{formatMinutes(row.avg_resolution_minutes)}</td>
+                </tr>
+              ))}
+              {reportData.frequencyByRide.length === 0 && (
+                <tr>
+                  <td colSpan="4" style={{ textAlign: 'center' }}>No maintenance frequency data</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          </div>
+
+          <h3 className="gm-section-title">Maintenance Frequency By Date</h3>
+          <div className="gm-table-wrapper">
+          <table className="gm-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>How Often</th>
+                <th>Total Spent</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportData.frequencyByDay.map((row, index) => (
+                <tr key={`${row.maintenance_date}-${index}`}>
+                  <td>{new Date(row.maintenance_date).toLocaleDateString()}</td>
+                  <td>{row.maintenance_count}</td>
+                  <td>${Number(row.total_spent || 0).toFixed(2)}</td>
+                </tr>
+              ))}
+              {reportData.frequencyByDay.length === 0 && (
+                <tr>
+                  <td colSpan="3" style={{ textAlign: 'center' }}>No maintenance date data</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          </div>
+
+          <h3 className="gm-section-title">All Maintenance Records</h3>
+          <div className="gm-table-wrapper">
+          <table className="gm-table">
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>Ride</th>
+                <th>Current Ride Status</th>
+                <th>Issue</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Assigned To</th>
+                <th>Created</th>
+                <th>Resolved In</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportData.records.map((row) => (
+                <tr key={row.request_id}>
+                  <td>{row.request_id}</td>
+                  <td>{row.ride_name}</td>
+                  <td>{formatStatusLabel(row.current_ride_status)}</td>
+                  <td>{row.issue_description}</td>
+                  <td>{row.priority}</td>
+                  <td>{formatStatusLabel(row.status_request)}</td>
+                  <td>{row.assigned_employee_name || 'Unassigned'}</td>
+                  <td>{new Date(row.created_time).toLocaleString()}</td>
+                  <td>{formatMinutes(row.resolution_minutes)}</td>
+                  <td>${Number(row.cost_to_repair || 0).toFixed(2)}</td>
+                </tr>
+              ))}
+              {reportData.records.length === 0 && (
+                <tr>
+                  <td colSpan="10" style={{ textAlign: 'center' }}>No maintenance records found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          </div>
+        </>
+      )}
+
     </div>
   )
 }

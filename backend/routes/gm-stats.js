@@ -168,29 +168,64 @@ router.get('/parkday', verifyToken, requireGM, (req, res) => {
 // GET /revenue — daily totals
 router.get('/revenue', verifyToken, requireGM, (req, res) => {
 	const { start, end } = req.query
-	let sql = `SELECT DATE(transaction_time) AS revenue_date,
-	                  SUM(total_amount) AS daily_total,
-	                  COUNT(*) AS transaction_count
-	           FROM Transactions`
+	const transactionFilters = []
+	const maintenanceFilters = []
 	const params = []
 
-  if (start && end) {
-    sql += ' WHERE DATE(transaction_time) BETWEEN ? AND ?'
-    params.push(start, end)
-} else if (start) {
-    sql += ' WHERE DATE(transaction_time) >= ?'
-    params.push(start)
-} else if (end) {
-    sql += ' WHERE DATE(transaction_time) <= ?'
-    params.push(end)
-}
+	if (start && end) {
+		transactionFilters.push('DATE(transaction_time) BETWEEN ? AND ?')
+		maintenanceFilters.push('DATE(COALESCE(cost_recorded_time, created_time)) BETWEEN ? AND ?')
+		params.push(start, end, start, end)
+	} else if (start) {
+		transactionFilters.push('DATE(transaction_time) >= ?')
+		maintenanceFilters.push('DATE(COALESCE(cost_recorded_time, created_time)) >= ?')
+		params.push(start, start)
+	} else if (end) {
+		transactionFilters.push('DATE(transaction_time) <= ?')
+		maintenanceFilters.push('DATE(COALESCE(cost_recorded_time, created_time)) <= ?')
+		params.push(end, end)
+	}
 
-  sql += ' GROUP BY DATE(transaction_time) ORDER BY revenue_date DESC'
+	const transactionWhere = transactionFilters.length ? `WHERE ${transactionFilters.join(' AND ')}` : ''
+	const maintenanceWhere = maintenanceFilters.length ? `WHERE ${maintenanceFilters.join(' AND ')}` : ''
 
-  db.query(sql, params, (err, results) => {
-    if (err) return res.status(500).json({ message: 'Server error' })
-    res.json(results)
-  })
+	const sql = `
+	  SELECT
+	    revenue_date,
+	    SUM(gross_revenue) AS gross_revenue,
+	    SUM(repair_cost) AS repair_cost,
+	    SUM(gross_revenue) - SUM(repair_cost) AS daily_total,
+	    SUM(transaction_count) AS transaction_count
+	  FROM (
+	    SELECT
+	      DATE(transaction_time) AS revenue_date,
+	      SUM(total_amount) AS gross_revenue,
+	      0 AS repair_cost,
+	      COUNT(*) AS transaction_count
+	    FROM Transactions
+	    ${transactionWhere}
+	    GROUP BY DATE(transaction_time)
+
+	    UNION ALL
+
+	    SELECT
+	      DATE(COALESCE(cost_recorded_time, created_time)) AS revenue_date,
+	      0 AS gross_revenue,
+	      SUM(COALESCE(cost_to_repair, 0)) AS repair_cost,
+	      0 AS transaction_count
+	    FROM MaintenanceRequest
+	    WHERE cost_to_repair IS NOT NULL
+	    ${maintenanceWhere ? `AND ${maintenanceWhere.replace(/^WHERE\s+/, '')}` : ''}
+	    GROUP BY DATE(COALESCE(cost_recorded_time, created_time))
+	  ) revenue_parts
+	  GROUP BY revenue_date
+	  ORDER BY revenue_date DESC
+	`
+
+	db.query(sql, params, (err, results) => {
+		if (err) return res.status(500).json({ message: 'Server error' })
+		res.json(results)
+	})
 })
 
 router.get('/revenue/breakdown', verifyToken, requireGM, (req, res) => {
