@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import '../styles/parkdaystats.css'
-import Toast from './Toast'
+
 
 function ParkDayStats({ token }) {
   const todayDate = new Date().toISOString().split('T')[0]
@@ -12,7 +12,6 @@ function ParkDayStats({ token }) {
     weather_notes: ''
   })
   const [message, setMessage] = useState('')
-  const [toast, setToast] = useState('')
 
   const fetchParkDays = async () => {
     try {
@@ -41,7 +40,6 @@ function ParkDayStats({ token }) {
       const data = await res.json()
       if (res.ok) {
         setMessage('Park day logged!')
-        setToast(`Trigger fired: attendance auto-counted as ${data.total_attendance} from Visit records`)
         fetchParkDays()
       } else {
         setMessage(data.message || 'Error logging park day')
@@ -51,7 +49,6 @@ function ParkDayStats({ token }) {
 
   return (
     <div style={{ marginBottom: '3rem' }}>
-      <Toast message={toast} onClose={() => setToast('')} />
       <h3 className="gm-section-title">Log Park Day</h3>
       <div className="gm-form-card">
         <div className="gm-form-row">

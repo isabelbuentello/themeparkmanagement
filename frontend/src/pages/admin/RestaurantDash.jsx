@@ -1,11 +1,197 @@
 import { useState, useEffect } from 'react'
 
+const styles = {
+  page: {
+    padding: '32px 24px',
+    maxWidth: '800px',
+    margin: '0 auto',
+    fontFamily: 'var(--body-font)',
+    color: 'var(--ink)'
+  },
+  header: {
+    fontSize: '2rem',
+    fontFamily: 'var(--heading-font)',
+    color: 'var(--ink)',
+    marginBottom: '8px',
+    fontWeight: 700
+  },
+  subtitle: {
+    color: 'var(--muted)',
+    marginBottom: '24px',
+    fontSize: '0.95rem'
+  },
+  alert: (type) => ({
+    padding: '12px 16px',
+    borderRadius: '10px',
+    marginBottom: '16px',
+    fontSize: '0.9rem',
+    fontWeight: 500,
+    background: type === 'success' ? 'rgba(34, 197, 94, 0.12)' : type === 'warning' ? 'rgba(234, 179, 8, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+    color: type === 'success' ? '#166534' : type === 'warning' ? '#854d0e' : '#b91c1c',
+    border: `1px solid ${type === 'success' ? 'rgba(34, 197, 94, 0.2)' : type === 'warning' ? 'rgba(234, 179, 8, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+  }),
+  tabs: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '28px',
+    borderBottom: '2px solid var(--border)',
+    paddingBottom: '0'
+  },
+  tab: (active) => ({
+    padding: '10px 20px',
+    cursor: 'pointer',
+    background: 'none',
+    border: 'none',
+    borderBottom: active ? '2px solid var(--accent)' : '2px solid transparent',
+    marginBottom: '-2px',
+    color: active ? 'var(--accent)' : 'var(--muted)',
+    fontWeight: active ? 700 : 500,
+    fontSize: '0.95rem',
+    fontFamily: 'var(--body-font)',
+    transition: 'all 0.2s'
+  }),
+  card: {
+    background: 'var(--panel)',
+    borderRadius: '16px',
+    padding: '24px',
+    marginBottom: '24px',
+    boxShadow: 'var(--shadow-soft)',
+    border: '1px solid var(--border)'
+  },
+  sectionTitle: {
+    fontSize: '1.1rem',
+    fontWeight: 700,
+    color: 'var(--ink)',
+    marginBottom: '16px',
+    marginTop: 0
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    marginBottom: '8px'
+  },
+  th: {
+    padding: '10px 12px',
+    textAlign: 'left',
+    background: 'var(--ocean)',
+    color: 'white',
+    fontSize: '0.82rem',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em'
+  },
+  td: {
+    padding: '10px 12px',
+    borderBottom: '1px solid var(--border)',
+    fontSize: '0.92rem',
+    color: 'var(--ink)'
+  },
+  formGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    marginBottom: '14px'
+  },
+  label: {
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    color: 'var(--muted)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em'
+  },
+  input: {
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: '1px solid var(--border)',
+    background: 'var(--cream)',
+    color: 'var(--ink)',
+    fontSize: '0.95rem',
+    outline: 'none',
+    width: '100%'
+  },
+  select: {
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: '1px solid var(--border)',
+    background: 'var(--cream)',
+    color: 'var(--ink)',
+    fontSize: '0.95rem',
+    outline: 'none',
+    width: '100%'
+  },
+  btnPrimary: {
+    padding: '11px 24px',
+    borderRadius: '8px',
+    border: 'none',
+    background: 'var(--accent)',
+    color: 'white',
+    fontWeight: 700,
+    fontSize: '0.95rem',
+    cursor: 'pointer',
+    width: '100%',
+    marginTop: '4px'
+  },
+  btnSecondary: {
+    padding: '8px 16px',
+    borderRadius: '8px',
+    border: '1px solid var(--border)',
+    background: 'var(--cream)',
+    color: 'var(--ink)',
+    fontWeight: 600,
+    fontSize: '0.85rem',
+    cursor: 'pointer'
+  },
+  btnOcean: {
+    padding: '8px 16px',
+    borderRadius: '8px',
+    border: 'none',
+    background: 'var(--ocean)',
+    color: 'white',
+    fontWeight: 600,
+    fontSize: '0.85rem',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap'
+  },
+  btnDanger: {
+    padding: '8px 16px',
+    borderRadius: '8px',
+    border: 'none',
+    background: 'rgba(239, 68, 68, 0.12)',
+    color: '#b91c1c',
+    fontWeight: 600,
+    fontSize: '0.85rem',
+    cursor: 'pointer'
+  },
+  btnSuccess: {
+    padding: '8px 16px',
+    borderRadius: '8px',
+    border: 'none',
+    background: 'rgba(34, 197, 94, 0.12)',
+    color: '#166534',
+    fontWeight: 600,
+    fontSize: '0.85rem',
+    cursor: 'pointer'
+  },
+  badge: (status) => ({
+    display: 'inline-block',
+    padding: '3px 10px',
+    borderRadius: '999px',
+    fontSize: '0.78rem',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    background: status === 'confirmed' ? 'rgba(34, 197, 94, 0.12)' :
+                status === 'cancelled' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(234, 179, 8, 0.12)',
+    color: status === 'confirmed' ? '#166534' :
+           status === 'cancelled' ? '#b91c1c' : '#854d0e'
+  })
+}
+
 function RestaurantDash() {
   const [menuItems, setMenuItems] = useState([])
   const [reservations, setReservations] = useState([])
   const [activeTab, setActiveTab] = useState('sell')
 
-  // sell form
   const [venueId, setVenueId] = useState('')
   const [menuItemId, setMenuItemId] = useState('')
   const [quantity, setQuantity] = useState(1)
@@ -14,12 +200,10 @@ function RestaurantDash() {
   const [customerInfo, setCustomerInfo] = useState(null)
   const [emailError, setEmailError] = useState('')
 
-  // add menu item form
   const [newItemName, setNewItemName] = useState('')
   const [newItemPrice, setNewItemPrice] = useState('')
   const [newItemVenueId, setNewItemVenueId] = useState('')
 
-  // reservation form
   const [resVenueId, setResVenueId] = useState('')
   const [resCustomerId, setResCustomerId] = useState('')
   const [resDate, setResDate] = useState('')
@@ -66,7 +250,6 @@ function RestaurantDash() {
     setEmailError('')
     setCustomerInfo(null)
     if (!email) return
-
     try {
       const res = await fetch(`/api/transactions/customer-lookup?email=${encodeURIComponent(email)}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -85,20 +268,12 @@ function RestaurantDash() {
   const handleSell = async () => {
     setMessage('')
     setError('')
-
-    if (!venueId || !menuItemId || !quantity) {
-      setError('Please fill in all fields')
-      return
-    }
-
+    if (!venueId || !menuItemId || !quantity) { setError('Please fill in all fields'); return }
     setLoading(true)
     try {
       const res = await fetch('/api/transactions/restaurants/sell', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           venue_id: parseInt(venueId),
           menu_item_id: parseInt(menuItemId),
@@ -107,11 +282,9 @@ function RestaurantDash() {
           account_id: customerInfo?.account_id || null
         })
       })
-
       const data = await res.json()
       if (!res.ok) { setError(data.message); return }
-
-      setMessage(`✅ Sale recorded! Total: $${data.total_amount}${customerInfo ? ` — linked to ${customerInfo.first_name} ${customerInfo.last_name}` : ' (guest)'}`)
+      setMessage(`Sale recorded! Total: $${data.total_amount}${customerInfo ? ` — linked to ${customerInfo.first_name} ${customerInfo.last_name}` : ' (guest)'}`)
       setMenuItemId('')
       setQuantity(1)
       setEmail('')
@@ -127,20 +300,12 @@ function RestaurantDash() {
   const handleAddItem = async () => {
     setMessage('')
     setError('')
-
-    if (!newItemName || !newItemPrice || !newItemVenueId) {
-      setError('Please fill in all fields')
-      return
-    }
-
+    if (!newItemName || !newItemPrice || !newItemVenueId) { setError('Please fill in all fields'); return }
     setLoading(true)
     try {
       const res = await fetch('/api/transactions/restaurants/menu/add', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           restaurant_venue_id: parseInt(newItemVenueId),
           item_name: newItemName,
@@ -148,11 +313,9 @@ function RestaurantDash() {
           is_available: true
         })
       })
-
       const data = await res.json()
       if (!res.ok) { setError(data.message); return }
-
-      setMessage('✅ Menu item added successfully!')
+      setMessage('Menu item added successfully!')
       setNewItemName('')
       setNewItemPrice('')
       setNewItemVenueId('')
@@ -167,21 +330,15 @@ function RestaurantDash() {
   const handleToggleAvailability = async (item) => {
     setMessage('')
     setError('')
-
     try {
       const res = await fetch(`/api/transactions/restaurants/menu/toggle/${item.menu_item_id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ is_available: !item.is_available })
       })
-
       const data = await res.json()
       if (!res.ok) { setError(data.message); return }
-
-      setMessage(`✅ ${item.item_name} marked as ${!item.is_available ? 'available' : 'unavailable'}`)
+      setMessage(`${item.item_name} marked as ${!item.is_available ? 'available' : 'unavailable'}`)
       fetchMenuItems()
     } catch {
       setError('Something went wrong')
@@ -191,20 +348,12 @@ function RestaurantDash() {
   const handleAddReservation = async () => {
     setMessage('')
     setError('')
-
-    if (!resVenueId || !resCustomerId || !resDate || !resTime || !resPartySize) {
-      setError('Please fill in all fields')
-      return
-    }
-
+    if (!resVenueId || !resCustomerId || !resDate || !resTime || !resPartySize) { setError('Please fill in all fields'); return }
     setLoading(true)
     try {
       const res = await fetch('/api/transactions/restaurants/reservations', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           restaurant_venue_id: parseInt(resVenueId),
           customer_id: parseInt(resCustomerId),
@@ -213,11 +362,9 @@ function RestaurantDash() {
           party_size: parseInt(resPartySize)
         })
       })
-
       const data = await res.json()
       if (!res.ok) { setError(data.message); return }
-
-      setMessage('✅ Reservation created successfully!')
+      setMessage('Reservation created successfully!')
       setResVenueId('')
       setResCustomerId('')
       setResDate('')
@@ -234,126 +381,119 @@ function RestaurantDash() {
   const handleUpdateReservation = async (reservation_id, status) => {
     setMessage('')
     setError('')
-
     try {
       const res = await fetch(`/api/transactions/restaurants/reservations/${reservation_id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status_reservation: status })
       })
-
       const data = await res.json()
       if (!res.ok) { setError(data.message); return }
-
-      setMessage(`✅ Reservation ${status}!`)
+      setMessage(`Reservation ${status}!`)
       fetchReservations()
     } catch {
       setError('Something went wrong')
     }
   }
 
-  const tabStyle = (tab) => ({
-    padding: '10px 20px',
-    cursor: 'pointer',
-    backgroundColor: activeTab === tab ? '#333' : '#eee',
-    color: activeTab === tab ? 'white' : 'black',
-    border: 'none',
-    marginRight: '5px'
-  })
-
   return (
-    <div style={{ padding: '20px', maxWidth: '700px', margin: '0 auto' }}>
-      <h1>Restaurant Manager Dashboard</h1>
+    <div style={styles.page}>
+      <h1 style={styles.header}>Restaurant Manager</h1>
+      <p style={styles.subtitle}>Manage orders, menu items, and reservations</p>
 
-      {message && <p style={{ color: 'green' }}>{message}</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {message && <div style={styles.alert('success')}>✅ {message}</div>}
+      {error && <div style={styles.alert('error')}>⚠️ {error}</div>}
 
-      <div style={{ marginBottom: '20px' }}>
-        <button style={tabStyle('sell')} onClick={() => { setActiveTab('sell'); setMessage(''); setError('') }}>
+      <div style={styles.tabs}>
+        <button style={styles.tab(activeTab === 'sell')} onClick={() => { setActiveTab('sell'); setMessage(''); setError('') }}>
           Ring Up Order
         </button>
-        <button style={tabStyle('menu')} onClick={() => { setActiveTab('menu'); setMessage(''); setError('') }}>
+        <button style={styles.tab(activeTab === 'menu')} onClick={() => { setActiveTab('menu'); setMessage(''); setError('') }}>
           Manage Menu
         </button>
-        <button style={tabStyle('reservations')} onClick={() => { setActiveTab('reservations'); setMessage(''); setError('') }}>
+        <button style={styles.tab(activeTab === 'reservations')} onClick={() => { setActiveTab('reservations'); setMessage(''); setError('') }}>
           Reservations
         </button>
       </div>
 
       {activeTab === 'sell' && (
         <div>
-          <h2>Available Menu Items</h2>
-          {menuItems.filter(i => i.is_available).length === 0 ? (
-            <p>No menu items available.</p>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#333', color: 'white' }}>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Item</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Price</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Venue ID</th>
-                </tr>
-              </thead>
-              <tbody>
-                {menuItems.filter(i => i.is_available).map(item => (
-                  <tr key={item.menu_item_id} style={{ borderBottom: '1px solid #ddd' }}>
-                    <td style={{ padding: '8px' }}>{item.item_name}</td>
-                    <td style={{ padding: '8px' }}>${item.price}</td>
-                    <td style={{ padding: '8px' }}>{item.restaurant_venue_id}</td>
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}>Available Menu Items</h2>
+            {menuItems.filter(i => i.is_available).length === 0 ? (
+              <p style={{ color: 'var(--muted)' }}>No menu items available.</p>
+            ) : (
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={{ ...styles.th, borderRadius: '8px 0 0 0' }}>Item</th>
+                    <th style={styles.th}>Price</th>
+                    <th style={{ ...styles.th, borderRadius: '0 8px 0 0' }}>Venue ID</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {menuItems.filter(i => i.is_available).map((item, idx) => (
+                    <tr key={item.menu_item_id} style={{ background: idx % 2 === 0 ? 'transparent' : 'rgba(15,28,46,0.02)' }}>
+                      <td style={styles.td}>{item.item_name}</td>
+                      <td style={styles.td}>${item.price}</td>
+                      <td style={styles.td}>{item.restaurant_venue_id}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
 
-          <h2>Ring Up Order</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <label>Venue ID</label>
-            <input type="number" placeholder="Enter venue ID" value={venueId} onChange={e => setVenueId(e.target.value)} />
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}>Ring Up Order</h2>
 
-            <label>Menu Item</label>
-            <select value={menuItemId} onChange={e => setMenuItemId(e.target.value)}>
-              <option value="">Select a menu item</option>
-              {menuItems.filter(i => i.is_available).map(item => (
-                <option key={item.menu_item_id} value={item.menu_item_id}>
-                  {item.item_name} — ${item.price}
-                </option>
-              ))}
-            </select>
-
-            <label>Quantity</label>
-            <input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
-
-            <label>Payment Method</label>
-            <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
-              <option value="card">Card</option>
-              <option value="cash">Cash</option>
-            </select>
-
-            <label>Customer Email (optional)</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                type="email"
-                placeholder="Enter customer email"
-                value={email}
-                onChange={e => { setEmail(e.target.value); setCustomerInfo(null); setEmailError('') }}
-                style={{ flex: 1 }}
-              />
-              <button type="button" onClick={handleEmailLookup} style={{ whiteSpace: 'nowrap' }}>
-                Look Up
-              </button>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Venue ID</label>
+              <input style={styles.input} type="number" placeholder="Enter venue ID" value={venueId} onChange={e => setVenueId(e.target.value)} />
             </div>
-            {customerInfo && (
-              <p style={{ color: 'green', margin: 0 }}>✅ Found: {customerInfo.first_name} {customerInfo.last_name}</p>
-            )}
-            {emailError && (
-              <p style={{ color: 'orange', margin: 0 }}>{emailError}</p>
-            )}
 
-            <button onClick={handleSell} disabled={loading}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Menu Item</label>
+              <select style={styles.select} value={menuItemId} onChange={e => setMenuItemId(e.target.value)}>
+                <option value="">Select a menu item</option>
+                {menuItems.filter(i => i.is_available).map(item => (
+                  <option key={item.menu_item_id} value={item.menu_item_id}>
+                    {item.item_name} — ${item.price}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Quantity</label>
+              <input style={styles.input} type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Payment Method</label>
+              <select style={styles.select} value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                <option value="card">Card</option>
+                <option value="cash">Cash</option>
+              </select>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Customer Email (optional)</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  style={{ ...styles.input, flex: 1 }}
+                  type="email"
+                  placeholder="Enter customer email"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); setCustomerInfo(null); setEmailError('') }}
+                />
+                <button style={styles.btnOcean} type="button" onClick={handleEmailLookup}>Look Up</button>
+              </div>
+              {customerInfo && <p style={{ color: '#166534', margin: '4px 0 0', fontSize: '0.88rem' }}>✅ Found: {customerInfo.first_name} {customerInfo.last_name}</p>}
+              {emailError && <p style={{ color: '#854d0e', margin: '4px 0 0', fontSize: '0.88rem' }}>{emailError}</p>}
+            </div>
+
+            <button style={styles.btnPrimary} onClick={handleSell} disabled={loading}>
               {loading ? 'Processing...' : 'Complete Sale'}
             </button>
           </div>
@@ -362,49 +502,68 @@ function RestaurantDash() {
 
       {activeTab === 'menu' && (
         <div>
-          <h2>All Menu Items</h2>
-          {menuItems.length === 0 ? (
-            <p>No menu items found.</p>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#333', color: 'white' }}>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Item</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Price</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Status</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {menuItems.map(item => (
-                  <tr key={item.menu_item_id} style={{ borderBottom: '1px solid #ddd' }}>
-                    <td style={{ padding: '8px' }}>{item.item_name}</td>
-                    <td style={{ padding: '8px' }}>${item.price}</td>
-                    <td style={{ padding: '8px' }}>
-                      <span style={{ color: item.is_available ? 'green' : 'red' }}>
-                        {item.is_available ? 'Available' : 'Unavailable'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '8px' }}>
-                      <button onClick={() => handleToggleAvailability(item)}>
-                        {item.is_available ? 'Mark Unavailable' : 'Mark Available'}
-                      </button>
-                    </td>
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}>All Menu Items</h2>
+            {menuItems.length === 0 ? (
+              <p style={{ color: 'var(--muted)' }}>No menu items found.</p>
+            ) : (
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={{ ...styles.th, borderRadius: '8px 0 0 0' }}>Item</th>
+                    <th style={styles.th}>Price</th>
+                    <th style={styles.th}>Status</th>
+                    <th style={{ ...styles.th, borderRadius: '0 8px 0 0' }}>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {menuItems.map((item, idx) => (
+                    <tr key={item.menu_item_id} style={{ background: idx % 2 === 0 ? 'transparent' : 'rgba(15,28,46,0.02)' }}>
+                      <td style={styles.td}>{item.item_name}</td>
+                      <td style={styles.td}>${item.price}</td>
+                      <td style={styles.td}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '3px 10px',
+                          borderRadius: '999px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          background: item.is_available ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                          color: item.is_available ? '#166534' : '#b91c1c'
+                        }}>
+                          {item.is_available ? 'Available' : 'Unavailable'}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <button
+                          style={item.is_available ? styles.btnDanger : styles.btnSuccess}
+                          onClick={() => handleToggleAvailability(item)}
+                        >
+                          {item.is_available ? 'Mark Unavailable' : 'Mark Available'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
 
-          <h2>Add Menu Item</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <label>Venue ID</label>
-            <input type="number" placeholder="Enter venue ID" value={newItemVenueId} onChange={e => setNewItemVenueId(e.target.value)} />
-            <label>Item Name</label>
-            <input type="text" placeholder="e.g. Cheeseburger" value={newItemName} onChange={e => setNewItemName(e.target.value)} />
-            <label>Price ($)</label>
-            <input type="number" min="0" step="0.01" placeholder="e.g. 12.99" value={newItemPrice} onChange={e => setNewItemPrice(e.target.value)} />
-            <button onClick={handleAddItem} disabled={loading}>
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}>Add Menu Item</h2>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Venue ID</label>
+              <input style={styles.input} type="number" placeholder="Enter venue ID" value={newItemVenueId} onChange={e => setNewItemVenueId(e.target.value)} />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Item Name</label>
+              <input style={styles.input} type="text" placeholder="e.g. Cheeseburger" value={newItemName} onChange={e => setNewItemName(e.target.value)} />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Price ($)</label>
+              <input style={styles.input} type="number" min="0" step="0.01" placeholder="e.g. 12.99" value={newItemPrice} onChange={e => setNewItemPrice(e.target.value)} />
+            </div>
+            <button style={styles.btnPrimary} onClick={handleAddItem} disabled={loading}>
               {loading ? 'Adding...' : 'Add Menu Item'}
             </button>
           </div>
@@ -413,63 +572,68 @@ function RestaurantDash() {
 
       {activeTab === 'reservations' && (
         <div>
-          <h2>All Reservations</h2>
-          {reservations.length === 0 ? (
-            <p>No reservations found.</p>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#333', color: 'white' }}>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Customer</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Date</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Time</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Party Size</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Status</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reservations.map(r => (
-                  <tr key={r.reservation_id} style={{ borderBottom: '1px solid #ddd' }}>
-                    <td style={{ padding: '8px' }}>{r.first_name} {r.last_name}</td>
-                    <td style={{ padding: '8px' }}>{r.reservation_date?.split('T')[0]}</td>
-                    <td style={{ padding: '8px' }}>{r.reservation_time}</td>
-                    <td style={{ padding: '8px' }}>{r.party_size}</td>
-                    <td style={{ padding: '8px' }}>
-                      <span style={{
-                        color: r.status_reservation === 'confirmed' ? 'green' :
-                               r.status_reservation === 'cancelled' ? 'red' : 'orange'
-                      }}>
-                        {r.status_reservation}
-                      </span>
-                    </td>
-                    <td style={{ padding: '8px', display: 'flex', gap: '5px' }}>
-                      {r.status_reservation !== 'confirmed' && (
-                        <button onClick={() => handleUpdateReservation(r.reservation_id, 'confirmed')}>Confirm</button>
-                      )}
-                      {r.status_reservation !== 'cancelled' && (
-                        <button onClick={() => handleUpdateReservation(r.reservation_id, 'cancelled')}>Cancel</button>
-                      )}
-                    </td>
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}>All Reservations</h2>
+            {reservations.length === 0 ? (
+              <p style={{ color: 'var(--muted)' }}>No reservations found.</p>
+            ) : (
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={{ ...styles.th, borderRadius: '8px 0 0 0' }}>Customer</th>
+                    <th style={styles.th}>Date</th>
+                    <th style={styles.th}>Time</th>
+                    <th style={styles.th}>Party Size</th>
+                    <th style={styles.th}>Status</th>
+                    <th style={{ ...styles.th, borderRadius: '0 8px 0 0' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {reservations.map((r, idx) => (
+                    <tr key={r.reservation_id} style={{ background: idx % 2 === 0 ? 'transparent' : 'rgba(15,28,46,0.02)' }}>
+                      <td style={styles.td}>{r.first_name} {r.last_name}</td>
+                      <td style={styles.td}>{r.reservation_date?.split('T')[0]}</td>
+                      <td style={styles.td}>{r.reservation_time}</td>
+                      <td style={styles.td}>{r.party_size}</td>
+                      <td style={styles.td}><span style={styles.badge(r.status_reservation)}>{r.status_reservation}</span></td>
+                      <td style={{ ...styles.td, display: 'flex', gap: '6px' }}>
+                        {r.status_reservation !== 'confirmed' && (
+                          <button style={styles.btnSuccess} onClick={() => handleUpdateReservation(r.reservation_id, 'confirmed')}>Confirm</button>
+                        )}
+                        {r.status_reservation !== 'cancelled' && (
+                          <button style={styles.btnDanger} onClick={() => handleUpdateReservation(r.reservation_id, 'cancelled')}>Cancel</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
 
-          <h2>Add Reservation</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <label>Venue ID</label>
-            <input type="number" placeholder="Enter venue ID" value={resVenueId} onChange={e => setResVenueId(e.target.value)} />
-            <label>Customer ID</label>
-            <input type="number" placeholder="Enter customer ID" value={resCustomerId} onChange={e => setResCustomerId(e.target.value)} />
-            <label>Date</label>
-            <input type="date" value={resDate} min={todayDate} onChange={e => setResDate(e.target.value)} />
-            <label>Time</label>
-            <input type="time" value={resTime} onChange={e => setResTime(e.target.value)} />
-            <label>Party Size</label>
-            <input type="number" min="1" value={resPartySize} onChange={e => setResPartySize(e.target.value)} />
-            <button onClick={handleAddReservation} disabled={loading}>
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}>Add Reservation</h2>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Venue ID</label>
+              <input style={styles.input} type="number" placeholder="Enter venue ID" value={resVenueId} onChange={e => setResVenueId(e.target.value)} />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Customer ID</label>
+              <input style={styles.input} type="number" placeholder="Enter customer ID" value={resCustomerId} onChange={e => setResCustomerId(e.target.value)} />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Date</label>
+              <input style={styles.input} type="date" value={resDate} min={todayDate} onChange={e => setResDate(e.target.value)} />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Time</label>
+              <input style={styles.input} type="time" value={resTime} onChange={e => setResTime(e.target.value)} />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Party Size</label>
+              <input style={styles.input} type="number" min="1" value={resPartySize} onChange={e => setResPartySize(e.target.value)} />
+            </div>
+            <button style={styles.btnPrimary} onClick={handleAddReservation} disabled={loading}>
               {loading ? 'Adding...' : 'Add Reservation'}
             </button>
           </div>
