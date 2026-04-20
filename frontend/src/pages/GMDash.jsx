@@ -4,6 +4,7 @@ import AddRide from '../components/AddRide'
 import GMForms from '../components/GMForms'
 import ParkDayStats from '../components/ParkDayStats'
 import RevenueStats from '../components/RevenueStats'
+import CustomerLoyaltyReport from '../components/CustomerLoyaltyReport'
 import ManageEmployees from '../components/ManageEmployees'
 import ManageDepartments from '../components/ManageDepartments'
 import ManageVenues from '../components/ManageVenues'
@@ -157,6 +158,12 @@ const fetchReviews = async () => {
           Revenue
         </button>
         <button
+          className={`gm-tool-btn ${activePanel === 'loyalty' ? 'active' : ''}`}
+          onClick={() => togglePanel('loyalty')}
+        >
+          Customer Loyalty
+        </button>
+        <button
           className={`gm-tool-btn ${activePanel === 'employees' ? 'active' : ''}`}
           onClick={() => togglePanel('employees')}
         >
@@ -195,6 +202,7 @@ const fetchReviews = async () => {
       {activePanel === 'venues' && <ManageVenues token={token} />}
       {activePanel === 'parkDay' && <ParkDayStats token={token} />}
       {activePanel === 'revenue' && <RevenueStats token={token} />}
+      {activePanel === 'loyalty' && <CustomerLoyaltyReport token={token} />}
 
       {activePanel === 'emergencies' && (
         <div style={{ marginBottom: '3rem' }}>
