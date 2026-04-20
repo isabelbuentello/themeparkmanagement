@@ -169,17 +169,49 @@
   letter-spacing: 0.05em;
 }
 
+/* ─── Custom Select Wrapper ─── */
+.rev-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.rev-select-wrapper .rev-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 36px;
+}
+
+.rev-select-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: #6c757d;
+  pointer-events: none;
+}
+
+/* ─── Select & Input Base Styles ─── */
 .rev-select,
 .rev-input {
-  padding: 9px 12px;
+  padding: 10px 14px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 0.9rem;
-  color: #333;
+  font-weight: 500;
+  color: #343a40;
   background: #fff;
   width: 100%;
   box-sizing: border-box;
   transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.rev-select:hover,
+.rev-input:hover {
+  border-color: #adb5bd;
 }
 
 .rev-select:focus,
@@ -193,8 +225,14 @@
   background: #f3f4f6;
   color: #adb5bd;
   cursor: not-allowed;
+  border-color: #e5e7eb;
 }
 
+.rev-select:disabled + .rev-select-arrow {
+  color: #d1d5db;
+}
+
+/* ─── Buttons — Same Size ─── */
 .rev-filter-actions {
   display: flex;
   gap: 0.5rem;
@@ -202,16 +240,41 @@
   padding-bottom: 1px;
 }
 
+.rev-apply-btn,
 .rev-clear-btn {
-  padding: 9px 16px;
-  border: 1px solid #d1d5db;
+  padding: 10px 24px;
   border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  line-height: 1.4;
+  white-space: nowrap;
+  min-width: 100px;
+  text-align: center;
+}
+
+.rev-apply-btn {
+  background-color: #343a40;
+  color: #fff;
+  border: 1px solid #343a40;
+}
+
+.rev-apply-btn:hover {
+  background-color: #23272b;
+  border-color: #23272b;
+}
+
+.rev-apply-btn.rev-btn-applied {
+  background-color: #2d8a39;
+  border-color: #2d8a39;
+}
+
+.rev-clear-btn {
   background: #fff;
   color: #495057;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.2s;
+  border: 1px solid #d1d5db;
 }
 
 .rev-clear-btn:hover {
@@ -219,22 +282,60 @@
   border-color: #adb5bd;
 }
 
-/* ─── Active Period Badge ─── */
+/* ─── Status Bar ─── */
+.rev-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
 .rev-active-period {
   font-size: 0.85rem;
   color: #6c757d;
-  margin-bottom: 1.25rem;
-  padding: 6px 12px;
+  padding: 5px 12px;
   background: #f8f9fa;
   border-radius: 6px;
-  display: inline-block;
+  border: 1px solid #eef0f2;
+  transition: all 0.3s;
 }
 
 .rev-active-period strong {
   color: #343a40;
 }
 
-/* ─── Toggle Chip Sections (Venues / Types) ─── */
+.rev-active-period.rev-applied {
+  border-color: #2d8a39;
+  background: #f0fdf4;
+}
+
+.rev-filter-count {
+  font-size: 0.8rem;
+  color: #7c3aed;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: #f5f0ff;
+  border-radius: 12px;
+}
+
+.rev-applied-badge {
+  font-size: 0.8rem;
+  color: #2d8a39;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  animation: rev-fade-in 0.3s ease;
+}
+
+@keyframes rev-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Toggle Chip Sections ─── */
 .rev-toggle-section {
   margin-bottom: 1.25rem;
 }
@@ -261,6 +362,7 @@
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
+  font-family: inherit;
 }
 
 .rev-chip:hover {
@@ -373,5 +475,14 @@
 
   .rev-summary-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .rev-filter-actions {
+    width: 100%;
+  }
+
+  .rev-apply-btn,
+  .rev-clear-btn {
+    flex: 1;
   }
 }

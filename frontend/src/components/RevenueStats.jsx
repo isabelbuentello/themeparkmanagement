@@ -12,6 +12,7 @@ function RevenueStats({ token }) {
   const [selectedTypes, setSelectedTypes] = useState([])
   const [venues, setVenues] = useState([])
   const [view, setView] = useState('daily')
+  const [filterApplied, setFilterApplied] = useState(false)
 
   const itemTypes = [
     { value: 'ticket', label: 'Tickets' },
@@ -34,7 +35,6 @@ function RevenueStats({ token }) {
     { value: '12', label: 'December' }
   ]
 
-  // generate year options from 2020 to current year
   const getYearOptions = () => {
     const currentYear = new Date().getFullYear()
     const years = []
@@ -44,22 +44,17 @@ function RevenueStats({ token }) {
     return years
   }
 
-  // when year or month changes, compute the date range
   const updateDateRange = (year, month) => {
     if (!year) {
-      // all time
       setStartDate('')
       setEndDate('')
       return
     }
-
     if (month) {
-      // specific month in a year
       setStartDate(`${year}-${month}-01`)
       const lastDay = new Date(Number(year), Number(month), 0).getDate()
       setEndDate(`${year}-${month}-${lastDay}`)
     } else {
-      // entire year
       setStartDate(`${year}-01-01`)
       setEndDate(`${year}-12-31`)
     }
@@ -68,6 +63,7 @@ function RevenueStats({ token }) {
   const handleYearChange = (e) => {
     const year = e.target.value
     setSelectedYear(year)
+    setFilterApplied(false)
     if (!year) {
       setSelectedMonthNum('')
       updateDateRange('', '')
@@ -79,10 +75,12 @@ function RevenueStats({ token }) {
   const handleMonthChange = (e) => {
     const month = e.target.value
     setSelectedMonthNum(month)
+    setFilterApplied(false)
     updateDateRange(selectedYear, month)
   }
 
   const toggleVenue = (venueId) => {
+    setFilterApplied(false)
     setSelectedVenues(prev =>
       prev.includes(venueId)
         ? prev.filter(id => id !== venueId)
@@ -91,6 +89,7 @@ function RevenueStats({ token }) {
   }
 
   const toggleType = (type) => {
+    setFilterApplied(false)
     setSelectedTypes(prev =>
       prev.includes(type)
         ? prev.filter(t => t !== type)
@@ -154,6 +153,8 @@ function RevenueStats({ token }) {
     fetchRevenue()
     fetchBreakdown()
     fetchTickets()
+    setFilterApplied(true)
+    setTimeout(() => setFilterApplied(false), 3000)
   }
 
   const handleClearFilters = () => {
@@ -163,6 +164,7 @@ function RevenueStats({ token }) {
     setSelectedMonthNum('')
     setSelectedVenues([])
     setSelectedTypes([])
+    setFilterApplied(false)
     setTimeout(() => {
       fetchRevenue()
       fetchBreakdown()
@@ -205,7 +207,6 @@ function RevenueStats({ token }) {
 
   const hasActiveFilters = startDate || endDate || selectedVenues.length > 0 || selectedTypes.length > 0
 
-  // build the active filter label for display
   const getDateLabel = () => {
     if (!selectedYear) return 'All Time'
     if (selectedMonthNum) {
@@ -214,6 +215,11 @@ function RevenueStats({ token }) {
     }
     return selectedYear
   }
+
+  // count total active filters
+  const activeFilterCount = (selectedYear ? 1 : 0) + (selectedMonthNum ? 1 : 0) +
+    selectedVenues.length + selectedTypes.length +
+    (startDate && !selectedYear ? 1 : 0) + (endDate && !selectedYear ? 1 : 0)
 
   return (
     <div style={{ marginBottom: '3rem' }}>
@@ -226,26 +232,32 @@ function RevenueStats({ token }) {
           <div className="rev-period-group">
             <div className="rev-filter-field">
               <label className="rev-filter-label">Year</label>
-              <select className="rev-select" value={selectedYear} onChange={handleYearChange}>
-                <option value="">All Time</option>
-                {getYearOptions().map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
+              <div className="rev-select-wrapper">
+                <select className="rev-select" value={selectedYear} onChange={handleYearChange}>
+                  <option value="">All Time</option>
+                  {getYearOptions().map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <span className="rev-select-arrow">&#9662;</span>
+              </div>
             </div>
             <div className="rev-filter-field">
               <label className="rev-filter-label">Month</label>
-              <select
-                className="rev-select"
-                value={selectedMonthNum}
-                onChange={handleMonthChange}
-                disabled={!selectedYear}
-              >
-                <option value="">{selectedYear ? 'Full Year' : '—'}</option>
-                {months.map(m => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
+              <div className="rev-select-wrapper">
+                <select
+                  className="rev-select"
+                  value={selectedMonthNum}
+                  onChange={handleMonthChange}
+                  disabled={!selectedYear}
+                >
+                  <option value="">{selectedYear ? 'Full Year' : '—'}</option>
+                  {months.map(m => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+                <span className="rev-select-arrow">&#9662;</span>
+              </div>
             </div>
           </div>
 
@@ -262,6 +274,7 @@ function RevenueStats({ token }) {
                   setStartDate(e.target.value)
                   setSelectedYear('')
                   setSelectedMonthNum('')
+                  setFilterApplied(false)
                 }}
               />
             </div>
@@ -275,22 +288,33 @@ function RevenueStats({ token }) {
                   setEndDate(e.target.value)
                   setSelectedYear('')
                   setSelectedMonthNum('')
+                  setFilterApplied(false)
                 }}
               />
             </div>
           </div>
 
           <div className="rev-filter-actions">
-            <button className="gm-submit-btn" onClick={handleFilter}>Apply</button>
+            <button className="rev-apply-btn" onClick={handleFilter}>
+              {filterApplied ? '✓ Applied' : 'Apply'}
+            </button>
             {hasActiveFilters && (
               <button className="rev-clear-btn" onClick={handleClearFilters}>Clear</button>
             )}
           </div>
         </div>
 
-        {/* Active period badge */}
-        <div className="rev-active-period">
-          Showing: <strong>{getDateLabel()}</strong>
+        {/* Active filter status */}
+        <div className="rev-status-bar">
+          <span className={`rev-active-period ${filterApplied ? 'rev-applied' : ''}`}>
+            Showing: <strong>{getDateLabel()}</strong>
+          </span>
+          {activeFilterCount > 0 && (
+            <span className="rev-filter-count">{activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} active</span>
+          )}
+          {filterApplied && (
+            <span className="rev-applied-badge">✓ Filters applied</span>
+          )}
         </div>
 
         {/* Venue toggles */}
