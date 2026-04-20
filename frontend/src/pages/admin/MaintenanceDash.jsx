@@ -482,7 +482,7 @@ function MaintenanceDash() {
             {requests.map((request) => {
               const effectiveStatus = requestDrafts[request.request_id]?.status_request || request.status_request
               const effectiveAssignedEmployeeId = requestDrafts[request.request_id]?.assigned_to_employee_id ?? request.assigned_to_employee_id
-              const isResolved = effectiveStatus === 'resolved'
+              const isResolved = request.status_request === 'resolved'
 
               return (
               <tr key={request.request_id}>
