@@ -723,6 +723,42 @@ router.get('/history', requireCustomer, async (req, res) => {
   }
 })
 
+router.patch('/memberships/:membershipId/cancel', requireCustomer, async (req, res) => {
+  try {
+    const customer = await getCustomerAccountContext(req.user.id)
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer account not found' })
+    }
+
+    const result = await query(
+      `
+        UPDATE Membership
+        SET status_membership = 'canceled',
+            end_date = CURDATE(),
+            auto_renew = false
+        WHERE membership_id = ?
+          AND account_id = ?
+          AND status_membership = 'active'
+      `,
+      [req.params.membershipId, customer.account_id]
+    )
+
+    if (!result.affectedRows) {
+      return res.status(404).json({ message: 'Active membership not found' })
+    }
+
+    return res.json({
+      membershipId: Number(req.params.membershipId),
+      status: 'canceled',
+      endDate: new Date().toISOString().slice(0, 10),
+      message: 'Membership canceled.'
+    })
+  } catch {
+    return res.status(500).json({ message: 'Unable to cancel membership' })
+  }
+})
+
 router.get('/queue', (req, res) => {
   db.query(
     `

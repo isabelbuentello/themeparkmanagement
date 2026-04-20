@@ -66,6 +66,8 @@ function AccountPage() {
   const [securitySaveError, setSecuritySaveError] = useState('')
   const [securityMessage, setSecurityMessage] = useState('')
   const [isSecuritySaving, setIsSecuritySaving] = useState(false)
+  const [cancelingMembershipId, setCancelingMembershipId] = useState(null)
+  const [membershipActionError, setMembershipActionError] = useState('')
 
   const buildProfileState = (data) => {
     const fullName = (data.name || '').trim()
@@ -338,6 +340,51 @@ function AccountPage() {
       setSecuritySaveError(error.message || 'Unable to update security settings')
     } finally {
       setIsSecuritySaving(false)
+    }
+  }
+
+  const handleCancelMembership = async (membershipId) => {
+    const confirmed = window.confirm('Cancel this membership? This keeps the record for your account history.')
+
+    if (!confirmed) {
+      return
+    }
+
+    setCancelingMembershipId(membershipId)
+    setMembershipActionError('')
+
+    try {
+      const response = await fetch(`/api/customer/memberships/${membershipId}/cancel`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await response.json()
+
+      if (response.status === 401 || response.status === 403) {
+        handleExpiredSession()
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Unable to cancel membership')
+      }
+
+      setHistory((currentHistory) => ({
+        ...currentHistory,
+        memberships: currentHistory.memberships.map((membership) => (
+          membership.membershipId === membershipId
+            ? {
+                ...membership,
+                status: data.status || 'canceled',
+                endDate: data.endDate || membership.endDate
+              }
+            : membership
+        ))
+      }))
+    } catch (error) {
+      setMembershipActionError(error.message || 'Unable to cancel membership')
+    } finally {
+      setCancelingMembershipId(null)
     }
   }
 
@@ -693,6 +740,12 @@ function AccountPage() {
         error={historyError}
         errorMessage={historyError}
       />
+      {membershipActionError ? (
+        <div className="confirmation-box account-action-message">
+          <strong>Something went wrong.</strong>
+          <p>{membershipActionError}</p>
+        </div>
+      ) : null}
       {!isHistoryLoading && !historyError ? (
         history.memberships.length ? (
           <div className="account-stack">
@@ -702,7 +755,19 @@ function AccountPage() {
                   <strong className="account-history-title">{membership.tierName}</strong>
                   <p className="account-history-meta">{formatDate(membership.startDate)} to {formatDate(membership.endDate)}</p>
                 </div>
-                <span className="account-history-badge">{membership.status}</span>
+                <div className="account-membership-actions">
+                  <span className="account-history-badge">{membership.status}</span>
+                  {membership.status === 'active' ? (
+                    <button
+                      type="button"
+                      className="secondary-btn account-cancel-membership-button"
+                      onClick={() => handleCancelMembership(membership.membershipId)}
+                      disabled={cancelingMembershipId === membership.membershipId}
+                    >
+                      {cancelingMembershipId === membership.membershipId ? 'Canceling...' : 'Cancel Membership'}
+                    </button>
+                  ) : null}
+                </div>
               </article>
             ))}
           </div>

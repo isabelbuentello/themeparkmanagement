@@ -331,6 +331,17 @@ router.get('/customer-loyalty', verifyToken, requireGM, async (req, res) => {
 
     const whereSql = filters.length ? `WHERE ${filters.join(' AND ')}` : ''
 
+    const spendingSql = `
+      LEFT JOIN (
+        SELECT
+          account_id,
+          SUM(total_amount) AS total_spent,
+          COUNT(*) AS transaction_count
+        FROM Transactions
+        GROUP BY account_id
+      ) spending ON spending.account_id = a.account_id
+    `
+
     const latestMembershipSql = `
       FROM Membership m
       JOIN (
@@ -341,14 +352,15 @@ router.get('/customer-loyalty', verifyToken, requireGM, async (req, res) => {
       JOIN MembershipTier mt ON mt.tier_id = m.tier_id
       JOIN Account a ON a.account_id = m.account_id
       JOIN Customer c ON c.customer_id = a.customer_id
-      LEFT JOIN (
-        SELECT
-          account_id,
-          SUM(total_amount) AS total_spent,
-          COUNT(*) AS transaction_count
-        FROM Transactions
-        GROUP BY account_id
-      ) spending ON spending.account_id = a.account_id
+      ${spendingSql}
+    `
+
+    const membershipRecordsSql = `
+      FROM Membership m
+      JOIN MembershipTier mt ON mt.tier_id = m.tier_id
+      JOIN Account a ON a.account_id = m.account_id
+      JOIN Customer c ON c.customer_id = a.customer_id
+      ${spendingSql}
     `
 
     const durationSql = `
@@ -366,7 +378,8 @@ router.get('/customer-loyalty', verifyToken, requireGM, async (req, res) => {
       [loyalRows],
       [globalSummaryRows],
       [globalLoyalRows],
-      [mostActiveTierRows]
+      [mostActiveTierRows],
+      [membershipRecords]
     ] = await Promise.all([
       query(`
         SELECT m.status_membership AS status, COUNT(*) AS member_count
@@ -482,6 +495,25 @@ router.get('/customer-loyalty', verifyToken, requireGM, async (req, res) => {
         GROUP BY mt.tier_name
         ORDER BY active_count DESC, tier
         LIMIT 1
+      `),
+      query(`
+        SELECT
+          c.customer_id,
+          CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
+          c.customer_email,
+          a.username,
+          m.membership_id,
+          mt.tier_name,
+          m.status_membership,
+          m.start_date,
+          m.end_date,
+          m.auto_renew,
+          ${durationSql} AS days_as_member,
+          COALESCE(spending.total_spent, 0) AS total_spent,
+          COALESCE(spending.transaction_count, 0) AS transaction_count
+        ${membershipRecordsSql}
+        ${whereSql}
+        ORDER BY days_as_member DESC, m.start_date ASC, customer_name
       `)
     ])
 
@@ -502,7 +534,8 @@ router.get('/customer-loyalty', verifyToken, requireGM, async (req, res) => {
       },
       statusCounts,
       tierCounts,
-      members
+      members,
+      membershipRecords
     })
   } catch (err) {
     console.error('Customer loyalty report error:', err)
