@@ -127,7 +127,7 @@ router.get(
 	verifyToken,
 	requireRole('maintenance', 'general_manager'),
 	(req, res) => {
-		const { status, priority, assignment } = req.query
+		const { status, priority, assignment, rideType } = req.query
 		const whereClauses = []
 		const queryParams = []
 
@@ -147,6 +147,11 @@ router.get(
 
 		if (assignment === 'unassigned') {
 			whereClauses.push('mr.assigned_to_employee_id IS NULL')
+		}
+
+		if (rideType && rideType !== 'all') {
+			whereClauses.push('r.ride_type = ?')
+			queryParams.push(rideType)
 		}
 
 		const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''
@@ -413,7 +418,7 @@ router.patch(
 				if (rows.length === 0) return res.status(404).json({ message: 'Request not found' })
 
 				const current = rows[0]
-				const nextAssignedEmployeeId =
+				let nextAssignedEmployeeId =
 					assigned_to_employee_id !== undefined && assigned_to_employee_id !== null
 						? assigned_to_employee_id
 						: current.assigned_to_employee_id
@@ -425,11 +430,10 @@ router.patch(
 					nextStatusRequest = 'assigned'
 				}
 
-				if (
-					current.status_request === 'resolved' &&
-					(nextStatusRequest !== current.status_request || nextAssignedEmployeeId !== current.assigned_to_employee_id)
-				) {
-					return res.status(400).json({ message: 'Resolved requests cannot be modified' })
+				if (current.status_request === 'resolved') {
+					// Resolved requests are cost-only editable; keep status and assignment locked.
+					nextStatusRequest = current.status_request
+					nextAssignedEmployeeId = current.assigned_to_employee_id
 				}
 
 				db.query(

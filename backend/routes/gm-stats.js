@@ -183,35 +183,81 @@ router.get('/parkday', verifyToken, requireGM, (req, res) => {
 router.get('/revenue', verifyToken, requireGM, (req, res) => {
 	const { start, end, venue } = req.query
 	const venueIds = parseVenueIds(venue)
-
-	let sql = `SELECT DATE(transaction_time) AS revenue_date,
-	                  SUM(total_amount) AS daily_total,
-	                  COUNT(*) AS transaction_count
-	           FROM Transactions`
-	const conditions = []
-	const params = []
+	const transactionDateClauses = []
+	const transactionParams = []
+	const maintenanceDateClauses = []
+	const maintenanceParams = []
 
 	if (start && end) {
-		conditions.push('DATE(transaction_time) BETWEEN ? AND ?')
-		params.push(start, end)
+		transactionDateClauses.push('DATE(t.transaction_time) BETWEEN ? AND ?')
+		transactionParams.push(start, end)
+		maintenanceDateClauses.push('DATE(mr.created_time) BETWEEN ? AND ?')
+		maintenanceParams.push(start, end)
 	} else if (start) {
-		conditions.push('DATE(transaction_time) >= ?')
-		params.push(start)
+		transactionDateClauses.push('DATE(t.transaction_time) >= ?')
+		transactionParams.push(start)
+		maintenanceDateClauses.push('DATE(mr.created_time) >= ?')
+		maintenanceParams.push(start)
 	} else if (end) {
-		conditions.push('DATE(transaction_time) <= ?')
-		params.push(end)
+		transactionDateClauses.push('DATE(t.transaction_time) <= ?')
+		transactionParams.push(end)
+		maintenanceDateClauses.push('DATE(mr.created_time) <= ?')
+		maintenanceParams.push(end)
 	}
 
 	if (venueIds.length > 0) {
-		conditions.push(`venue_id IN (${venueIds.map(() => '?').join(',')})`)
-		params.push(...venueIds)
+		transactionDateClauses.push(`t.venue_id IN (${venueIds.map(() => '?').join(',')})`)
+		transactionParams.push(...venueIds)
 	}
 
-	if (conditions.length > 0) {
-		sql += ' WHERE ' + conditions.join(' AND ')
-	}
+	const transactionWhereSql = transactionDateClauses.length ? `WHERE ${transactionDateClauses.join(' AND ')}` : ''
+	const maintenanceWhereSql = maintenanceDateClauses.length ? `WHERE mr.cost_to_repair IS NOT NULL AND ${maintenanceDateClauses.join(' AND ')}` : 'WHERE mr.cost_to_repair IS NOT NULL'
 
-	sql += ' GROUP BY DATE(transaction_time) ORDER BY revenue_date DESC'
+	const sql = `
+		SELECT
+			date_rows.revenue_date,
+			COALESCE(tx.daily_total, 0) AS daily_total,
+			COALESCE(mc.maintenance_costs, 0) AS maintenance_costs,
+			COALESCE(tx.transaction_count, 0) AS transaction_count,
+			COALESCE(tx.daily_total, 0) - COALESCE(mc.maintenance_costs, 0) AS net_revenue
+		FROM (
+			SELECT DISTINCT revenue_date
+			FROM (
+				SELECT DATE(t.transaction_time) AS revenue_date
+				FROM Transactions t
+				${transactionWhereSql}
+				UNION
+				SELECT DATE(mr.created_time) AS revenue_date
+				FROM MaintenanceRequest mr
+				${maintenanceWhereSql}
+			) AS revenue_dates
+		) AS date_rows
+		LEFT JOIN (
+			SELECT
+				DATE(t.transaction_time) AS revenue_date,
+				SUM(t.total_amount) AS daily_total,
+				COUNT(*) AS transaction_count
+			FROM Transactions t
+			${transactionWhereSql}
+			GROUP BY DATE(t.transaction_time)
+		) AS tx ON tx.revenue_date = date_rows.revenue_date
+		LEFT JOIN (
+			SELECT
+				DATE(mr.created_time) AS revenue_date,
+				SUM(COALESCE(mr.cost_to_repair, 0)) AS maintenance_costs
+			FROM MaintenanceRequest mr
+			${maintenanceWhereSql}
+			GROUP BY DATE(mr.created_time)
+		) AS mc ON mc.revenue_date = date_rows.revenue_date
+		ORDER BY date_rows.revenue_date DESC
+	`
+
+	const params = [
+		...transactionParams,
+		...maintenanceParams,
+		...transactionParams,
+		...maintenanceParams
+	]
 
 	db.query(sql, params, (err, results) => {
 		if (err) return res.status(500).json({ message: 'Server error' })

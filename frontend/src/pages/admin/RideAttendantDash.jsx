@@ -121,6 +121,14 @@ function RideAttendantDash() {
     return status
   }
 
+  const getStatusOptions = (ride) => {
+    if (ride.status_ride === 'closed_weather') {
+      return [...STATUS_OPTIONS, 'closed_weather']
+    }
+
+    return STATUS_OPTIONS
+  }
+
   const saveAllStatuses = async () => {
     setRideMessage('')
     setRideError('')
@@ -381,7 +389,7 @@ function RideAttendantDash() {
                     value={pendingStatus[ride.ride_id] || ride.status_ride}
                     onChange={(e) => setPendingStatus((prev) => ({ ...prev, [ride.ride_id]: e.target.value }))}
                   >
-                    {STATUS_OPTIONS.map((status) => (
+                    {getStatusOptions(ride).map((status) => (
                       <option key={status} value={status}>{status}</option>
                     ))}
                   </select>
