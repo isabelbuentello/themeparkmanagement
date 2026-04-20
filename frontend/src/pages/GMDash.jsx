@@ -5,6 +5,7 @@ import GMForms from '../components/GMForms'
 import ParkDayStats from '../components/ParkDayStats'
 import RevenueStats from '../components/RevenueStats'
 import CustomerLoyaltyReport from '../components/CustomerLoyaltyReport'
+import MaintenanceReport from '../components/MaintenanceReport'
 import ManageEmployees from '../components/ManageEmployees'
 import ManageDepartments from '../components/ManageDepartments'
 import ManageVenues from '../components/ManageVenues'
@@ -127,6 +128,7 @@ function GMDash() {
         <button className={`gm-tool-btn ${activePanel === 'parkDay' ? 'active' : ''}`} onClick={() => togglePanel('parkDay')}>Park Day Stats</button>
         <button className={`gm-tool-btn ${activePanel === 'revenue' ? 'active' : ''}`} onClick={() => togglePanel('revenue')}>Revenue</button>
         <button className={`gm-tool-btn ${activePanel === 'loyalty' ? 'active' : ''}`} onClick={() => togglePanel('loyalty')}>Customer Loyalty</button>
+        <button className={`gm-tool-btn ${activePanel === 'maintenanceReport' ? 'active' : ''}`} onClick={() => togglePanel('maintenanceReport')}>Maintenance Report</button>
         <button className={`gm-tool-btn ${activePanel === 'employees' ? 'active' : ''}`} onClick={() => togglePanel('employees')}>Manage Employees</button>
         <button className={`gm-tool-btn ${activePanel === 'departments' ? 'active' : ''}`} onClick={() => togglePanel('departments')}>Manage Departments</button>
         <button className={`gm-tool-btn ${activePanel === 'venues' ? 'active' : ''}`} onClick={() => togglePanel('venues')}>Manage Venues</button>
@@ -142,6 +144,7 @@ function GMDash() {
       {activePanel === 'parkDay' && <ParkDayStats token={token} />}
       {activePanel === 'revenue' && <RevenueStats token={token} />}
       {activePanel === 'loyalty' && <CustomerLoyaltyReport token={token} />}
+      {activePanel === 'maintenanceReport' && <MaintenanceReport token={token} />}
 
       {activePanel === 'emergencies' && (
         <div style={{ marginBottom: '3rem' }}>
