@@ -17,6 +17,7 @@ function MaintenanceDash() {
   const [requestStatusFilter, setRequestStatusFilter] = useState('all')
   const [requestAssignmentFilter, setRequestAssignmentFilter] = useState('all')
   const [requestPriorityFilter, setRequestPriorityFilter] = useState('all')
+  const [requestRideTypeFilter, setRequestRideTypeFilter] = useState('all')
   const [rainoutRideFilter, setRainoutRideFilter] = useState('all')
   const [requestDrafts, setRequestDrafts] = useState({})
   const [rideOverviewTypeFilter, setRideOverviewTypeFilter] = useState('all')
@@ -101,6 +102,14 @@ function MaintenanceDash() {
     return { background: 'rgba(100, 116, 139, 0.14)', color: '#475569' }
   }
 
+  const getRideStatusOptions = (ride) => {
+    if (ride.status_ride === 'closed_weather') {
+      return [...STATUS_OPTIONS, 'closed_weather']
+    }
+
+    return STATUS_OPTIONS
+  }
+
   const badgeBaseStyle = {
     display: 'inline-flex',
     alignItems: 'center',
@@ -128,7 +137,8 @@ function MaintenanceDash() {
         fetch(buildUrlWithParams('/api/maintenance/requests', {
           status: requestStatusFilter,
           priority: requestPriorityFilter,
-          assignment: requestAssignmentFilter
+          assignment: requestAssignmentFilter,
+          rideType: requestRideTypeFilter
         }), { headers: authHeaders }),
         fetch(buildUrlWithParams('/api/rides/rainouts', {
           rideId: rainoutRideFilter
@@ -203,6 +213,7 @@ function MaintenanceDash() {
     requestStatusFilter,
     requestAssignmentFilter,
     requestPriorityFilter,
+    requestRideTypeFilter,
     rainoutRideFilter,
     rideOverviewTypeFilter,
     rideOverviewStatusFilter,
@@ -355,9 +366,8 @@ function MaintenanceDash() {
           <tbody>
             {ridesOptions.map((ride) => {
               const nextStatus = rideStatusDrafts[ride.ride_id] || ride.status_ride
-              const availableStatuses = STATUS_OPTIONS.filter(
-                (status) => status !== 'closed_weather' || Boolean(ride.affected_by_rain)
-              )
+              const unresolvedRequests = maintenanceSummary.find((row) => row.ride_id === ride.ride_id)?.open_requests || 0
+              const availableStatuses = getRideStatusOptions(ride)
               return (
                 <tr key={ride.ride_id}>
                   <td>{ride.ride_name}</td>
@@ -368,7 +378,14 @@ function MaintenanceDash() {
                       onChange={(e) => setRideStatusDrafts((currentDrafts) => ({ ...currentDrafts, [ride.ride_id]: e.target.value }))}
                     >
                       {availableStatuses.map((status) => (
-                        <option key={status} value={status}>{formatStatusLabel(status)}</option>
+                        <option
+                          key={status}
+                          value={status}
+                          disabled={status === 'open' && unresolvedRequests > 0}
+                        >
+                          {formatStatusLabel(status)}
+                          {status === 'open' && unresolvedRequests > 0 ? ' (blocked by unresolved requests)' : ''}
+                        </option>
                       ))}
                     </select>
                   </td>
@@ -426,6 +443,12 @@ function MaintenanceDash() {
           <option value="in_progress">in progress</option>
           <option value="resolved">resolved</option>
         </select>
+        <select value={requestRideTypeFilter} onChange={(e) => setRequestRideTypeFilter(e.target.value)}>
+          <option value="all">All ride types</option>
+          <option value="rollercoaster">rollercoaster</option>
+          <option value="water">water</option>
+          <option value="kids">kids</option>
+        </select>
         <select value={requestPriorityFilter} onChange={(e) => setRequestPriorityFilter(e.target.value)}>
           <option value="all">All priorities</option>
           <option value="low">low</option>
@@ -456,34 +479,42 @@ function MaintenanceDash() {
             </tr>
           </thead>
           <tbody>
-            {requests.map((request) => (
+            {requests.map((request) => {
+              const effectiveStatus = requestDrafts[request.request_id]?.status_request || request.status_request
+              const effectiveAssignedEmployeeId = requestDrafts[request.request_id]?.assigned_to_employee_id ?? request.assigned_to_employee_id
+              const isResolved = effectiveStatus === 'resolved'
+
+              return (
               <tr key={request.request_id}>
                 <td>{request.request_id}</td>
                 <td>{request.ride_name}</td>
                 <td>{request.issue_description}</td>
                 <td>{request.priority}</td>
                 <td>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={requestDrafts[request.request_id]?.cost_to_repair ?? request.cost_to_repair ?? ''}
-                    onChange={(e) => {
-                      const nextCost = e.target.value
-                      setRequestDrafts((currentDrafts) => ({
-                        ...currentDrafts,
-                        [request.request_id]: { ...currentDrafts[request.request_id], cost_to_repair: nextCost }
-                      }))
-                    }}
-                    style={{ width: 120 }}
-                  />
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontWeight: 700, color: '#334155' }}>$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={requestDrafts[request.request_id]?.cost_to_repair ?? request.cost_to_repair ?? ''}
+                      onChange={(e) => {
+                        const nextCost = e.target.value
+                        setRequestDrafts((currentDrafts) => ({
+                          ...currentDrafts,
+                          [request.request_id]: { ...currentDrafts[request.request_id], cost_to_repair: nextCost }
+                        }))
+                      }}
+                      style={{ width: 120 }}
+                    />
+                  </div>
                 </td>
                 <td>
-                  {request.status_request === 'resolved' ? (
+                  {isResolved ? (
                     <span>resolved</span>
                   ) : (
                     <select
-                      value={requestDrafts[request.request_id]?.status_request || request.status_request}
+                      value={effectiveStatus}
                       onChange={(e) => {
                         const nextStatus = e.target.value
                         setRequestDrafts((currentDrafts) => ({
@@ -505,10 +536,10 @@ function MaintenanceDash() {
                   )}
                 </td>
                 <td>
-                  {request.status_request === 'resolved' ? (
+                  {isResolved ? (
                     <span>
-                      {(requestDrafts[request.request_id]?.assigned_to_employee_id || request.assigned_to_employee_id)
-                        ? employeeNameById[requestDrafts[request.request_id]?.assigned_to_employee_id || request.assigned_to_employee_id] || ('Employee #' + (requestDrafts[request.request_id]?.assigned_to_employee_id || request.assigned_to_employee_id))
+                      {effectiveAssignedEmployeeId
+                        ? employeeNameById[effectiveAssignedEmployeeId] || ('Employee #' + effectiveAssignedEmployeeId)
                         : 'Unassigned'}
                     </span>
                   ) : (
@@ -547,19 +578,26 @@ function MaintenanceDash() {
                 <td>
                   <button
                     onClick={() =>
-                      updateRequest(
-                        request.request_id,
-                        requestDrafts[request.request_id]?.status_request || request.status_request,
-                        requestDrafts[request.request_id]?.assigned_to_employee_id ?? request.assigned_to_employee_id,
-                        requestDrafts[request.request_id]?.cost_to_repair ?? request.cost_to_repair ?? ''
-                      )
+                      isResolved
+                        ? updateRequest(
+                            request.request_id,
+                            undefined,
+                            undefined,
+                            requestDrafts[request.request_id]?.cost_to_repair ?? request.cost_to_repair ?? ''
+                          )
+                        : updateRequest(
+                            request.request_id,
+                            effectiveStatus,
+                            effectiveAssignedEmployeeId,
+                            requestDrafts[request.request_id]?.cost_to_repair ?? request.cost_to_repair ?? ''
+                          )
                     }
                   >
                     Save
                   </button>
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>

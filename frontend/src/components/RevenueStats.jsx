@@ -185,7 +185,9 @@ function RevenueStats({ token }) {
   const computeSummary = () => {
     if (revenue.length === 0 && breakdown.length === 0) return null
 
-    const totalRevenue = revenue.reduce((sum, r) => sum + Number(r.daily_total), 0)
+    const totalGrossRevenue = revenue.reduce((sum, r) => sum + Number(r.daily_total), 0)
+    const totalMaintenanceCosts = revenue.reduce((sum, r) => sum + Number(r.maintenance_costs || 0), 0)
+    const totalNetRevenue = revenue.reduce((sum, r) => sum + Number(r.net_revenue ?? (Number(r.daily_total) - Number(r.maintenance_costs || 0))), 0)
     const totalTransactions = revenue.reduce((sum, r) => sum + Number(r.transaction_count), 0)
 
     const byVenue = {}
@@ -197,12 +199,12 @@ function RevenueStats({ token }) {
     const bottomVenue = sortedVenues.length > 1 ? sortedVenues[sortedVenues.length - 1] : null
 
     const bestDay = revenue.length
-      ? revenue.reduce((best, r) => Number(r.daily_total) > Number(best.daily_total) ? r : best)
+      ? revenue.reduce((best, r) => Number(r.net_revenue ?? (Number(r.daily_total) - Number(r.maintenance_costs || 0))) > Number(best.net_revenue ?? (Number(best.daily_total) - Number(best.maintenance_costs || 0))) ? r : best)
       : null
 
-    const avgDaily = revenue.length > 0 ? totalRevenue / revenue.length : 0
+    const avgDaily = revenue.length > 0 ? totalNetRevenue / revenue.length : 0
 
-    return { totalRevenue, totalTransactions, topVenue, bottomVenue, bestDay, avgDaily }
+    return { totalGrossRevenue, totalMaintenanceCosts, totalNetRevenue, totalTransactions, topVenue, bottomVenue, bestDay, avgDaily }
   }
 
   const hasActiveFilters = startDate || endDate || selectedVenues.length > 0 || selectedTypes.length > 0
@@ -379,22 +381,30 @@ function RevenueStats({ token }) {
         return (
           <div className="rev-summary-grid">
             <div className="rev-summary-card">
-              <span className="rev-summary-label">Total Revenue</span>
-              <span className="rev-summary-value rev-summary-green">${fmtDollar(summary.totalRevenue)}</span>
+              <span className="rev-summary-label">Total Revenue (Net)</span>
+              <span className="rev-summary-value rev-summary-green">${fmtDollar(summary.totalNetRevenue)}</span>
+            </div>
+            <div className="rev-summary-card">
+              <span className="rev-summary-label">Maintenance Costs</span>
+              <span className="rev-summary-value">${fmtDollar(summary.totalMaintenanceCosts)}</span>
+            </div>
+            <div className="rev-summary-card">
+              <span className="rev-summary-label">Gross Revenue</span>
+              <span className="rev-summary-value">${fmtDollar(summary.totalGrossRevenue)}</span>
             </div>
             <div className="rev-summary-card">
               <span className="rev-summary-label">Transactions</span>
               <span className="rev-summary-value">{summary.totalTransactions.toLocaleString()}</span>
             </div>
             <div className="rev-summary-card">
-              <span className="rev-summary-label">Avg Daily Revenue</span>
+              <span className="rev-summary-label">Avg Daily Net</span>
               <span className="rev-summary-value">${fmtDollar(summary.avgDaily)}</span>
             </div>
             {summary.bestDay && (
               <div className="rev-summary-card">
                 <span className="rev-summary-label">Best Day</span>
                 <span className="rev-summary-value">{new Date(summary.bestDay.revenue_date).toLocaleDateString()}</span>
-                <span className="rev-summary-sub">${fmtDollar(summary.bestDay.daily_total)}</span>
+                <span className="rev-summary-sub">${fmtDollar(summary.bestDay.net_revenue ?? (Number(summary.bestDay.daily_total) - Number(summary.bestDay.maintenance_costs || 0)))}</span>
               </div>
             )}
             {summary.topVenue && (
@@ -420,18 +430,20 @@ function RevenueStats({ token }) {
         <div className="gm-table-wrapper">
           <table className="gm-table">
             <thead>
-              <tr><th>Date</th><th>Total Revenue</th><th>Transactions</th></tr>
+              <tr><th>Date</th><th>Revenue Total (Net)</th><th>Maintenance Costs</th><th>Gross Revenue</th><th>Transactions</th></tr>
             </thead>
             <tbody>
               {revenue.map((r, i) => (
                 <tr key={i}>
                   <td>{new Date(r.revenue_date).toLocaleDateString()}</td>
+                  <td>${fmtDollar(r.net_revenue ?? (Number(r.daily_total) - Number(r.maintenance_costs || 0)))}</td>
+                  <td>${fmtDollar(r.maintenance_costs || 0)}</td>
                   <td>${fmtDollar(r.daily_total)}</td>
                   <td>{r.transaction_count}</td>
                 </tr>
               ))}
               {revenue.length === 0 && (
-                <tr><td colSpan="3" className="rev-empty-row">No revenue data</td></tr>
+                <tr><td colSpan="5" className="rev-empty-row">No revenue data</td></tr>
               )}
             </tbody>
           </table>
