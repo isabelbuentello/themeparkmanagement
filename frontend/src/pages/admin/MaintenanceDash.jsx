@@ -38,6 +38,7 @@ function MaintenanceDash() {
   })
   const [reportLoading, setReportLoading] = useState(false)
   const [reportError, setReportError] = useState('')
+  const [reportTableView, setReportTableView] = useState('records')
   const [rideStatusDrafts, setRideStatusDrafts] = useState({})
   const [rideStatusError, setRideStatusError] = useState('')
   const [rideStatusMessage, setRideStatusMessage] = useState('')
@@ -398,6 +399,219 @@ function MaintenanceDash() {
     }
   }
 
+  const renderMaintenanceReport = () => (
+    <>
+      <h2 className="gm-section-title">Maintenance Report</h2>
+      <div style={{ marginBottom: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <label>Start</label>
+        <input type="date" value={reportStart} onChange={(e) => setReportStart(e.target.value)} />
+        <label>End</label>
+        <input type="date" value={reportEnd} onChange={(e) => setReportEnd(e.target.value)} />
+        <select value={reportMonth} onChange={(e) => setReportMonth(e.target.value)}>
+          <option value="all">All months</option>
+          <option value="1">January</option>
+          <option value="2">February</option>
+          <option value="3">March</option>
+          <option value="4">April</option>
+          <option value="5">May</option>
+          <option value="6">June</option>
+          <option value="7">July</option>
+          <option value="8">August</option>
+          <option value="9">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+        <select value={reportYear} onChange={(e) => setReportYear(e.target.value)}>
+          <option value="all">All years</option>
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+          <option value="2026">2026</option>
+          <option value="2027">2027</option>
+        </select>
+        <select value={reportRideFilter} onChange={(e) => setReportRideFilter(e.target.value)}>
+          <option value="all">All rides</option>
+          {ridesOptions.map((ride) => (
+            <option key={ride.ride_id} value={ride.ride_id}>
+              {ride.ride_name}
+            </option>
+          ))}
+        </select>
+        <select value={reportPriorityFilter} onChange={(e) => setReportPriorityFilter(e.target.value)}>
+          <option value="all">All priorities</option>
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
+        </select>
+        <button onClick={loadReport} disabled={reportLoading}>
+          {reportLoading ? 'Applying...' : 'Apply Filters'}
+        </button>
+      </div>
+
+      {reportError && <p style={{ color: 'red' }}>{reportError}</p>}
+      {reportLoading && <p>Loading maintenance report...</p>}
+
+      {!reportLoading && reportData.summary && (
+        <>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 10,
+              marginBottom: 16
+            }}
+          >
+            <article style={{ padding: 12, borderRadius: 10, background: 'rgba(241, 245, 249, 0.9)' }}>
+              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Most Maintenanced Ride</div>
+              <div style={{ marginTop: 4, fontWeight: 800, color: '#0f172a' }}>
+                {reportData.mostMaintenancedRide?.ride_name || 'No data'}
+              </div>
+              <div style={{ marginTop: 3, color: '#475569' }}>
+                {reportData.mostMaintenancedRide ? `${reportData.mostMaintenancedRide.maintenance_count} requests` : ''}
+              </div>
+            </article>
+
+            <article style={{ padding: 12, borderRadius: 10, background: 'rgba(241, 245, 249, 0.9)' }}>
+              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Total Maintenance Requests</div>
+              <div style={{ marginTop: 4, fontWeight: 800, color: '#0f172a' }}>
+                {reportData.summary.total_maintenance || 0}
+              </div>
+            </article>
+
+            <article style={{ padding: 12, borderRadius: 10, background: 'rgba(241, 245, 249, 0.9)' }}>
+              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Average Resolution Time</div>
+              <div style={{ marginTop: 4, fontWeight: 800, color: '#0f172a' }}>
+                {formatMinutes(reportData.summary.avg_resolution_minutes)}
+              </div>
+            </article>
+
+            <article style={{ padding: 12, borderRadius: 10, background: 'rgba(241, 245, 249, 0.9)' }}>
+              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Total Spent</div>
+              <div style={{ marginTop: 4, fontWeight: 800, color: '#0f172a' }}>
+                ${Number(reportData.summary.total_spent || 0).toFixed(2)}
+              </div>
+            </article>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+            <button onClick={() => setReportTableView('records')}>Show All Maintenance</button>
+            <button onClick={() => setReportTableView('ride')}>Show Frequency by Ride</button>
+            <button onClick={() => setReportTableView('date')}>Show Frequency by Date</button>
+          </div>
+
+          {reportTableView === 'ride' && (
+            <>
+              <h3 className="gm-section-title">Maintenance Frequency By Ride</h3>
+              <div className="gm-table-wrapper">
+              <table className="gm-table">
+                <thead>
+                  <tr>
+                    <th>Ride</th>
+                    <th>How Often</th>
+                    <th>Total Spent</th>
+                    <th>Avg Resolution</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.frequencyByRide.map((row) => (
+                    <tr key={row.ride_id}>
+                      <td>{row.ride_name}</td>
+                      <td>{row.maintenance_count}</td>
+                      <td>${Number(row.total_spent || 0).toFixed(2)}</td>
+                      <td>{formatMinutes(row.avg_resolution_minutes)}</td>
+                    </tr>
+                  ))}
+                  {reportData.frequencyByRide.length === 0 && (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'center' }}>No maintenance frequency data</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+              </div>
+            </>
+          )}
+
+          {reportTableView === 'date' && (
+            <>
+              <h3 className="gm-section-title">Maintenance Frequency By Date</h3>
+              <div className="gm-table-wrapper">
+              <table className="gm-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>How Often</th>
+                    <th>Total Spent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.frequencyByDay.map((row, index) => (
+                    <tr key={`${row.maintenance_date}-${index}`}>
+                      <td>{new Date(row.maintenance_date).toLocaleDateString()}</td>
+                      <td>{row.maintenance_count}</td>
+                      <td>${Number(row.total_spent || 0).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                  {reportData.frequencyByDay.length === 0 && (
+                    <tr>
+                      <td colSpan="3" style={{ textAlign: 'center' }}>No maintenance date data</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+              </div>
+            </>
+          )}
+
+          {reportTableView === 'records' && (
+            <>
+              <h3 className="gm-section-title">All Maintenance Records</h3>
+              <div className="gm-table-wrapper">
+              <table className="gm-table">
+                <thead>
+                  <tr>
+                    <th>Request ID</th>
+                    <th>Ride</th>
+                    <th>Current Ride Status</th>
+                    <th>Issue</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Assigned To</th>
+                    <th>Created</th>
+                    <th>Resolved In</th>
+                    <th>Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.records.map((row) => (
+                    <tr key={row.request_id}>
+                      <td>{row.request_id}</td>
+                      <td>{row.ride_name}</td>
+                      <td>{formatStatusLabel(row.current_ride_status)}</td>
+                      <td>{row.issue_description}</td>
+                      <td>{row.priority}</td>
+                      <td>{formatStatusLabel(row.status_request)}</td>
+                      <td>{row.assigned_employee_name || 'Unassigned'}</td>
+                      <td>{new Date(row.created_time).toLocaleString()}</td>
+                      <td>{formatMinutes(row.resolution_minutes)}</td>
+                      <td>${Number(row.cost_to_repair || 0).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                  {reportData.records.length === 0 && (
+                    <tr>
+                      <td colSpan="10" style={{ textAlign: 'center' }}>No maintenance records found</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </>
+  )
+
   return (
     <div className="gm-dash-container">
       <div className="gm-header-bar">
@@ -405,6 +619,8 @@ function MaintenanceDash() {
         <button className="gm-btn-back" onClick={() => navigate('/account/employee')}>Back to Employee Dashboard</button>
       </div>
       {pageError && <p style={{ color: 'red' }}>{pageError}</p>}
+
+      {renderMaintenanceReport()}
 
       <h2 className="gm-section-title">Broken or Under Maintenance</h2>
       <div
@@ -772,197 +988,6 @@ function MaintenanceDash() {
         </tbody>
       </table>
       </div>
-
-      <h2 className="gm-section-title">Maintenance Report</h2>
-      <div style={{ marginBottom: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <label>Start</label>
-        <input type="date" value={reportStart} onChange={(e) => setReportStart(e.target.value)} />
-        <label>End</label>
-        <input type="date" value={reportEnd} onChange={(e) => setReportEnd(e.target.value)} />
-        <select value={reportMonth} onChange={(e) => setReportMonth(e.target.value)}>
-          <option value="all">All months</option>
-          <option value="1">January</option>
-          <option value="2">February</option>
-          <option value="3">March</option>
-          <option value="4">April</option>
-          <option value="5">May</option>
-          <option value="6">June</option>
-          <option value="7">July</option>
-          <option value="8">August</option>
-          <option value="9">September</option>
-          <option value="10">October</option>
-          <option value="11">November</option>
-          <option value="12">December</option>
-        </select>
-        <select value={reportYear} onChange={(e) => setReportYear(e.target.value)}>
-          <option value="all">All years</option>
-          <option value="2024">2024</option>
-          <option value="2025">2025</option>
-          <option value="2026">2026</option>
-          <option value="2027">2027</option>
-        </select>
-        <select value={reportRideFilter} onChange={(e) => setReportRideFilter(e.target.value)}>
-          <option value="all">All rides</option>
-          {ridesOptions.map((ride) => (
-            <option key={ride.ride_id} value={ride.ride_id}>
-              {ride.ride_name}
-            </option>
-          ))}
-        </select>
-        <select value={reportPriorityFilter} onChange={(e) => setReportPriorityFilter(e.target.value)}>
-          <option value="all">All priorities</option>
-          <option value="low">low</option>
-          <option value="medium">medium</option>
-          <option value="high">high</option>
-        </select>
-        <button onClick={loadReport} disabled={reportLoading}>
-          {reportLoading ? 'Applying...' : 'Apply Filters'}
-        </button>
-      </div>
-
-      {reportError && <p style={{ color: 'red' }}>{reportError}</p>}
-      {reportLoading && <p>Loading maintenance report...</p>}
-
-      {!reportLoading && reportData.summary && (
-        <>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: 10,
-              marginBottom: 16
-            }}
-          >
-            <article style={{ padding: 12, borderRadius: 10, background: 'rgba(241, 245, 249, 0.9)' }}>
-              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Most Maintenanced Ride</div>
-              <div style={{ marginTop: 4, fontWeight: 800, color: '#0f172a' }}>
-                {reportData.mostMaintenancedRide?.ride_name || 'No data'}
-              </div>
-              <div style={{ marginTop: 3, color: '#475569' }}>
-                {reportData.mostMaintenancedRide ? `${reportData.mostMaintenancedRide.maintenance_count} requests` : ''}
-              </div>
-            </article>
-
-            <article style={{ padding: 12, borderRadius: 10, background: 'rgba(241, 245, 249, 0.9)' }}>
-              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Total Maintenance Requests</div>
-              <div style={{ marginTop: 4, fontWeight: 800, color: '#0f172a' }}>
-                {reportData.summary.total_maintenance || 0}
-              </div>
-            </article>
-
-            <article style={{ padding: 12, borderRadius: 10, background: 'rgba(241, 245, 249, 0.9)' }}>
-              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Average Resolution Time</div>
-              <div style={{ marginTop: 4, fontWeight: 800, color: '#0f172a' }}>
-                {formatMinutes(reportData.summary.avg_resolution_minutes)}
-              </div>
-            </article>
-
-            <article style={{ padding: 12, borderRadius: 10, background: 'rgba(241, 245, 249, 0.9)' }}>
-              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Total Spent</div>
-              <div style={{ marginTop: 4, fontWeight: 800, color: '#0f172a' }}>
-                ${Number(reportData.summary.total_spent || 0).toFixed(2)}
-              </div>
-            </article>
-          </div>
-
-          <h3 className="gm-section-title">Maintenance Frequency By Ride</h3>
-          <div className="gm-table-wrapper">
-          <table className="gm-table">
-            <thead>
-              <tr>
-                <th>Ride</th>
-                <th>How Often</th>
-                <th>Total Spent</th>
-                <th>Avg Resolution</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reportData.frequencyByRide.map((row) => (
-                <tr key={row.ride_id}>
-                  <td>{row.ride_name}</td>
-                  <td>{row.maintenance_count}</td>
-                  <td>${Number(row.total_spent || 0).toFixed(2)}</td>
-                  <td>{formatMinutes(row.avg_resolution_minutes)}</td>
-                </tr>
-              ))}
-              {reportData.frequencyByRide.length === 0 && (
-                <tr>
-                  <td colSpan="4" style={{ textAlign: 'center' }}>No maintenance frequency data</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          </div>
-
-          <h3 className="gm-section-title">Maintenance Frequency By Date</h3>
-          <div className="gm-table-wrapper">
-          <table className="gm-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>How Often</th>
-                <th>Total Spent</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reportData.frequencyByDay.map((row, index) => (
-                <tr key={`${row.maintenance_date}-${index}`}>
-                  <td>{new Date(row.maintenance_date).toLocaleDateString()}</td>
-                  <td>{row.maintenance_count}</td>
-                  <td>${Number(row.total_spent || 0).toFixed(2)}</td>
-                </tr>
-              ))}
-              {reportData.frequencyByDay.length === 0 && (
-                <tr>
-                  <td colSpan="3" style={{ textAlign: 'center' }}>No maintenance date data</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          </div>
-
-          <h3 className="gm-section-title">All Maintenance Records</h3>
-          <div className="gm-table-wrapper">
-          <table className="gm-table">
-            <thead>
-              <tr>
-                <th>Request ID</th>
-                <th>Ride</th>
-                <th>Current Ride Status</th>
-                <th>Issue</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Assigned To</th>
-                <th>Created</th>
-                <th>Resolved In</th>
-                <th>Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reportData.records.map((row) => (
-                <tr key={row.request_id}>
-                  <td>{row.request_id}</td>
-                  <td>{row.ride_name}</td>
-                  <td>{formatStatusLabel(row.current_ride_status)}</td>
-                  <td>{row.issue_description}</td>
-                  <td>{row.priority}</td>
-                  <td>{formatStatusLabel(row.status_request)}</td>
-                  <td>{row.assigned_employee_name || 'Unassigned'}</td>
-                  <td>{new Date(row.created_time).toLocaleString()}</td>
-                  <td>{formatMinutes(row.resolution_minutes)}</td>
-                  <td>${Number(row.cost_to_repair || 0).toFixed(2)}</td>
-                </tr>
-              ))}
-              {reportData.records.length === 0 && (
-                <tr>
-                  <td colSpan="10" style={{ textAlign: 'center' }}>No maintenance records found</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          </div>
-        </>
-      )}
 
     </div>
   )
