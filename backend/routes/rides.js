@@ -244,20 +244,44 @@ router.patch(
 			return res.status(400).json({ message: 'Invalid status_ride' })
 		}
 
+		const updateRideStatus = () => {
+			db.query(
+				'UPDATE Ride SET status_ride = ? WHERE ride_id = ?',
+				[status_ride, id],
+				(err, result) => {
+					if (err) return res.status(500).json({ message: 'Server error' })
+					if (result.affectedRows === 0) {
+						return res.status(404).json({ message: 'Ride not found' })
+					}
+
+					res.json({
+						message: 'Ride status updated',
+						ride_id: Number(id),
+						status_ride
+					})
+				}
+			)
+		}
+
+		if (status_ride !== 'open') {
+			return updateRideStatus()
+		}
+
 		db.query(
-			'UPDATE Ride SET status_ride = ? WHERE ride_id = ?',
-			[status_ride, id],
-			(err, result) => {
-				if (err) return res.status(500).json({ message: 'Server error' })
-				if (result.affectedRows === 0) {
-					return res.status(404).json({ message: 'Ride not found' })
+			`SELECT COUNT(*) AS unresolved_count
+			 FROM MaintenanceRequest
+			 WHERE ride_id = ? AND status_request <> 'resolved'`,
+			[id],
+			(countErr, countRows) => {
+				if (countErr) return res.status(500).json({ message: 'Server error' })
+
+				if (Number(countRows[0]?.unresolved_count || 0) > 0) {
+					return res.status(400).json({
+						message: 'Ride cannot be opened until all maintenance requests are resolved'
+					})
 				}
 
-				res.json({
-					message: 'Ride status updated',
-					ride_id: Number(id),
-					status_ride
-				})
+				updateRideStatus()
 			}
 		)
 	}
