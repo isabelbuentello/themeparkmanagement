@@ -69,7 +69,7 @@ function CustomerLoyaltyReport({ token }) {
   const formatMoney = (amount) => `$${Number(amount || 0).toFixed(2)}`
 
   const summary = report?.globalSummary || report?.summary || {}
-  const members = report?.members || []
+  const members = report?.membershipRecords || report?.members || []
   const filteredMembers = members.filter((member) => {
     const statusMatches = !statusFilter || member.status_membership === statusFilter
     const tierMatches = !tierFilter || member.tier_name === tierFilter
