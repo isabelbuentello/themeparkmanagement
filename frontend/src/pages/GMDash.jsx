@@ -61,24 +61,24 @@ function GMDash() {
   }
 
   const fetchComplaints = async () => {
-  try {
-    const res = await fetch('/api/feedback/complaints', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    if (res.ok) setComplaints(await res.json())
+    try {
+      const res = await fetch('/api/feedback/complaints', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) setComplaints(await res.json())
     } catch (err) {
-    console.error('Error fetching complaints')
+      console.error('Error fetching complaints')
     }
   }
 
-const fetchReviews = async () => {
-  try {
-    const res = await fetch('/api/feedback/reviews', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    if (res.ok) setReviews(await res.json())
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch('/api/feedback/reviews', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) setReviews(await res.json())
     } catch (err) {
-    console.error('Error fetching reviews')
+      console.error('Error fetching reviews')
     }
   }
 
@@ -92,7 +92,7 @@ const fetchReviews = async () => {
         },
         body: JSON.stringify({ resolved: !currentStatus })
       })
-      if (res.ok) fetchComplaints() // refresh the list
+      if (res.ok) fetchComplaints()
     } catch (err) {
       console.error('Error updating complaint')
     }
@@ -120,72 +120,17 @@ const fetchReviews = async () => {
 
       <h2 className="gm-section-title">Management Tools</h2>
       <div className="gm-tools-nav">
-        <button
-          className={`gm-tool-btn ${activePanel === 'addRide' ? 'active' : ''}`}
-          onClick={() => togglePanel('addRide')}
-        >
-          Add New Ride
-        </button>
-        <button
-          className={`gm-tool-btn ${activePanel === 'emergencies' ? 'active' : ''}`}
-          onClick={() => togglePanel('emergencies', fetchEmergencies)}
-        >
-          View Emergencies
-        </button>
-        <button
-          className={`gm-tool-btn ${activePanel === 'config' ? 'active' : ''}`}
-          onClick={() => togglePanel('config')}
-        >
-          Park Configuration
-        </button>
-        <button
-          className={`gm-tool-btn ${activePanel === 'rainouts' ? 'active' : ''}`}
-          onClick={() => togglePanel('rainouts', fetchRainouts)}
-        >
-          Rainout Tracking
-        </button>
-        <button
-          className={`gm-tool-btn ${activePanel === 'parkDay' ? 'active' : ''}`}
-          onClick={() => togglePanel('parkDay')}
-        >
-          Park Day Stats
-        </button>
-        <button
-          className={`gm-tool-btn ${activePanel === 'revenue' ? 'active' : ''}`}
-          onClick={() => togglePanel('revenue')}
-        >
-          Revenue
-        </button>
-        <button
-          className={`gm-tool-btn ${activePanel === 'employees' ? 'active' : ''}`}
-          onClick={() => togglePanel('employees')}
-        >
-          Manage Employees
-        </button>
-        <button
-          className={`gm-tool-btn ${activePanel === 'departments' ? 'active' : ''}`}
-          onClick={() => togglePanel('departments')}
-        >
-          Manage Departments
-        </button>
-        <button
-          className={`gm-tool-btn ${activePanel === 'venues' ? 'active' : ''}`}
-          onClick={() => togglePanel('venues')}
-        >
-          Manage Venues
-        </button>
-        <button
-          className={`gm-tool-btn ${activePanel === 'complaints' ? 'active' : ''}`}
-          onClick={() => togglePanel('complaints', fetchComplaints)}
-        >
-          View Complaints
-        </button>
-        <button
-          className={`gm-tool-btn ${activePanel === 'reviews' ? 'active' : ''}`}
-          onClick={() => togglePanel('reviews', fetchReviews)}
-        >
-          View Reviews
-        </button>
+        <button className={`gm-tool-btn ${activePanel === 'addRide' ? 'active' : ''}`} onClick={() => togglePanel('addRide')}>Add New Ride</button>
+        <button className={`gm-tool-btn ${activePanel === 'emergencies' ? 'active' : ''}`} onClick={() => togglePanel('emergencies', fetchEmergencies)}>View Emergencies</button>
+        <button className={`gm-tool-btn ${activePanel === 'config' ? 'active' : ''}`} onClick={() => togglePanel('config')}>Park Configuration</button>
+        <button className={`gm-tool-btn ${activePanel === 'rainouts' ? 'active' : ''}`} onClick={() => togglePanel('rainouts', fetchRainouts)}>Rainout Tracking</button>
+        <button className={`gm-tool-btn ${activePanel === 'parkDay' ? 'active' : ''}`} onClick={() => togglePanel('parkDay')}>Park Day Stats</button>
+        <button className={`gm-tool-btn ${activePanel === 'revenue' ? 'active' : ''}`} onClick={() => togglePanel('revenue')}>Revenue</button>
+        <button className={`gm-tool-btn ${activePanel === 'employees' ? 'active' : ''}`} onClick={() => togglePanel('employees')}>Manage Employees</button>
+        <button className={`gm-tool-btn ${activePanel === 'departments' ? 'active' : ''}`} onClick={() => togglePanel('departments')}>Manage Departments</button>
+        <button className={`gm-tool-btn ${activePanel === 'venues' ? 'active' : ''}`} onClick={() => togglePanel('venues')}>Manage Venues</button>
+        <button className={`gm-tool-btn ${activePanel === 'complaints' ? 'active' : ''}`} onClick={() => togglePanel('complaints', fetchComplaints)}>View Complaints</button>
+        <button className={`gm-tool-btn ${activePanel === 'reviews' ? 'active' : ''}`} onClick={() => togglePanel('reviews', fetchReviews)}>View Reviews</button>
       </div>
 
       {activePanel === 'addRide' && <AddRide onRideAdded={fetchRides} />}
@@ -205,8 +150,6 @@ const fetchReviews = async () => {
                 <tr>
                   <th>ID</th>
                   <th>Date</th>
-                  <th>Lat</th>
-                  <th>Long</th>
                   <th>Description</th>
                 </tr>
               </thead>
@@ -215,8 +158,6 @@ const fetchReviews = async () => {
                   <tr key={e.event_id}>
                     <td>{e.event_id}</td>
                     <td>{e.date_of_emergency}</td>
-                    <td>{e.event_lat}</td>
-                    <td>{e.event_long}</td>
                     <td>{e.event_description}</td>
                   </tr>
                 ))}
@@ -243,9 +184,7 @@ const fetchReviews = async () => {
               <tbody>
                 {rainouts.length === 0 ? (
                   <tr>
-                    <td colSpan="4" style={{ textAlign: 'center' }}>
-                      No rainouts recorded
-                    </td>
+                    <td colSpan="4" style={{ textAlign: 'center' }}>No rainouts recorded</td>
                   </tr>
                 ) : (
                   rainouts.map((rainout) => (
@@ -254,12 +193,7 @@ const fetchReviews = async () => {
                       <td>{rainout.ride_name}</td>
                       <td>{new Date(rainout.rainout_time).toLocaleString()}</td>
                       <td>
-                        <span
-                          style={{
-                            color: rainout.status_ride === 'closed_weather' ? 'orange' : 'green',
-                            fontWeight: 'bold'
-                          }}
-                        >
+                        <span style={{ color: rainout.status_ride === 'closed_weather' ? 'orange' : 'green', fontWeight: 'bold' }}>
                           {rainout.status_ride.toUpperCase()}
                         </span>
                       </td>
@@ -388,12 +322,7 @@ const fetchReviews = async () => {
                 <td>{ride.min_height_ft}</td>
                 <td>{ride.affected_by_rain ? 'Yes' : 'No'}</td>
                 <td>
-                  <span
-                    style={{
-                      color: ride.status_ride === 'open' ? 'green' : ride.status_ride === 'broken' ? 'red' : 'orange',
-                      fontWeight: 'bold'
-                    }}
-                  >
+                  <span style={{ color: ride.status_ride === 'open' ? 'green' : ride.status_ride === 'broken' ? 'red' : 'orange', fontWeight: 'bold' }}>
                     {ride.status_ride.toUpperCase()}
                   </span>
                 </td>

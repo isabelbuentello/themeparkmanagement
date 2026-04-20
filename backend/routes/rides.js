@@ -158,10 +158,29 @@ router.get(
 	verifyToken,
 	requireRole('ride_attendant_manager', 'maintenance', 'general_manager'),
 	(req, res) => {
+		const { status, rideType, sort } = req.query
+		const whereClauses = []
+		const queryParams = []
+
+		if (status && status !== 'all') {
+			whereClauses.push('status_ride = ?')
+			queryParams.push(status)
+		}
+
+		if (rideType && rideType !== 'all') {
+			whereClauses.push('ride_type = ?')
+			queryParams.push(rideType)
+		}
+
+		const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''
+		const orderSql = sort === 'alpha_desc' ? 'ORDER BY ride_name DESC' : 'ORDER BY ride_name ASC'
+
 		db.query(
 			`SELECT ride_id, ride_name, ride_type, status_ride, affected_by_rain
 			 FROM Ride
-			 ORDER BY ride_name`,
+			 ${whereSql}
+			 ${orderSql}`,
+			queryParams,
 			(err, results) => {
 				if (err) return res.status(500).json({ message: 'Server error' })
 				res.json(results)
@@ -219,7 +238,7 @@ router.patch(
 	(req, res) => {
 		const { id } = req.params
 		const { status_ride } = req.body
-		const allowedStatuses = ['open', 'broken', 'maintenance', 'closed_weather']
+		const allowedStatuses = ['open', 'broken', 'maintenance']
 
 		if (!allowedStatuses.includes(status_ride)) {
 			return res.status(400).json({ message: 'Invalid status_ride' })
@@ -261,9 +280,34 @@ router.post(
 				}
 
 				connection.query(
-				'INSERT INTO RideRainout (ride_id, rainout_time) VALUES (?, NOW())',
+				'SELECT affected_by_rain FROM Ride WHERE ride_id = ? LIMIT 1',
 				[id],
-				(insertErr) => {
+				(selErr, rows) => {
+					if (selErr) {
+						return connection.rollback(() => {
+							connection.release()
+							res.status(500).json({ message: 'Server error' })
+						})
+					}
+
+					if (rows.length === 0) {
+						return connection.rollback(() => {
+							connection.release()
+							res.status(404).json({ message: 'Ride not found' })
+						})
+					}
+
+					if (!rows[0].affected_by_rain) {
+						return connection.rollback(() => {
+							connection.release()
+							res.status(400).json({ message: 'Only weather-affected rides can be closed for weather' })
+						})
+					}
+
+					connection.query(
+					'INSERT INTO RideRainout (ride_id, rainout_time) VALUES (?, NOW())',
+					[id],
+					(insertErr) => {
 					if (insertErr) {
 						return connection.rollback(() => {
 							connection.release()
@@ -271,40 +315,22 @@ router.post(
 						})
 					}
 
-					connection.query(
-						"UPDATE Ride SET status_ride = 'closed_weather' WHERE ride_id = ?",
-						[id],
-						(updateErr, result) => {
-							if (updateErr) {
-								return connection.rollback(() => {
-									connection.release()
-									res.status(500).json({ message: 'Error updating ride status' })
-								})
-							}
-
-							if (result.affectedRows === 0) {
-								return connection.rollback(() => {
-									connection.release()
-									res.status(404).json({ message: 'Ride not found' })
-								})
-							}
-
-							connection.commit((commitErr) => {
-								if (commitErr) {
-									return connection.rollback(() => {
-										connection.release()
-										res.status(500).json({ message: 'Server error' })
-									})
-								}
-
+					connection.commit((commitErr) => {
+						if (commitErr) {
+							return connection.rollback(() => {
 								connection.release()
-
-								res.json({
-									message: 'Rainout logged and ride closed for weather',
-									ride_id: Number(id)
-								})
+								res.status(500).json({ message: 'Server error' })
 							})
 						}
+
+						connection.release()
+
+						res.json({
+							message: 'Rainout logged',
+							ride_id: Number(id)
+						})
+					})
+					}
 					)
 				}
 				)
@@ -318,11 +344,17 @@ router.get(
 	verifyToken,
 	requireRole('general_manager', 'maintenance', 'ride_attendant_manager'),
 	(req, res) => {
+		const { rideId } = req.query
+		const whereSql = rideId && rideId !== 'all' ? 'WHERE rr.ride_id = ?' : ''
+		const queryParams = rideId && rideId !== 'all' ? [rideId] : []
+
 		db.query(
 			`SELECT rr.rainout_id, rr.ride_id, rr.rainout_time, r.ride_name, r.status_ride
 			 FROM RideRainout rr
 			 JOIN Ride r ON rr.ride_id = r.ride_id
+			 ${whereSql}
 			 ORDER BY rr.rainout_time DESC`,
+			queryParams,
 			(err, results) => {
 				if (err) return res.status(500).json({ message: 'Server error' })
 				res.json(results)
@@ -335,6 +367,10 @@ router.get(
 	verifyToken,
 	requireRole('ride_attendant_manager', 'maintenance', 'general_manager'),
 	(req, res) => {
+		const { rideId } = req.query
+		const whereSql = rideId && rideId !== 'all' ? 'WHERE r.ride_id = ?' : ''
+		const queryParams = rideId && rideId !== 'all' ? [rideId] : []
+
 		db.query(
 			`SELECT r.ride_id, r.ride_name, vq.queue_id,
 			        COUNT(qr.reservation_id) AS total_reservations,
@@ -343,8 +379,10 @@ router.get(
 			 FROM Ride r
 			 LEFT JOIN VirtualQueue vq ON vq.ride_id = r.ride_id
 			 LEFT JOIN QueueReservation qr ON qr.queue_id = vq.queue_id
+			 ${whereSql}
 			 GROUP BY r.ride_id, r.ride_name, vq.queue_id
 			 ORDER BY r.ride_name`,
+			queryParams,
 			(err, results) => {
 				if (err) return res.status(500).json({ message: 'Server error' })
 				res.json(results)
