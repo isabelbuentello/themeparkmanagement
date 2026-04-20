@@ -11,6 +11,4 @@ shop manager: dbrown password123
 triggers:
 trg_maintenance_update_ride_status: When a maintenance log is created, automatically updates the ride's status (broken → broken, in-progress → maintenance, fixed → open)
 
-trg_visit_update_attendance: When a customer visits the park, automatically increases that day's attendance count in ParkDay
-
 trg_parkday_rain_insertWhen a new park day is created with rain=true, automatically closes all weather-affected rides
