@@ -321,6 +321,7 @@ function CheckoutPage() {
                   placeholder="4242 4242 4242 4242"
                   inputMode="numeric"
                   autoComplete="cc-number"
+                  maxLength="16"
                 />
                 {fieldErrors.cardNumber ? (
                   <span className="field-error">{fieldErrors.cardNumber}</span>

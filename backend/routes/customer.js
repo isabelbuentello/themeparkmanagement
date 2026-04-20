@@ -443,7 +443,7 @@ router.get('/history', requireCustomer, async (req, res) => {
             ti.item_type,
             ti.quantity,
             ti.unit_price
-          FROM \`Transaction\` t
+          FROM Transactions t
           LEFT JOIN TransactionItem ti ON ti.transaction_id = t.transaction_id
           WHERE t.account_id = ?
           ORDER BY t.transaction_time DESC, t.transaction_id DESC
@@ -1083,7 +1083,7 @@ router.post('/checkout', requireCustomer, async (req, res) => {
     try {
       const transactionResult = await query(
         `
-          INSERT INTO \`Transaction\` (
+          INSERT INTO Transactions (
             account_id,
             transaction_time,
             total_amount,

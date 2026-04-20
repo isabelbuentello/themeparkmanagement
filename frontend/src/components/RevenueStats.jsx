@@ -3,19 +3,21 @@ import { useState, useEffect } from 'react'
 function RevenueStats({ token }) {
   const [revenue, setRevenue] = useState([])
   const [breakdown, setBreakdown] = useState([])
+  const [tickets, setTickets] = useState([])
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [view, setView] = useState('daily')
 
+  const buildParams = () => {
+    const params = []
+    if (startDate) params.push(`start=${startDate}`)
+    if (endDate) params.push(`end=${endDate}`)
+    return params.length ? '?' + params.join('&') : ''
+  }
+
   const fetchRevenue = async () => {
     try {
-      let url = '/api/gm/revenue'
-      const params = []
-      if (startDate) params.push(`start=${startDate}`)
-      if (endDate) params.push(`end=${endDate}`)
-      if (params.length) url += '?' + params.join('&')
-
-      const res = await fetch(url, {
+      const res = await fetch(`/api/gm/revenue${buildParams()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (res.ok) setRevenue(await res.json())
@@ -24,27 +26,39 @@ function RevenueStats({ token }) {
 
   const fetchBreakdown = async () => {
     try {
-      let url = '/api/gm/revenue/breakdown'
-      const params = []
-      if (startDate) params.push(`start=${startDate}`)
-      if (endDate) params.push(`end=${endDate}`)
-      if (params.length) url += '?' + params.join('&')
-
-      const res = await fetch(url, {
+      const res = await fetch(`/api/gm/revenue/breakdown${buildParams()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (res.ok) setBreakdown(await res.json())
     } catch (err) { console.error('Error fetching revenue breakdown') }
   }
 
+  const fetchTickets = async () => {
+    try {
+      const res = await fetch(`/api/gm/revenue/tickets${buildParams()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) setTickets(await res.json())
+    } catch (err) { console.error('Error fetching ticket revenue') }
+  }
+
   useEffect(() => {
     fetchRevenue()
     fetchBreakdown()
+    fetchTickets()
   }, [])
 
   const handleFilter = () => {
     fetchRevenue()
     fetchBreakdown()
+    fetchTickets()
+  }
+
+  const formatType = (type) => {
+    if (type === 'ticket') return 'Tickets'
+    if (type === 'pass') return 'Passes'
+    if (type === 'other') return 'Memberships/Parking'
+    return type
   }
 
   return (
@@ -70,6 +84,11 @@ function RevenueStats({ token }) {
             onClick={() => setView('breakdown')}>
             By Venue
           </button>
+          <button
+            className={`gm-toggle-btn ${view === 'tickets' ? 'active' : ''}`}
+            onClick={() => setView('tickets')}>
+            Tickets & Passes
+          </button>
         </div>
       </div>
 
@@ -77,18 +96,20 @@ function RevenueStats({ token }) {
         <div className="gm-table-wrapper">
           <table className="gm-table">
             <thead>
-              <tr><th>Date</th><th>Total Revenue</th><th>Transactions</th></tr>
+              <tr><th>Date</th><th>Gross Revenue</th><th>Repair Costs</th><th>Net Revenue</th><th>Transactions</th></tr>
             </thead>
             <tbody>
               {revenue.map((r, i) => (
                 <tr key={i}>
                   <td>{new Date(r.revenue_date).toLocaleDateString()}</td>
+                  <td>${Number(r.gross_revenue || 0).toFixed(2)}</td>
+                  <td>-${Number(r.repair_cost || 0).toFixed(2)}</td>
                   <td>${Number(r.daily_total).toFixed(2)}</td>
                   <td>{r.transaction_count}</td>
                 </tr>
               ))}
               {revenue.length === 0 && (
-                <tr><td colSpan="3" style={{ textAlign: 'center', color: '#999' }}>No revenue data</td></tr>
+                <tr><td colSpan="5" style={{ textAlign: 'center', color: '#999' }}>No revenue data</td></tr>
               )}
             </tbody>
           </table>
@@ -112,6 +133,29 @@ function RevenueStats({ token }) {
               ))}
               {breakdown.length === 0 && (
                 <tr><td colSpan="4" style={{ textAlign: 'center', color: '#999' }}>No venue revenue data</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {view === 'tickets' && (
+        <div className="gm-table-wrapper">
+          <table className="gm-table">
+            <thead>
+              <tr><th>Date</th><th>Type</th><th>Revenue</th><th>Transactions</th></tr>
+            </thead>
+            <tbody>
+              {tickets.map((r, i) => (
+                <tr key={i}>
+                  <td>{new Date(r.revenue_date).toLocaleDateString()}</td>
+                  <td>{formatType(r.item_type)}</td>
+                  <td>${Number(r.revenue).toFixed(2)}</td>
+                  <td>{r.transaction_count}</td>
+                </tr>
+              ))}
+              {tickets.length === 0 && (
+                <tr><td colSpan="4" style={{ textAlign: 'center', color: '#999' }}>No ticket/pass revenue data</td></tr>
               )}
             </tbody>
           </table>
