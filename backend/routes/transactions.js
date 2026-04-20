@@ -38,7 +38,13 @@ function isPastDate(dateText) {
 // ─────────────────────────────────────────
 
 const TICKET_PRICES = { 1: 25.00, 2: 10.00 }
-const PASS_PRICES = { 1: 15.00, 2: 20.00, 3: 10.00, 4: 150.00 }
+const PASS_PRICES = {
+  1: 49.99,  // fast pass
+  2: 39.99,  // food pass
+  3: 25.00,  // parking pass
+  4: 299.99, // season pass
+  5: 79.99   // rides pass
+}
 
 // ─────────────────────────────────────────
 // CUSTOMER LOOKUP
