@@ -24,6 +24,18 @@ function requireGM(req, res, next) {
 	next()
 }
 
+function isPastDate(dateText) {
+	if (!dateText) return false
+
+	const selectedDate = new Date(`${dateText}T00:00:00`)
+	if (Number.isNaN(selectedDate.getTime())) return false
+
+	const today = new Date()
+	today.setHours(0, 0, 0, 0)
+
+	return selectedDate < today
+}
+
 // helper: parse comma-separated venue param into array of IDs
 function parseVenueIds(venueParam) {
 	if (!venueParam) return []
@@ -39,7 +51,7 @@ router.get('/venues', verifyToken, requireGM, (req, res) => {
 			if (err) return res.status(500).json({ message: 'Server error' })
 			res.json(results)
 		}
-	)
+)
 })
 
 // ─── PARK DAY ───
@@ -51,6 +63,11 @@ router.post('/parkday', verifyToken, requireGM, (req, res) => {
 		return res.status(400).json({ message: 'park_date, rain, and park_closed are required' })
 	}
 
+	if (isPastDate(park_date)) {
+		return res.status(400).json({ message: 'park_date cannot be in the past' })
+	}
+
+	// count attendance from Visit entries for that date
 	db.query(
 		'SELECT COUNT(*) AS attendance FROM Visit WHERE visit_date = ?',
 		[park_date],
@@ -209,7 +226,7 @@ router.get('/revenue/breakdown', verifyToken, requireGM, (req, res) => {
 	const venueIds = parseVenueIds(venue)
 
 	let sql = `
-		SELECT 
+		SELECT
 			DATE(t.transaction_time) AS date_of_revenue,
 			v.venue_name,
 			v.venue_type,
@@ -254,7 +271,7 @@ router.get('/revenue/tickets', verifyToken, requireGM, (req, res) => {
 	const { start, end, types } = req.query
 
 	let sql = `
-		SELECT 
+		SELECT
 			DATE(t.transaction_time) AS revenue_date,
 			ti.item_type,
 			SUM(t.total_amount) AS revenue,
@@ -290,6 +307,207 @@ router.get('/revenue/tickets', verifyToken, requireGM, (req, res) => {
 		if (err) return res.status(500).json({ message: 'Server error' })
 		res.json(results)
 	})
+})
+
+router.get('/customer-loyalty', verifyToken, requireGM, async (req, res) => {
+  const query = (sql, params = []) => db.promise().query(sql, params)
+  const { status, tier } = req.query
+  const validStatuses = ['active', 'expired', 'canceled']
+  const validTiers = ['silver', 'gold', 'platinum']
+
+  try {
+    const filters = []
+    const filterParams = []
+
+    if (status && validStatuses.includes(status)) {
+      filters.push('m.status_membership = ?')
+      filterParams.push(status)
+    }
+
+    if (tier && validTiers.includes(tier)) {
+      filters.push('mt.tier_name = ?')
+      filterParams.push(tier)
+    }
+
+    const whereSql = filters.length ? `WHERE ${filters.join(' AND ')}` : ''
+
+    const latestMembershipSql = `
+      FROM Membership m
+      JOIN (
+        SELECT account_id, MAX(membership_id) AS membership_id
+        FROM Membership
+        GROUP BY account_id
+      ) latest ON latest.membership_id = m.membership_id
+      JOIN MembershipTier mt ON mt.tier_id = m.tier_id
+      JOIN Account a ON a.account_id = m.account_id
+      JOIN Customer c ON c.customer_id = a.customer_id
+      LEFT JOIN (
+        SELECT
+          account_id,
+          SUM(total_amount) AS total_spent,
+          COUNT(*) AS transaction_count
+        FROM Transactions
+        GROUP BY account_id
+      ) spending ON spending.account_id = a.account_id
+    `
+
+    const durationSql = `
+      CASE
+        WHEN m.status_membership = 'active' THEN DATEDIFF(CURDATE(), m.start_date)
+        ELSE DATEDIFF(m.end_date, m.start_date)
+      END
+    `
+
+    const [
+      [statusCounts],
+      [tierCounts],
+      [members],
+      [summaryRows],
+      [loyalRows],
+      [globalSummaryRows],
+      [globalLoyalRows],
+      [mostActiveTierRows]
+    ] = await Promise.all([
+      query(`
+        SELECT m.status_membership AS status, COUNT(*) AS member_count
+        ${latestMembershipSql}
+        ${whereSql}
+        GROUP BY m.status_membership
+        ORDER BY member_count DESC, status
+      `, filterParams),
+      query(`
+        SELECT mt.tier_name AS tier, COUNT(*) AS member_count
+        ${latestMembershipSql}
+        ${whereSql}
+        GROUP BY mt.tier_name
+        ORDER BY member_count DESC, tier
+      `, filterParams),
+      query(`
+        SELECT
+          c.customer_id,
+          CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
+          c.customer_email,
+          a.username,
+          m.membership_id,
+          mt.tier_name,
+          m.status_membership,
+          m.start_date,
+          m.end_date,
+          m.auto_renew,
+          ${durationSql} AS days_as_member,
+          COALESCE(spending.total_spent, 0) AS total_spent,
+          COALESCE(spending.transaction_count, 0) AS transaction_count
+        ${latestMembershipSql}
+        ${whereSql}
+        ORDER BY days_as_member DESC, m.start_date ASC, customer_name
+      `, filterParams),
+      query(`
+        SELECT
+          COUNT(*) AS total_members,
+          SUM(CASE WHEN m.status_membership = 'active' THEN 1 ELSE 0 END) AS active_members
+        ${latestMembershipSql}
+        ${whereSql}
+      `, filterParams),
+      query(`
+        SELECT
+          c.customer_id,
+          CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
+          c.customer_email,
+          MIN(all_m.start_date) AS member_since,
+          DATEDIFF(CURDATE(), MIN(all_m.start_date)) AS days_as_member,
+          COUNT(all_m.membership_id) AS membership_count,
+          latest_m.status_membership,
+          mt.tier_name
+        FROM Membership all_m
+        JOIN Account a ON a.account_id = all_m.account_id
+        JOIN Customer c ON c.customer_id = a.customer_id
+        JOIN (
+          SELECT account_id, MAX(membership_id) AS membership_id
+          FROM Membership
+          GROUP BY account_id
+        ) latest ON latest.account_id = all_m.account_id
+        JOIN Membership latest_m ON latest_m.membership_id = latest.membership_id
+        JOIN MembershipTier mt ON mt.tier_id = latest_m.tier_id
+        ${whereSql.replaceAll('m.', 'latest_m.')}
+        GROUP BY
+          c.customer_id,
+          c.first_name,
+          c.last_name,
+          c.customer_email,
+          latest_m.status_membership,
+          mt.tier_name
+        ORDER BY days_as_member DESC, member_since ASC
+        LIMIT 1
+      `, filterParams),
+      query(`
+        SELECT
+          COUNT(*) AS total_members,
+          SUM(CASE WHEN m.status_membership = 'active' THEN 1 ELSE 0 END) AS active_members
+        ${latestMembershipSql}
+      `),
+      query(`
+        SELECT
+          c.customer_id,
+          CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
+          c.customer_email,
+          MIN(all_m.start_date) AS member_since,
+          DATEDIFF(CURDATE(), MIN(all_m.start_date)) AS days_as_member,
+          COUNT(all_m.membership_id) AS membership_count,
+          latest_m.status_membership,
+          mt.tier_name
+        FROM Membership all_m
+        JOIN Account a ON a.account_id = all_m.account_id
+        JOIN Customer c ON c.customer_id = a.customer_id
+        JOIN (
+          SELECT account_id, MAX(membership_id) AS membership_id
+          FROM Membership
+          GROUP BY account_id
+        ) latest ON latest.account_id = all_m.account_id
+        JOIN Membership latest_m ON latest_m.membership_id = latest.membership_id
+        JOIN MembershipTier mt ON mt.tier_id = latest_m.tier_id
+        GROUP BY
+          c.customer_id,
+          c.first_name,
+          c.last_name,
+          c.customer_email,
+          latest_m.status_membership,
+          mt.tier_name
+        ORDER BY days_as_member DESC, member_since ASC
+        LIMIT 1
+      `),
+      query(`
+        SELECT mt.tier_name AS tier, COUNT(*) AS active_count
+        ${latestMembershipSql}
+        WHERE m.status_membership = 'active'
+        GROUP BY mt.tier_name
+        ORDER BY active_count DESC, tier
+        LIMIT 1
+      `)
+    ])
+
+    const mostCommonStatus = statusCounts[0]?.status || null
+
+    res.json({
+      summary: {
+        totalMembers: Number(summaryRows[0]?.total_members || 0),
+        activeMembers: Number(summaryRows[0]?.active_members || 0),
+        mostCommonStatus,
+        mostLoyalCustomer: loyalRows[0] || null
+      },
+      globalSummary: {
+        totalMembers: Number(globalSummaryRows[0]?.total_members || 0),
+        activeMembers: Number(globalSummaryRows[0]?.active_members || 0),
+        mostActiveMembership: mostActiveTierRows[0] || null,
+        mostLoyalCustomer: globalLoyalRows[0] || null
+      },
+      statusCounts,
+      tierCounts,
+      members
+    })
+  } catch (err) {
+    console.error('Customer loyalty report error:', err)
+    res.status(500).json({ message: 'Server error' })
+  }
 })
 
 export default router

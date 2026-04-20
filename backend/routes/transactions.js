@@ -24,6 +24,18 @@ function requireRole(...roles) {
   }
 }
 
+function isPastDate(dateText) {
+  if (!dateText) return false
+
+  const selectedDate = new Date(`${dateText}T00:00:00`)
+  if (Number.isNaN(selectedDate.getTime())) return false
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  return selectedDate < today
+}
+
 // ─────────────────────────────────────────
 // PRICES
 // ─────────────────────────────────────────
@@ -470,6 +482,10 @@ router.post('/restaurants/reservations', verifyToken, requireRole('restaurant_ma
 
   if (!restaurant_venue_id || !customer_id || !reservation_date || !reservation_time || !party_size) {
     return res.status(400).json({ message: 'Please fill in all fields' })
+  }
+
+  if (isPastDate(reservation_date)) {
+    return res.status(400).json({ message: 'Reservation date cannot be in the past' })
   }
 
   db.query(
