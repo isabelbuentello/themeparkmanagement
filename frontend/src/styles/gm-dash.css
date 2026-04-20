@@ -65,6 +65,38 @@
   border-color: #343a40;
 }
 
+.maintenance-dash select {
+  min-width: 150px;
+  padding: 10px 14px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background: white;
+  color: #343a40;
+  font: inherit;
+}
+
+.maintenance-dash button:not(.gm-btn-back) {
+  background-color: white;
+  color: #495057;
+  border: 1px solid #ced4da;
+  padding: 0.55rem 0.95rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.maintenance-dash button:not(.gm-btn-back):hover:not(:disabled) {
+  background-color: #343a40;
+  color: white;
+  border-color: #343a40;
+}
+
+.maintenance-dash button:not(.gm-btn-back):disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .gm-section-title {
   color: #495057;
   margin-top: 2rem;
