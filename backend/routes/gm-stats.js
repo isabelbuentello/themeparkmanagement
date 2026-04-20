@@ -24,10 +24,26 @@ function requireGM(req, res, next) {
 	next()
 }
 
-// PARK DAY
+// helper: parse comma-separated venue param into array of IDs
+function parseVenueIds(venueParam) {
+	if (!venueParam) return []
+	return venueParam.split(',').map(id => Number(id.trim())).filter(id => !isNaN(id))
+}
 
-// POST /parkday — log a new park day
-// attendance is auto-counted from Visit table
+// ─── VENUES ───
+
+router.get('/venues', verifyToken, requireGM, (req, res) => {
+	db.query(
+		'SELECT venue_id, venue_name, venue_type FROM Venue ORDER BY venue_name',
+		(err, results) => {
+			if (err) return res.status(500).json({ message: 'Server error' })
+			res.json(results)
+		}
+	)
+})
+
+// ─── PARK DAY ───
+
 router.post('/parkday', verifyToken, requireGM, (req, res) => {
 	const { park_date, rain, park_closed, weather_notes } = req.body
 
@@ -35,7 +51,6 @@ router.post('/parkday', verifyToken, requireGM, (req, res) => {
 		return res.status(400).json({ message: 'park_date, rain, and park_closed are required' })
 	}
 
-	// count attendance from Visit entries for that date
 	db.query(
 		'SELECT COUNT(*) AS attendance FROM Visit WHERE visit_date = ?',
 		[park_date],
@@ -66,8 +81,6 @@ router.post('/parkday', verifyToken, requireGM, (req, res) => {
 	)
 })
 
-// PATCH /parkday/:id — update rain, park_closed, weather_notes
-// re-calculates attendance from Visit table
 router.patch('/parkday/:id', verifyToken, requireGM, (req, res) => {
 	const { id } = req.params
 	const { rain, park_closed, weather_notes } = req.body
@@ -101,7 +114,6 @@ router.patch('/parkday/:id', verifyToken, requireGM, (req, res) => {
 					if (err) return res.status(500).json({ message: 'Server error' })
 					if (result.affectedRows === 0) return res.status(404).json({ message: 'Park day not found' })
 
-					// query what the rain triggers just changed
 					db.query(
 						`SELECT ride_name, status_ride FROM Ride WHERE affected_by_rain = TRUE`,
 						(err, rides) => {
@@ -122,8 +134,6 @@ router.patch('/parkday/:id', verifyToken, requireGM, (req, res) => {
 	})
 })
 
-// GET /parkday — list park days with optional date range
-// query params: ?start=YYYY-MM-DD&end=YYYY-MM-DD
 router.get('/parkday', verifyToken, requireGM, (req, res) => {
 	const { start, end } = req.query
 	let sql = `SELECT day_id, park_date, rain, park_closed, weather_notes, total_attendance
@@ -149,62 +159,42 @@ router.get('/parkday', verifyToken, requireGM, (req, res) => {
 	})
 })
 
+// ─── REVENUE ───
+
 // GET /revenue — daily totals
+// query params: start, end, venue (comma-separated venue IDs)
 router.get('/revenue', verifyToken, requireGM, (req, res) => {
-	const { start, end } = req.query
-	const transactionFilters = []
-	const maintenanceFilters = []
+	const { start, end, venue } = req.query
+	const venueIds = parseVenueIds(venue)
+
+	let sql = `SELECT DATE(transaction_time) AS revenue_date,
+	                  SUM(total_amount) AS daily_total,
+	                  COUNT(*) AS transaction_count
+	           FROM Transactions`
+	const conditions = []
 	const params = []
 
 	if (start && end) {
-		transactionFilters.push('DATE(transaction_time) BETWEEN ? AND ?')
-		maintenanceFilters.push('DATE(COALESCE(cost_recorded_time, created_time)) BETWEEN ? AND ?')
-		params.push(start, end, start, end)
+		conditions.push('DATE(transaction_time) BETWEEN ? AND ?')
+		params.push(start, end)
 	} else if (start) {
-		transactionFilters.push('DATE(transaction_time) >= ?')
-		maintenanceFilters.push('DATE(COALESCE(cost_recorded_time, created_time)) >= ?')
-		params.push(start, start)
+		conditions.push('DATE(transaction_time) >= ?')
+		params.push(start)
 	} else if (end) {
-		transactionFilters.push('DATE(transaction_time) <= ?')
-		maintenanceFilters.push('DATE(COALESCE(cost_recorded_time, created_time)) <= ?')
-		params.push(end, end)
+		conditions.push('DATE(transaction_time) <= ?')
+		params.push(end)
 	}
 
-	const transactionWhere = transactionFilters.length ? `WHERE ${transactionFilters.join(' AND ')}` : ''
-	const maintenanceWhere = maintenanceFilters.length ? `WHERE ${maintenanceFilters.join(' AND ')}` : ''
+	if (venueIds.length > 0) {
+		conditions.push(`venue_id IN (${venueIds.map(() => '?').join(',')})`)
+		params.push(...venueIds)
+	}
 
-	const sql = `
-	  SELECT
-	    revenue_date,
-	    SUM(gross_revenue) AS gross_revenue,
-	    SUM(repair_cost) AS repair_cost,
-	    SUM(gross_revenue) - SUM(repair_cost) AS daily_total,
-	    SUM(transaction_count) AS transaction_count
-	  FROM (
-	    SELECT
-	      DATE(transaction_time) AS revenue_date,
-	      SUM(total_amount) AS gross_revenue,
-	      0 AS repair_cost,
-	      COUNT(*) AS transaction_count
-	    FROM Transactions
-	    ${transactionWhere}
-	    GROUP BY DATE(transaction_time)
+	if (conditions.length > 0) {
+		sql += ' WHERE ' + conditions.join(' AND ')
+	}
 
-	    UNION ALL
-
-	    SELECT
-	      DATE(COALESCE(cost_recorded_time, created_time)) AS revenue_date,
-	      0 AS gross_revenue,
-	      SUM(COALESCE(cost_to_repair, 0)) AS repair_cost,
-	      0 AS transaction_count
-	    FROM MaintenanceRequest
-	    WHERE cost_to_repair IS NOT NULL
-	    ${maintenanceWhere ? `AND ${maintenanceWhere.replace(/^WHERE\s+/, '')}` : ''}
-	    GROUP BY DATE(COALESCE(cost_recorded_time, created_time))
-	  ) revenue_parts
-	  GROUP BY revenue_date
-	  ORDER BY revenue_date DESC
-	`
+	sql += ' GROUP BY DATE(transaction_time) ORDER BY revenue_date DESC'
 
 	db.query(sql, params, (err, results) => {
 		if (err) return res.status(500).json({ message: 'Server error' })
@@ -212,69 +202,94 @@ router.get('/revenue', verifyToken, requireGM, (req, res) => {
 	})
 })
 
+// GET /revenue/breakdown — by venue
+// query params: start, end, venue (comma-separated venue IDs)
 router.get('/revenue/breakdown', verifyToken, requireGM, (req, res) => {
-  const { start, end } = req.query
-  let sql = `
-    SELECT 
-      DATE(t.transaction_time) AS date_of_revenue,
-      v.venue_name,
-      v.venue_type,
-      SUM(t.total_amount) AS revenue
-    FROM Transactions t
-    JOIN Venue v ON t.venue_id = v.venue_id
-  `
-  const params = []
+	const { start, end, venue } = req.query
+	const venueIds = parseVenueIds(venue)
 
-  if (start && end) {
-    sql += ' WHERE DATE(t.transaction_time) BETWEEN ? AND ?'
-    params.push(start, end)
-} else if (start) {
-    sql += ' WHERE DATE(t.transaction_time) >= ?'
-    params.push(start)
-} else if (end) {
-    sql += ' WHERE DATE(t.transaction_time) <= ?'
-    params.push(end)
-}
+	let sql = `
+		SELECT 
+			DATE(t.transaction_time) AS date_of_revenue,
+			v.venue_name,
+			v.venue_type,
+			SUM(t.total_amount) AS revenue
+		FROM Transactions t
+		JOIN Venue v ON t.venue_id = v.venue_id
+	`
+	const conditions = []
+	const params = []
 
-  sql += ' GROUP BY DATE(t.transaction_time), t.venue_id ORDER BY date_of_revenue DESC, v.venue_name'
+	if (start && end) {
+		conditions.push('DATE(t.transaction_time) BETWEEN ? AND ?')
+		params.push(start, end)
+	} else if (start) {
+		conditions.push('DATE(t.transaction_time) >= ?')
+		params.push(start)
+	} else if (end) {
+		conditions.push('DATE(t.transaction_time) <= ?')
+		params.push(end)
+	}
 
-  db.query(sql, params, (err, results) => {
-    if (err) return res.status(500).json({ message: 'Server error' })
-    res.json(results)
-  })
+	if (venueIds.length > 0) {
+		conditions.push(`v.venue_id IN (${venueIds.map(() => '?').join(',')})`)
+		params.push(...venueIds)
+	}
+
+	if (conditions.length > 0) {
+		sql += ' WHERE ' + conditions.join(' AND ')
+	}
+
+	sql += ' GROUP BY DATE(t.transaction_time), t.venue_id ORDER BY date_of_revenue DESC, v.venue_name'
+
+	db.query(sql, params, (err, results) => {
+		if (err) return res.status(500).json({ message: 'Server error' })
+		res.json(results)
+	})
 })
 
+// GET /revenue/tickets — ticket/pass/membership revenue
+// query params: start, end, types (comma-separated: ticket,pass,other)
 router.get('/revenue/tickets', verifyToken, requireGM, (req, res) => {
-  const { start, end } = req.query
-  let sql = `
-    SELECT 
-      DATE(t.transaction_time) AS revenue_date,
-      ti.item_type,
-      SUM(t.total_amount) AS revenue,
-      COUNT(*) AS transaction_count
-    FROM Transactions t
-    JOIN TransactionItem ti ON t.transaction_id = ti.transaction_id
-    WHERE t.venue_id IS NULL
-  `
-  const params = []
+	const { start, end, types } = req.query
 
-  if (start && end) {
-    sql += ' AND DATE(t.transaction_time) BETWEEN ? AND ?'
-    params.push(start, end)
-  } else if (start) {
-    sql += ' AND DATE(t.transaction_time) >= ?'
-    params.push(start)
-  } else if (end) {
-    sql += ' AND DATE(t.transaction_time) <= ?'
-    params.push(end)
-  }
+	let sql = `
+		SELECT 
+			DATE(t.transaction_time) AS revenue_date,
+			ti.item_type,
+			SUM(t.total_amount) AS revenue,
+			COUNT(*) AS transaction_count
+		FROM Transactions t
+		JOIN TransactionItem ti ON t.transaction_id = ti.transaction_id
+		WHERE t.venue_id IS NULL
+	`
+	const params = []
 
-  sql += ' GROUP BY DATE(t.transaction_time), ti.item_type ORDER BY revenue_date DESC, ti.item_type'
+	if (start && end) {
+		sql += ' AND DATE(t.transaction_time) BETWEEN ? AND ?'
+		params.push(start, end)
+	} else if (start) {
+		sql += ' AND DATE(t.transaction_time) >= ?'
+		params.push(start)
+	} else if (end) {
+		sql += ' AND DATE(t.transaction_time) <= ?'
+		params.push(end)
+	}
 
-  db.query(sql, params, (err, results) => {
-    if (err) return res.status(500).json({ message: 'Server error' })
-    res.json(results)
-  })
+	if (types) {
+		const typeList = types.split(',').map(t => t.trim()).filter(Boolean)
+		if (typeList.length > 0) {
+			sql += ` AND ti.item_type IN (${typeList.map(() => '?').join(',')})`
+			params.push(...typeList)
+		}
+	}
+
+	sql += ' GROUP BY DATE(t.transaction_time), ti.item_type ORDER BY revenue_date DESC, ti.item_type'
+
+	db.query(sql, params, (err, results) => {
+		if (err) return res.status(500).json({ message: 'Server error' })
+		res.json(results)
+	})
 })
 
 export default router
